@@ -5,18 +5,15 @@
 #SBATCH --partition=medium
 
 
-#### ENVIRONMENT ####
+#### CONDA ENVIRONMENT ####
 ml Anaconda3/2023.07-2
 
-source activate sra-env
-if [ $? -ne 0 ]; then
+conda activate sra-env
+if ! conda activate sra-env; then
     echo "Failed to activate Conda environment 'sra-env'"
     exit 1
 fi
-
-# Confirm the activated Conda environment
-ACTIVE_ENV=$(conda info --envs | grep '*' | awk '{print $1}')
-echo "Activated Conda environment: ${ACTIVE_ENV}"
+echo "Activated Conda environment 'sra-env'"
 
 
 #### OUTPUT DIRECTORY ####
