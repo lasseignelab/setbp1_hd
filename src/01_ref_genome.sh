@@ -10,15 +10,15 @@
 #### HUMAN ####
 # GENCODE v45 GTF annotation
 cap_data_download \
-    --unzip \
-    --md5sum="b6eeb6c9791b7a43a5504a654ff09d9a" \
-    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_45/gencode.v45.annotation.gtf.gz"
+  --unzip \
+  --md5sum="81cf2337bb31aeaddba7059a3b0f14f5" \
+  "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_47/gencode.v47.primary_assembly.annotation.gtf.gz" \
 
-# Primary assembly FASTA
+# Download the FASTA files
 cap_data_download \
-    --unzip \
-    --md5sum="ad62ff4d71d0b5b8d7feabbec5ce86bf" \
-    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_45/GRCh38.primary_assembly.genome.fa.gz"
+  --unzip \
+  --md5sum="0c33152bea6f09b89fb5e3f89558771e" \
+  "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_47/GRCh38.primary_assembly.genome.fa.gz" \
 
 #### MOUSE ####
 # GENCODE v39 GTF and FASTA from 10x
