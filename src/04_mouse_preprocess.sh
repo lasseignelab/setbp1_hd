@@ -37,7 +37,7 @@ nextflow run nf-core/rnaseq -r 3.18.0 \
     -profile cheaha \
     --aligner star_salmon \
     --pseudo_aligner salmon \
-    --fasta "$CAP_DATA_PATH/genome.fa" \
-    --gtf "$CAP_DATA_PATH/genes.gtf" \
+    --fasta "$CAP_DATA_PATH/GRCm39.primary_assembly.genome.fa" \
+    --gtf "$CAP_DATA_PATH/gencode.vM31.primary_assembly.annotation.gtf" \
     --gencode TRUE \
     --save_reference TRUE
