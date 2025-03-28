@@ -16,7 +16,7 @@ if conda info --envs | grep -q "$ENV_NAME"; then
     echo "Environment '$ENV_NAME' already exists."
 else
     echo "Creating environment '$ENV_NAME' from $YML_FILE..."
-    conda env create -f $YML_FILE
+    conda env create -f "$YML_FILE"
 fi
 conda activate $ENV_NAME
 
