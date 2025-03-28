@@ -8,7 +8,7 @@
 # CAPTURE will download or symlink to the $CAP_DATA_PATH -- within the project's /data/ directory
 
 #### HUMAN ####
-# GENCODE v45 GTF annotation
+# GRCh38 GENCODE v47 GTF annotation
 cap_data_download \
   --unzip \
   --md5sum="81cf2337bb31aeaddba7059a3b0f14f5" \
@@ -21,8 +21,14 @@ cap_data_download \
   "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_47/GRCh38.primary_assembly.genome.fa.gz" \
 
 #### MOUSE ####
-# GENCODE v39 GTF and FASTA from 10x
+# GRCm39 GENCODE v31 GTF annotation
 cap_data_download \
   --unzip \
-  --md5sum="37c51137ccaeabd4d151f80dc86ce0b3" \
-  "https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCm39-2024-A.tar.gz"
+  --md5sum="a5efd718f75c1128d51e3e13fd85f60d" \
+  "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M31/gencode.vM31.primary_assembly.annotation.gtf.gz" \
+
+# Download the FASTA file
+cap_data_download \
+  --unzip \
+  --md5sum="7079525a8ea7495e46966a64a231ae6c" \
+  "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M31/GRCm39.primary_assembly.genome.fa.gz" \
