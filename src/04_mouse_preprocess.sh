@@ -10,7 +10,7 @@ YML_FILE="$CAP_PROJECT_PATH/bin/conda/nfcore-env.yml"
 ENV_NAME="nfcore-env"
 OUT_DIR="$CAP_DATA_PATH/tanaka/"
 
-mkdir -p $OUT_DIR
+mkdir -p "$OUT_DIR"
 
 #### ENVIRONMENT ####
 # cheaha profile info https://github.com/nf-core/configs/blob/master/docs/cheaha.md
@@ -21,14 +21,9 @@ if conda info --envs | grep -q "$ENV_NAME"; then
     echo "Environment '$ENV_NAME' already exists."
 else
     echo "Creating environment '$ENV_NAME' from $YML_FILE..."
-    conda env create -f $YML_FILE
+    conda env create -f "$YML_FILE"
 fi
 conda activate $ENV_NAME
-
-#### NF SETUP ####
-# nextflow memory requirements
-NXF_OPTS='-Xms1g -Xmx4g'echo "Nextflow environment settings:"
-env | grep "NXF"
 
 # Run pipeline
 nextflow run nf-core/rnaseq -r 3.18.0 \
