@@ -1,4 +1,6 @@
-BATCH --cpus-per-task=2
+#!/usr/bin/env bash
+
+ #BATCH --cpus-per-task=2
  #SBATCH --mem-per-cpu=12G
  #SBATCH --partition=express
  #SBATCH --array=0-2
