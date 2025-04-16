@@ -46,7 +46,7 @@ print(paste0("Reading in RSE from: ", args$rse))
 
 #### Set variables for dataset ####
 rse <- readRDS(args$rse)
-study <- unique(rse@colData[["sra.study_title"]])
+# rse <- readRDS("./data/cardo/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
 
 # save results to output dir
 filepath <- paste0(args$output_dir, sra, "/")
