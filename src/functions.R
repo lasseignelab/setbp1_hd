@@ -84,11 +84,10 @@ return(vi_list)
 # var_explained = PCs meeting variance explained cutoff
 # color_by = desired metadata variable to color PC's by (must be pcameta colname)
 # sra = SRA number or some other identifier for the dataset for plot title
-# study = study info for title
 # filepath = filepath for saving PCA plot
-rse_pca <- function(pcameta, var_explained, color_by, sra, study, filepath){
+rse_pca <- function(pcameta, var_explained, color_by, sra, filepath){
   pdf(filepath)
-  for(i in 1:(length(var_explained)-1)){
+  for(i in 1:(nrow(var_explained)-1)){
     pca_plot <- pcameta %>%
   # color by discrete values
     ggplot(aes(x = pcameta[,i], y = pcameta[,i+1], color = pcameta[,color_by])) +
@@ -99,7 +98,6 @@ rse_pca <- function(pcameta, var_explained, color_by, sra, study, filepath){
     {if(class(pcameta[,color_by]) != "factor") #check for discrete vs continuous
       scale_color_continuous(name = paste0(color_by), # fix names and wrap long names
                              labels = function(x) str_wrap(x, width = 15))} +
-    
     geom_point(size=4) +
     xlab(paste0("PC", i, " ", 
                 round(var_explained[i,2] *100, digits = 2),# % variance explained by PC
@@ -107,7 +105,7 @@ rse_pca <- function(pcameta, var_explained, color_by, sra, study, filepath){
     ylab(paste0("PC", i+1, " ", 
                 round(var_explained[i+1,2] *100, digits = 2),# % variance explained by PC
                 "% Variance")) +
-    labs(title=str_wrap(paste0("PCA of ", sra, ": ", study)), width = 23)
+    labs(title=str_wrap(paste0("PCA of ", sra)), width = 23)
   
   print(pca_plot)
   }
@@ -123,7 +121,7 @@ rse_pca <- function(pcameta, var_explained, color_by, sra, study, filepath){
 # modeltype = model used with explainer
 # filepath = filepath to save PCA's
 # function plots and saves PCA's colored by variable importance
-pca_topvar_plot <- function(imp_feats_res, pcameta, var_explained, sra, study, modeltype, filepath){
+pca_topvar_plot <- function(imp_feats_res, pcameta, var_explained, sra, modeltype, filepath){
   #plot
   savefile = paste0(filepath, "/PCA_coloredby_imp_feat_", modeltype, ".pdf")
   pdf(savefile)
@@ -157,7 +155,7 @@ pca_topvar_plot <- function(imp_feats_res, pcameta, var_explained, sra, study, m
       ylab(paste0("PC", i+1, " ",
                   round(var_explained[i+1,2] *100, digits = 2),# % variance explained by PC
                   "% Variance")) +
-      labs(title=str_wrap(paste0("PCA of ", sra, ": ", study)), width = 23)
+      labs(title=str_wrap(paste0("PCA of ", sra, ": ")), width = 23)
     
     print(pca_plot)
     #PC "colored by" message
