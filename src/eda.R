@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
   library(ranger)
   library(gbm)
   library(e1071)
-  source("./src/functions.R")
+  source(paste0(getwd(), "/src/functions.R"))
 })
 
 # create parser object
@@ -20,6 +20,16 @@ parser$add_argument("-r", "--rse",
   type = "character",
   metavar = "PATH",
   help = "RSE file (rds format) for EDA from recount3 data (00_data_download or 01_data_preprocessing)" # nolint
+)
+parser$add_argument("-s", "--sra",
+                    type = "character",
+                    metavar = "PATH",
+                    help = "SRA or dataset for naming purposes" # nolint
+)
+parser$add_argument("-m", "--meta",
+                    type = "character",
+                    metavar = "PATH",
+                    help = "Metadata file in csv format" # nolint
 )
 parser$add_argument("-v", "--var_cutoff",
   type = "integer",
@@ -42,35 +52,40 @@ args <- parser$parse_args()
 # start timer
 ptm <- proc.time()
 
+#### Set variables for dataset ####
 print(paste0("Reading in RSE from: ", args$rse))
 
-#### Set variables for dataset ####
 rse <- readRDS(args$rse)
-# rse <- readRDS("./data/cardo/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
+meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
+var_cutoff <- args$var_cutoff
+sra <- args$sra
+# meta <- read.csv("./doc/tanaka_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
+# rse <- readRDS("./data/tanaka/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
+# filepath <- "./results/archive/"
+# var_cutoff <- 4
+# sra <- "tanaka"
 
-# save results to output dir
+# create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
-
-# create dir if needed
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Metadata exploration ####
-meta <- as.data.frame(rse@colData) %>%
-  rownames_to_column(var = "rownames") %>%
-  select_if(function(col) length(unique(col)) > 1) %>%
-  mutate_if(is.character, as.factor)
-
 # frequency of metadata variables
-sra_meta <- meta %>%
-  select(starts_with("sra"))
+
+groupings <- meta %>%
+  # filter out metadata that's completely unique
+  select_if(function(col) length(unique(col)) < length(col)) %>%
+  # filter out data that's completely redundant
+  select_if(function(col) length(unique(col)) != 1) 
 
 pdf(paste0(filepath, "metadata_feat_freq.pdf"))
-for (i in 2:ncol(sra_meta)) {
-  freq <- table(sra_meta[, i])
-  p <- ggplot(as.data.frame(freq), aes(x = Var1, y = Freq)) +
+for (i in 2:ncol(groupings)) {
+  freq <- as.data.frame(table(groupings[, i]))
+  p <- freq %>%
+    ggplot(aes(x = freq[,1], y = Freq)) +
     geom_bar(stat = "identity") +
     geom_text(aes(label = Freq), vjust = -.5) +
-    xlab(paste(colnames(sra_meta)[i])) +
+    xlab(paste(colnames(groupings)[i])) +
     coord_flip()
   print(p)
 }
@@ -81,29 +96,31 @@ print(paste0(
   filepath, "metadata_feat_freq.pdf"
 ))
 
-#### Detect/Filter Gene Counts ####
+# #### Detect/Filter Gene Counts ####
+# # filtering for 0 variance genes
+# cts_filtered <- calc_nonzero(rse@assays@data@listData[["salmon.merged.gene_tpm"]])
 
-# check for counts type input and adjust counts accordingly
-if (args$counts_type == "adj_cts") { # default
-  if (is.null(assays(rse)$adj_cts)) {
-    # auto switch to TPM if counts_type not supplied and N/A adj_cts assay
-    print(paste0(
-      "'counts_type' argument left as default ", args$counts_type,
-      " but no 'adj_cts' assay found in RSE -- using TPM assay instead!"
-    ))
-    cts <- assays(rse)$TPM
-    # filtering for 0 variance genes
-    cts_filtered <- calc_nonzero(cts)
-  } else {
-    cts_filtered <- as.data.frame(assays(rse)$adj_cts)
-  }
-} else {
-  cts <- assays(rse)[[args$counts_type]]
-  # filtering for 0 variance genes
-  cts_filtered <- calc_nonzero(cts)
-}
+#### Sample Variation ####
+# cts_filtered2 <- cts_filtered[1:100,]
 
-#### Sample-Sample Correlation ####?
+cts_long <- cts_filtered %>%
+  rownames_to_column(var = "genes") %>%
+  pivot_longer(cols = !genes, names_to = "sample_ID", values_to = "cts")
+
+meta_cts_long <- groupings %>%
+  rownames_to_column(var = "sample_ID") %>%
+  left_join(cts_long, by = "sample_ID")
+
+meta_cts_long %>%
+  mutate(rep = factor(rep)) %>%
+  ggplot(aes(log2(cts+1), colour = rep)) +
+  geom_freqpoly(binwidth = 5) +
+  facet_grid(cells ~ genotype)
+
+# save plot
+ggsave(paste0(filepath, sra, "_sample_cts_variation_.png"), height = 7, width = 14, units = "cm")
+
+#### Sample-Sample Correlation ####
 top_cts <- cts_filtered[
   c(
     order(
@@ -114,9 +131,7 @@ top_cts <- cts_filtered[
 ]
 sample_cor <- cor(top_cts)
 
-meta_anno <- meta %>%
-  column_to_rownames("rownames") %>%
-  select(starts_with("sra"))
+meta_anno <- groupings[match(colnames(sample_cor), row.names(groupings)),]
 
 png(
   paste0(
@@ -128,7 +143,8 @@ ComplexHeatmap::Heatmap(as.matrix(sample_cor),
   top_annotation = HeatmapAnnotation(
     df = meta_anno,
     show_legend = FALSE
-  )
+  ),
+  cluster_rows = FALSE, cluster_columns = FALSE
 )
 dev.off()
 
@@ -153,7 +169,7 @@ summary(var_explained_df)
 # select variance cutoff to filter by for retaining PC's
 var_explained_cutoff <- filter(
   var_explained_df,
-  var_explained > args$var_cutoff / 100
+  var_explained > var_cutoff / 100
 )
 
 # if threshold only retains 1 PC -- automatically retain PC1 AND PC2
@@ -176,7 +192,7 @@ var_explained_cutoff %>%
   geom_point(size = 4) +
   # geom_line()+
   xlab("PC's Above Var Explained Threshold") +
-  labs(title = str_wrap(paste0("Scree plot of ", sra, ": ", study)), width = 23)
+  labs(title = str_wrap(paste0("Scree plot of ", ": ")), width = 23)
 # save plot
 ggsave(paste0(filepath, "PC_scree_plot.png"))
 
@@ -184,13 +200,14 @@ ggsave(paste0(filepath, "PC_scree_plot.png"))
 # correlation of PCs to numeric QC metadata
 pca_cor <- meta %>% # pc_df %>%
   # select(1:nrow(var_explained_cutoff)) %>%
-  column_to_rownames(var = "rownames") %>%
-  select(starts_with("recount_qc") & ends_with("both")) %>%
+  select_if(is.numeric) %>%
+  select_if(function(col) length(unique(col)) != 1) %>%
+  # select(starts_with("recount_qc") & ends_with("both")) %>%
   # filter for data that's individual
-  rename_with(~ gsub("recount_qc.star.", "", .x, fixed = TRUE)) %>%
-  rename_with(~ gsub("_both", "", .x, fixed = TRUE)) %>%
+  # rename_with(~ gsub("recount_qc.star.", "", .x, fixed = TRUE)) %>%
+  # rename_with(~ gsub("_both", "", .x, fixed = TRUE)) %>%
   bind_cols(pc_keep, .) %>%
-  select(where(is.numeric)) %>%
+  # select(where(is.numeric)) %>%
   cor()
 
 
@@ -210,22 +227,36 @@ print(paste0(
 
 #### Metadata features driving variation ####
 
-pca_meta <- meta %>%
-  column_to_rownames(var = "rownames") %>%
-  select(contains("sra")) %>% # use sra metadata
+pca_meta <- groupings %>%
   # filter for data that's individual
-  select_if(function(col) length(unique(col)) < length(col)) %>%
-  bind_cols(pc_keep, .)
+  # select_if(function(col) length(unique(col)) < length(col)) %>%
+  bind_cols(pc_keep, .) %>%
+  mutate(across(where(is.character), as.factor))
 
-# PCA color by column of interest if supplied by user
-# if (!is.null(treatment)) {
-if (!is.null(args$treatment)) {
+# PCA color by column of interest(s) if supplied by user
+if (sra == "cardo"){
+  int_feats <- c("genotype", "cells", "differentiation_days", "sample", "sample_type")
+}
+if (sra == "shaw"){
+  int_feats <- c("genotype", "cells", "sample", "ACMG")
+}
+if (sra == "tanaka"){
+  int_feats <- c("genotype", "AGE", "sample", "sampe_name", "sex")
+}
+
+for (i in seq_along(int_feats)){
   rse_pca(pca_meta, var_explained_cutoff,
-    color_by = args$treatment,
-    sra = "sra", study = "study",
-    filepath = paste0(filepath, "PCA_coloredby_", args$treatment, ".pdf")
+          color_by = int_feats[i],
+          sra = sra,
+          filepath = paste0(filepath, "PCA_coloredby_", int_feats[i], ".pdf")
   )
 }
+# rse_pca(pca_meta, var_explained_cutoff,
+#         color_by = "ACMG",
+#         sra = "sra",
+#         filepath = paste0(filepath, "PCA_coloredby_sampletype.pdf")
+# )
+
 
 #### Feature importance of each PC ####
 
@@ -240,10 +271,10 @@ for (i in seq_along(model_types)) {
         modeltype = model_types[i],
         suffix = "PC",
         numpc = nrow(var_explained_cutoff),
-        sra = sra,
+        sra = "test",
         filepath = filepath
       )
-      pca_topvar_plot(imp_feats, pca_meta, var_explained_cutoff, sra, study,
+      pca_topvar_plot(imp_feats, pca_meta, var_explained_cutoff, sra,
         modeltype = model_types[i], filepath
       )
       print(paste0(
