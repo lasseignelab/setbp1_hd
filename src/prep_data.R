@@ -62,9 +62,12 @@ if (sra == "cardo") {
       across(everything(), ~ str_replace_all(., "\\s+", "_")) ,
       cells = ifelse(cell_type == "hESC-derived_neurons", "Neuron", "NPC"),
       sample_type = paste0(cells, "_", genotype),
-      sample = paste0(genotype, "_", differentiation_days)#,
-      #ACMG = ifelse(genotype == "WT", "WT", ifelse(genotype == "VUS2", "VUS", "PATH"))
-    ) %>%
+      sample = paste0(genotype, "_", differentiation_days),
+      # broad identifier of SETBP1-KOs vs control
+      condition = ifelse(
+        # grepl("control", sample, ignore.case = TRUE), "Control", ifelse(
+          grepl("WT", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
+        )) %>%
     rownames_to_column() %>%
     group_by(sample) %>%
     mutate(rep = seq_along(sample)) %>%
@@ -82,8 +85,12 @@ if (sra == "shaw") {
       across(everything(), ~ str_replace_all(., "\\s+", "_")) ,
       cells = ifelse(cell_type == "neural_progenitor_cells", "NPC", "IPSC"),
       sample = paste0(cells, "_", genotype),
-      ACMG = ifelse(genotype == "WT", "WT", ifelse(genotype == "VUS2", "VUS", "PATH"))
-    ) %>%
+      ACMG = ifelse(genotype == "WT", "WT", ifelse(genotype == "VUS2", "VUS", "PATH")),
+      # broad identifier of SETBP1-KOs vs control
+      condition = ifelse(
+        # grepl("control", sample, ignore.case = TRUE), "Control", ifelse(
+        grepl("WT", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
+      )) %>%
     rownames_to_column() %>%
     group_by(sample) %>%
     mutate(rep = seq_along(sample)) %>%
@@ -100,13 +107,18 @@ if (sra == "tanaka") {
       across(everything(), ~ str_replace_all(., "\\s+", "_")),
       # rm prefix from samples
       sample = str_replace(`Sample.Name`, "^RNA-seq,_LSK,_", ""),
-      rep = str_extract(sample, "[0-9]+$"),
+      rep = as.integer(str_extract(sample, "[0-9]+$")),
       #source_name = ifelse(`Sample.Name` starts_with("RNA"), "LSK", "LK"),
       source_name = ifelse(grepl("^RNA-seq,_LSK,_", `Sample.Name`), "LSK", "LS"),
       # split sample names and rep numbers
       sample = str_replace(sample, "-", ""),
       sample_name = str_extract(sample, ".*(?=_[0-9]+$|[0-9]+$)"),
-      sample_type = ifelse(sample_name == "KO", "Setbp1_KO", ifelse(sample_name == "control", "Control", sample_name))
+      sample_type = ifelse(sample_name == "KO", "Setbp1_KO", ifelse(sample_name == "control", "Control", sample_name)),
+      # broad identifier of SETBP1-KOs vs control
+      condition = ifelse(
+        grepl("control", sample, ignore.case = TRUE), "Control", "SETBP1-HD" #ifelse(
+        # grepl("WT", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
+      )
     )
   
   print(meta_filt)

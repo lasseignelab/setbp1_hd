@@ -21,12 +21,7 @@ t_rse <- readRDS("./data/processed/tanaka_prepped_rse.rds")
 
 meta_comb <- t_rse@metadata %>%
   mutate(rep = as.integer(rep)) %>%
-  bind_rows(c_rse@metadata, s_rse@metadata) %>%
-  # broad identifier of SETBP1-KOs vs control
-  mutate(condition = ifelse(
-    grepl("control", sample, ignore.case = TRUE), "Control", ifelse(
-      grepl("WT", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
-    )))
+  bind_rows(c_rse@metadata, s_rse@metadata)
 
 # # filepath <- "./results/archive/"
 # 
