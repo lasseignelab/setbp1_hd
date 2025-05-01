@@ -140,7 +140,7 @@ for (i in seq_along(meta_feats)){
           filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_WTvsHD.pdf")
   )
 }
-# meta_feats2 <- meta_feats[1:2]
+
 # color by cells
 for (i in seq_along(meta_feats)){
   rse_pca(pca_meta, 
@@ -149,6 +149,17 @@ for (i in seq_along(meta_feats)){
           shape = pca_meta$cells,
           sra = "Combined Datasets",
           filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_cells.pdf")
+  )
+}
+
+# color by author
+for (i in seq_along(meta_feats)){
+  rse_pca(pca_meta, 
+          var_explained_cutoff,
+          color_by = meta_feats[i],
+          shape = pca_meta$author,
+          sra = "Combined Datasets",
+          filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_author.pdf")
   )
 }
 
