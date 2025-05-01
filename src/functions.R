@@ -85,27 +85,31 @@ return(vi_list)
 # color_by = desired metadata variable to color PC's by (must be pcameta colname)
 # sra = SRA number or some other identifier for the dataset for plot title
 # filepath = filepath for saving PCA plot
-rse_pca <- function(pcameta, var_explained, color_by, sra, filepath){
-  pdf(filepath)
+rse_pca <- function(pcameta, var_explained, color_by, shape_by = 16, sra, filepath){
+  pdf(filepath, width = )
   for(i in 1:(nrow(var_explained)-1)){
     pca_plot <- pcameta %>%
   # color by discrete values
-    ggplot(aes(x = pcameta[,i], y = pcameta[,i+1], color = pcameta[,color_by])) +
+    ggplot(
+      aes(
+        x = pcameta[,i], y = pcameta[,i+1], color = pcameta[,color_by], shape = shape_by)) +
     {if(class(pcameta[,color_by]) == "factor") 
-      scale_color_discrete(name = paste0(color_by), # fix names and wrap long names
+      scale_colour_viridis_d(name = paste0(color_by), # fix names and wrap long names
                            labels = function(x) str_wrap(x, width = 15))} +
     # color by continuous values
     {if(class(pcameta[,color_by]) != "factor") #check for discrete vs continuous
-      scale_color_continuous(name = paste0(color_by), # fix names and wrap long names
+      scale_colour_viridis_c(name = paste0(color_by), # fix names and wrap long names
                              labels = function(x) str_wrap(x, width = 15))} +
-    geom_point(size=4) +
+    geom_point(size=6, alpha = 0.6) +
     xlab(paste0("PC", i, " ", 
                 round(var_explained[i,2] *100, digits = 2),# % variance explained by PC
                 "% Variance")) +
     ylab(paste0("PC", i+1, " ", 
                 round(var_explained[i+1,2] *100, digits = 2),# % variance explained by PC
                 "% Variance")) +
-    labs(title=str_wrap(paste0("PCA of ", sra)), width = 23)
+    labs(title=str_wrap(paste0("PCA of ", sra)), width = 23) +
+      theme(panel.background = element_blank(),
+            text = element_text(face = "bold", size = 12))
   
   print(pca_plot)
   }

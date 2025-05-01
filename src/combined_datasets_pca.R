@@ -20,8 +20,13 @@ s_rse <- readRDS("./data/processed/shaw_prepped_rse.rds")
 t_rse <- readRDS("./data/processed/tanaka_prepped_rse.rds")
 
 meta_comb <- t_rse@metadata %>%
-  mutate(rep = as.integer(rep)) %>%
-  bind_rows(c_rse@metadata, s_rse@metadata)
+  mutate(cells = "HSC", rep = as.integer(rep)) %>%
+  # mutate(rep = as.integer(rep)) %>%
+  bind_rows(c_rse@metadata, s_rse@metadata)  %>%
+  mutate(author = ifelse(BioProject == "PRJNA746989", "Cardo", 
+                         ifelse(BioProject == "PRJNA1093043", "Shaw", "Tanaka")))
+
+write_csv(meta_comb, file = "./results/combined_metadata.csv")
 
 # # filepath <- "./results/archive/"
 # 
@@ -91,6 +96,8 @@ top_cts_filt <- top_cts %>%
                               "ENSG00000172179", "ENSG00000198721", "ENSG00000291309")) %>%
   column_to_rownames("ortholog_ensg")
 
+### SAVE
+write_csv(top_cts_filt, file = "./results/combined_counts_topvar.csv")
 
 # calculate PC's
 pc <- prcomp(t(top_cts_filt), scale = TRUE)
@@ -114,21 +121,34 @@ pc_keep <- pc_df %>%
 
 pca_meta <- meta_comb %>%
   # filter metadata for features of interest
-  select(BioProject, cell_type, genotype, Instrument, rep, condition) %>%
+  select(BioProject, cells, genotype, Instrument, rep, condition, author) %>%
   # select_if(function(col) length(unique(col)) < length(col)) %>%
   bind_cols(pc_keep, .) %>%
   mutate(
     Organism = ifelse(BioProject %in% c("PRJNA898600", "PRJNA974068"), "Mouse", "Human"),
     across(where(is.character), as.factor))
 
-meta_feats <- c("BioProject", "cell_type", "genotype", "Instrument", "rep", "Organism", "condition")
+meta_feats <- setdiff(colnames(pca_meta), colnames(pc_keep))
 
-
+# color by condition
 for (i in seq_along(meta_feats)){
   rse_pca(pca_meta, 
           var_explained_cutoff,
           color_by = meta_feats[i],
-          sra = "Combined",
-          filepath = paste0("./results/archive/combined_datasets_PCA_coloredby_", meta_feats[i], ".pdf")
+          shape_by = pca_meta$condition,
+          sra = "Combined Datasets",
+          filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_WTvsHD.pdf")
   )
 }
+# meta_feats2 <- meta_feats[1:2]
+# color by cells
+for (i in seq_along(meta_feats)){
+  rse_pca(pca_meta, 
+          var_explained_cutoff,
+          color_by = meta_feats[i],
+          shape_by = pca_meta$cells,
+          sra = "Combined Datasets",
+          filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_cells.pdf")
+  )
+}
+
