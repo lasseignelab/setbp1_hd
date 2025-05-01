@@ -85,14 +85,14 @@ return(vi_list)
 # color_by = desired metadata variable to color PC's by (must be pcameta colname)
 # sra = SRA number or some other identifier for the dataset for plot title
 # filepath = filepath for saving PCA plot
-rse_pca <- function(pcameta, var_explained, color_by, shape_by = 16, sra, filepath){
+rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath){
   pdf(filepath, width = )
   for(i in 1:(nrow(var_explained)-1)){
     pca_plot <- pcameta %>%
   # color by discrete values
     ggplot(
       aes(
-        x = pcameta[,i], y = pcameta[,i+1], color = pcameta[,color_by], shape = shape_by)) +
+        x = pcameta[,i], y = pcameta[,i+1], color = pcameta[,color_by], shape = shape)) +
     {if(class(pcameta[,color_by]) == "factor") 
       scale_colour_viridis_d(name = paste0(color_by), # fix names and wrap long names
                            labels = function(x) str_wrap(x, width = 15))} +
