@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
   library(ranger)
   library(gbm)
   library(e1071)
-  source(paste0(getwd(), "/src/functions.R"))
+  source(paste0(getwd(), "/functions.R"))
 })
 
 # create parser object
@@ -26,11 +26,11 @@ parser$add_argument("-s", "--sra",
                     metavar = "PATH",
                     help = "SRA or dataset for naming purposes" # nolint
 )
-parser$add_argument("-m", "--meta",
-                    type = "character",
-                    metavar = "PATH",
-                    help = "Metadata file in csv format" # nolint
-)
+# parser$add_argument("-m", "--meta",
+#                     type = "character",
+#                     metavar = "PATH",
+#                     help = "Metadata file in csv format" # nolint
+# )
 parser$add_argument("-v", "--var_cutoff",
   type = "integer",
   default = 3,
@@ -56,11 +56,13 @@ ptm <- proc.time()
 print(paste0("Reading in RSE from: ", args$rse))
 
 rse <- readRDS(args$rse)
-meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
+meta <- rse@metadata
+# meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
 var_cutoff <- args$var_cutoff
 sra <- args$sra
 # meta <- read.csv("./doc/tanaka_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
 # rse <- readRDS("./data/tanaka/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
+# meta <- rse@metadata
 # filepath <- "./results/archive/"
 # var_cutoff <- 4
 # sra <- "tanaka"
@@ -97,8 +99,8 @@ print(paste0(
 ))
 
 # #### Detect/Filter Gene Counts ####
-# # filtering for 0 variance genes
-# cts_filtered <- calc_nonzero(rse@assays@data@listData[["salmon.merged.gene_tpm"]])
+# filtering for 0 variance genes
+cts_filtered <- calc_nonzero(rse@assays@data@listData[["salmon.merged.gene_tpm"]])
 
 #### Sample Variation ####
 # cts_filtered2 <- cts_filtered[1:100,]
@@ -235,13 +237,13 @@ pca_meta <- groupings %>%
 
 # PCA color by column of interest(s) if supplied by user
 if (sra == "cardo"){
-  int_feats <- c("genotype", "cells", "differentiation_days", "sample", "sample_type")
+  int_feats <- c("genotype", "cells", "differentiation_days", "sample", "sample_type", "condition")
 }
 if (sra == "shaw"){
-  int_feats <- c("genotype", "cells", "sample", "ACMG")
+  int_feats <- c("genotype", "cells", "sample", "sample_type", "ACMG", "condition")
 }
 if (sra == "tanaka"){
-  int_feats <- c("genotype", "AGE", "sample", "sampe_name", "sex")
+  int_feats <- c("genotype", "AGE", "sample", "sample_type", "sex", "condition")
 }
 
 for (i in seq_along(int_feats)){
