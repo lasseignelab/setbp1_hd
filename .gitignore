@@ -20,6 +20,8 @@ results/archive
 # Session Data files
 .RData
 .RDataTmp
+bin/docker/var*
+bin/docker/rstudio_tmp/*
 
 # User-specific files
 .Ruserdata
