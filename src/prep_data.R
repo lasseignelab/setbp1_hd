@@ -65,7 +65,6 @@ if (sra == "cardo") {
       sample = paste0(genotype, "_", differentiation_days),
       # broad identifier of SETBP1-KOs vs control
       condition = ifelse(
-        # grepl("control", sample, ignore.case = TRUE), "Control", ifelse(
           grepl("WT", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
         )) %>%
     rownames_to_column() %>%
@@ -88,7 +87,6 @@ if (sra == "shaw") {
       ACMG = ifelse(genotype == "WT", "WT", ifelse(genotype == "VUS2", "VUS", "PATH")),
       # broad identifier of SETBP1-KOs vs control
       condition = ifelse(
-        # grepl("control", sample, ignore.case = TRUE), "Control", ifelse(
         grepl("WT", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
       )) %>%
     rownames_to_column() %>%
@@ -108,7 +106,6 @@ if (sra == "tanaka") {
       # rm prefix from samples
       sample = str_replace(`Sample.Name`, "^RNA-seq,_LSK,_", ""),
       rep = as.integer(str_extract(sample, "[0-9]+$")),
-      #source_name = ifelse(`Sample.Name` starts_with("RNA"), "LSK", "LK"),
       source_name = ifelse(grepl("^RNA-seq,_LSK,_", `Sample.Name`), "LSK", "LS"),
       # split sample names and rep numbers
       sample = str_replace(sample, "-", ""),
@@ -116,8 +113,7 @@ if (sra == "tanaka") {
       sample_type = ifelse(sample_name == "KO", "Setbp1_KO", ifelse(sample_name == "control", "Control", sample_name)),
       # broad identifier of SETBP1-KOs vs control
       condition = ifelse(
-        grepl("control", sample, ignore.case = TRUE), "Control", "SETBP1-HD" #ifelse(
-        # grepl("WT", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
+        grepl("control", sample, ignore.case = TRUE), "Control", "SETBP1-HD"
       )
     )
   
@@ -127,17 +123,12 @@ if (sra == "tanaka") {
 # save filtered/refined metadata
 write_csv(meta_filt, paste0(filepath, sra, "_filtered_meta.csv"))
 
-#### Count Data ####
 ##### Remove Ensembl Versions from Gene IDs #####
-# ens_vers <- rownames(rse)
-# ens <- str_replace_all(ens_vers, "\\..*", "")
 print(paste0("Removing Ensembl versions from Gene ID's... ", head(rownames(rse))))
-
-# update and save RSE
 rownames(rse) <- gsub("\\.\\d+$", "", rownames(rse))
-print(paste0("Updating rownames of RSE...", str(rse)))
-rse@metadata <- meta_filt
 print(paste0("Adding metadata to RSE...", str(rse)))
+rse@metadata <- meta_filt
+print(paste0("Saving updated RSE as", sra, "_prepped_rse.rds"))
 write_rds(rse, paste0(filepath, sra, "_prepped_rse.rds"))
 
 ##### Detect/Filter Gene Counts #####

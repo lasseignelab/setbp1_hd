@@ -103,8 +103,6 @@ print(paste0(
 cts_filtered <- calc_nonzero(rse@assays@data@listData[["salmon.merged.gene_tpm"]])
 
 #### Sample Variation ####
-# cts_filtered2 <- cts_filtered[1:100,]
-
 cts_long <- cts_filtered %>%
   rownames_to_column(var = "genes") %>%
   pivot_longer(cols = !genes, names_to = "sample_ID", values_to = "cts")
@@ -192,7 +190,6 @@ var_explained_cutoff %>%
     x = reorder(PC, var_explained, decreasing = TRUE), y = var_explained
   )) +
   geom_point(size = 4) +
-  # geom_line()+
   xlab("PC's Above Var Explained Threshold") +
   labs(title = str_wrap(paste0("Scree plot of ", ": ")), width = 23)
 # save plot
@@ -200,16 +197,10 @@ ggsave(paste0(filepath, "PC_scree_plot.png"))
 
 
 # correlation of PCs to numeric QC metadata
-pca_cor <- meta %>% # pc_df %>%
-  # select(1:nrow(var_explained_cutoff)) %>%
+pca_cor <- meta %>%
   select_if(is.numeric) %>%
   select_if(function(col) length(unique(col)) != 1) %>%
-  # select(starts_with("recount_qc") & ends_with("both")) %>%
-  # filter for data that's individual
-  # rename_with(~ gsub("recount_qc.star.", "", .x, fixed = TRUE)) %>%
-  # rename_with(~ gsub("_both", "", .x, fixed = TRUE)) %>%
   bind_cols(pc_keep, .) %>%
-  # select(where(is.numeric)) %>%
   cor()
 
 
@@ -253,12 +244,6 @@ for (i in seq_along(int_feats)){
           filepath = paste0(filepath, "PCA_coloredby_", int_feats[i], ".pdf")
   )
 }
-# rse_pca(pca_meta, var_explained_cutoff,
-#         color_by = "ACMG",
-#         sra = "sra",
-#         filepath = paste0(filepath, "PCA_coloredby_sampletype.pdf")
-# )
-
 
 #### Feature importance of each PC ####
 
@@ -307,7 +292,7 @@ for (i in seq_along(model_types)) {
       cat(
         "Model comparison could not be plotted: 1 or more failed models\n",
         conditionMessage(e), "\n"
-      ) # no lint
+      )
     }
   )
 }
