@@ -15,12 +15,12 @@ suppressPackageStartupMessages({
 # # read in all metadata and gene counts
 # c_meta <- read.csv("./doc/cardo_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
 # s_meta <- read.csv("./doc/shaw_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
-c_rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
-s_rse <- readRDS("./data/processed/shaw_prepped_rse.rds")
-t_rse <- readRDS("./data/processed/tanaka_prepped_rse.rds")
+c_rse <- readRDS("./data/processed/cardo_filtered_rse.rds")
+s_rse <- readRDS("./data/processed/shaw_filtered_rse.rds")
+t_rse <- readRDS("./data/processed/tanaka_filtered_rse.rds")
 
 meta_comb <- t_rse@metadata %>%
-  mutate(cells = "HSC", rep = as.integer(rep)) %>%
+  # mutate(cells = "HSC", rep = as.integer(rep)) %>%
   # mutate(rep = as.integer(rep)) %>%
   bind_rows(c_rse@metadata, s_rse@metadata)  %>%
   mutate(author = ifelse(BioProject == "PRJNA746989", "Cardo", 
@@ -46,8 +46,10 @@ write_csv(meta_comb, file = "./results/combined_metadata.csv")
 # combine cardo and shaw data
 #cts_comb <- bind_cols(c_rse@assays@data@listData[["salmon.merged.gene_tpm"]], s_rse@assays@data@listData[["salmon.merged.gene_tpm"]])
 # cts_comb <- bind_cols(assay(c_rse, "salmon.merged.gene_tpm"), assay(c_rse, "salmon.merged.gene_tpm"))
-cts_comb <- cbind(c_rse, s_rse)
-cts_filtered <- calc_nonzero(assay(cts_comb, "salmon.merged.gene_tpm"))
+# subset for nonzero var genes in each human data set
+nonzero_genes <- intersect(rownames(c_rse), rownames(s_rse))
+cts_comb <- cbind(c_rse[nonzero_genes,], s_rse[nonzero_genes,])
+cts_filtered <- assay(cts_comb, "salmon.merged.gene_tpm")
 
 # convert tanaka mouse IDs to human orthologs
 conv <- gorth(rownames(t_rse), source_organism = "mmusculus", target_organism = "hsapiens", filter_na = TRUE, mthreshold = 1)
@@ -135,7 +137,7 @@ for (i in seq_along(meta_feats)){
   rse_pca(pca_meta, 
           var_explained_cutoff,
           color_by = meta_feats[i],
-          shape = pca_meta$condition,
+          shape = meta_feats[6],
           sra = "Combined Datasets",
           filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_WTvsHD.pdf")
   )
@@ -146,7 +148,7 @@ for (i in seq_along(meta_feats)){
   rse_pca(pca_meta, 
           var_explained_cutoff,
           color_by = meta_feats[i],
-          shape = pca_meta$cells,
+          shape = meta_feats[2],
           sra = "Combined Datasets",
           filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_cells.pdf")
   )
@@ -157,7 +159,7 @@ for (i in seq_along(meta_feats)){
   rse_pca(pca_meta, 
           var_explained_cutoff,
           color_by = meta_feats[i],
-          shape = pca_meta$author,
+          shape = meta_feats[7],
           sra = "Combined Datasets",
           filepath = paste0("./results/eda/combined_datasets/combined_datasets_PCA_coloredby_", meta_feats[i], "_author.pdf")
   )
