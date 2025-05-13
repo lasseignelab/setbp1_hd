@@ -16,6 +16,12 @@ suppressPackageStartupMessages({
 parser <- ArgumentParser()
 
 # specify desired options
+parser$add_argument("-f", "--functions",
+                    type = "character",
+                    metavar = "PATH",
+                    default = NULL,
+                    help = "Path to functions file to source custom functions" # nolint
+)
 parser$add_argument("-r", "--rse",
   type = "character",
   metavar = "PATH",
@@ -48,6 +54,9 @@ parser$add_argument("-o", "--output_dir",
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
+
+# source functions file if supplied
+if (!is.null(args$functions)) source(args$functions)
 
 # start timer
 ptm <- proc.time()

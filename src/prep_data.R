@@ -1,7 +1,6 @@
 suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
-  # source(paste0(getwd(), "/functions.R"))
 })
 
 # create parser object
@@ -11,6 +10,7 @@ parser <- ArgumentParser()
 parser$add_argument("-f", "--functions",
                     type = "character",
                     metavar = "PATH",
+                    default = NULL,
                     help = "Path to functions file to source custom functions" # nolint
 )
 parser$add_argument("-r", "--rse",
@@ -36,8 +36,8 @@ parser$add_argument("-o", "--output_dir",
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
 
-# source functions file
-source(args$functions)
+# source functions file if supplied
+if (!is.null(args$functions)) source(args$functions)
 
 # start timer
 ptm <- proc.time()
