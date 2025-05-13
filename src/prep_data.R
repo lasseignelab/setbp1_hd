@@ -118,6 +118,7 @@ if (sra == "tanaka") {
       sample = str_replace(sample, "-", ""),
       sample_name = str_extract(sample, ".*(?=_[0-9]+$|[0-9]+$)"),
       sample_type = ifelse(sample_name == "KO", "Setbp1_KO", ifelse(sample_name == "control", "Control", sample_name)),
+      cells = "HSC",
       # broad identifier of SETBP1-KOs vs control
       condition = ifelse(
         grepl("control", sample, ignore.case = TRUE), "Control", "SETBP1-HD"

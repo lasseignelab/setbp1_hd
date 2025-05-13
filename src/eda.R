@@ -70,7 +70,7 @@ meta <- rse@metadata
 var_cutoff <- args$var_cutoff
 sra <- args$sra
 # meta <- read.csv("./doc/tanaka_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
-# rse <- readRDS("./data/tanaka/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
+# rse <- readRDS("./data/processed/tanaka_filtered_rse.rds")
 # meta <- rse@metadata
 # filepath <- "./results/archive/"
 # var_cutoff <- 4
@@ -107,12 +107,9 @@ print(paste0(
   filepath, "metadata_feat_freq.pdf"
 ))
 
-# #### Detect/Filter Gene Counts ####
-# filtering for 0 variance genes
-cts_filtered <- calc_nonzero(rse@assays@data@listData[["salmon.merged.gene_tpm"]])
 
 #### Sample Variation ####
-cts_long <- cts_filtered %>%
+cts_long <- assays(rse)[["salmon.merged.gene_tpm"]] %>%
   rownames_to_column(var = "genes") %>%
   pivot_longer(cols = !genes, names_to = "sample_ID", values_to = "cts")
 
@@ -120,16 +117,23 @@ meta_cts_long <- groupings %>%
   rownames_to_column(var = "sample_ID") %>%
   left_join(cts_long, by = "sample_ID")
 
-meta_cts_long %>%
+meta_cts_plot <- meta_cts_long %>%
   mutate(rep = factor(rep)) %>%
   ggplot(aes(log2(cts+1), colour = rep)) +
-  geom_freqpoly(binwidth = 5) +
-  facet_grid(cells ~ genotype)
+  geom_freqpoly(binwidth = 5) 
+
+if (sra != "tanaka"){
+  meta_cts_plot <- meta_cts_plot + facet_grid(cells ~ genotype)
+}
+
+meta_cts_plot
 
 # save plot
 ggsave(paste0(filepath, sra, "_sample_cts_variation_.png"), height = 7, width = 14, units = "cm")
 
 #### Sample-Sample Correlation ####
+cts_filtered <- assays(rse)[["salmon.merged.gene_tpm"]] 
+
 top_cts <- cts_filtered[
   c(
     order(
@@ -240,15 +244,16 @@ if (sra == "cardo"){
   int_feats <- c("genotype", "cells", "differentiation_days", "sample", "sample_type", "condition")
 }
 if (sra == "shaw"){
-  int_feats <- c("genotype", "cells", "sample", "sample_type", "ACMG", "condition")
+  int_feats <- c("genotype", "cells", "sample", "ACMG", "condition")
 }
 if (sra == "tanaka"){
-  int_feats <- c("genotype", "AGE", "sample", "sample_type", "sex", "condition")
+  int_feats <- c("sample_type", "AGE", "genotype", "source_name", "sex", "condition")
 }
 
 for (i in seq_along(int_feats)){
   rse_pca(pca_meta, var_explained_cutoff,
           color_by = int_feats[i],
+          shape = pca_meta$genotype,
           sra = sra,
           filepath = paste0(filepath, "PCA_coloredby_", int_feats[i], ".pdf")
   )
