@@ -14,7 +14,7 @@ dataset=${dataset_names[$SLURM_ARRAY_TASK_ID]}
 counts="${CAP_DATA_PATH}/${dataset}/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds"
 
 #### RUN EDA SCRIPT ####
-singularity exec -B ${CAP_PROJECT_PATH} ${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif Rscript --vanilla ${CAP_PROJECT_PATH}/src/prep_data.R \
+singularity exec -B ${CAP_PROJECT_PATH} ${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif Rscript --vanilla ${CAP_PROJECT_PATH}/src/05_data_cleaning.R \
 -f ${CAP_PROJECT_PATH}/src/functions.R \
 -r ${counts} \
 -s ${dataset} \
