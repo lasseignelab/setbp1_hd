@@ -1,13 +1,18 @@
 suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
-  source(paste0(getwd(), "/functions.R"))
+  # source(paste0(getwd(), "/functions.R"))
 })
 
 # create parser object
 parser <- ArgumentParser()
 
 # specify desired options
+parser$add_argument("-f", "--functions",
+                    type = "character",
+                    metavar = "PATH",
+                    help = "Path to functions file to source custom functions" # nolint
+)
 parser$add_argument("-r", "--rse",
                     type = "character",
                     metavar = "PATH",
@@ -31,6 +36,9 @@ parser$add_argument("-o", "--output_dir",
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
 
+# source functions file
+source(args$functions)
+
 # start timer
 ptm <- proc.time()
 
@@ -43,7 +51,6 @@ sra <- args$sra
 # meta <- read.csv("./doc/cardo_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
 # rse <- readRDS("./data/cardo/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
 # filepath <- "./results/archive/"
-# var_cutoff <- 4
 # sra <- "cardo"
 
 # create output dir if needed
@@ -126,13 +133,28 @@ write_csv(meta_filt, paste0(filepath, sra, "_filtered_meta.csv"))
 ##### Remove Ensembl Versions from Gene IDs #####
 print(paste0("Removing Ensembl versions from Gene ID's... ", head(rownames(rse))))
 rownames(rse) <- gsub("\\.\\d+$", "", rownames(rse))
+
+# update rownames in individual assays as well
+for (i in seq_along(assays(rse))){
+  rownames(rse@assays@data@listData[[i]]) <- rownames(rse)
+  
+}
+
 print(paste0("Adding metadata to RSE...", str(rse)))
 rse@metadata <- meta_filt
-print(paste0("Saving updated RSE as", sra, "_prepped_rse.rds"))
+print(
+  paste0(
+    "Saving full prepped (with metadata and non-versioned gene IDs) RSE as: ", 
+    sra, "_prepped_rse.rds"))
 write_rds(rse, paste0(filepath, sra, "_prepped_rse.rds"))
 
 ##### Detect/Filter Gene Counts #####
 # filtering for 0 variance genes
 cts_filtered <- calc_nonzero(rse@assays@data@listData[["salmon.merged.gene_tpm"]])
+rse_filtered <- rse[rownames(cts_filtered),]
 
-write_csv(cts_filtered, paste0(filepath, sra, "_filtered_cts.csv"))
+print(
+  paste0(
+    "Saving prepped RSE filtered for nonzero-variance genes as: ", 
+    sra, "_filtered_rse.rds"))
+write_rds(rse_filtered, paste0(filepath, sra, "_filtered_rse.rds"))

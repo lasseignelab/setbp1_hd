@@ -20,6 +20,7 @@ metadata="${CAP_PROJECT_PATH}/doc/${dataset}_metadata.csv"
 
 #### RUN EDA SCRIPT ####
 singularity exec -B ${CAP_PROJECT_PATH} ${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif Rscript --vanilla ${CAP_PROJECT_PATH}/src/prep_data.R \
+-f ${CAP_PROJECT_PATH}/src/functions.R \
 -r ${counts} \
 -s ${dataset} \
 -m ${metadata} \
