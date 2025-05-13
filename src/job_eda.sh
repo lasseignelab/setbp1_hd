@@ -10,7 +10,6 @@
 dataset_names=("cardo" "shaw" "tanaka")
 dataset=${dataset_names[$SLURM_ARRAY_TASK_ID]}
 
-
 #### RUN EDA SCRIPT ####
 singularity exec -B ${CAP_PROJECT_PATH} ${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif Rscript --vanilla ${CAP_PROJECT_PATH}/src/eda.R \
 -f ${CAP_PROJECT_PATH}/src/functions.R \

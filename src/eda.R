@@ -9,7 +9,6 @@ suppressPackageStartupMessages({
   library(ranger)
   library(gbm)
   library(e1071)
-  # source(paste0(getwd(), "/functions.R"))
 })
 
 # create parser object
@@ -17,10 +16,10 @@ parser <- ArgumentParser()
 
 # specify desired options
 parser$add_argument("-f", "--functions",
-                    type = "character",
-                    metavar = "PATH",
-                    default = NULL,
-                    help = "Path to functions file to source custom functions" # nolint
+  type = "character",
+  metavar = "PATH",
+  default = NULL,
+  help = "Path to functions file to source custom functions" # nolint
 )
 parser$add_argument("-r", "--rse",
   type = "character",
@@ -28,15 +27,10 @@ parser$add_argument("-r", "--rse",
   help = "RSE file (rds format) for EDA from recount3 data (00_data_download or 01_data_preprocessing)" # nolint
 )
 parser$add_argument("-s", "--sra",
-                    type = "character",
-                    metavar = "PATH",
-                    help = "SRA or dataset for naming purposes" # nolint
+  type = "character",
+  metavar = "PATH",
+  help = "SRA or dataset for naming purposes" # nolint
 )
-# parser$add_argument("-m", "--meta",
-#                     type = "character",
-#                     metavar = "PATH",
-#                     help = "Metadata file in csv format" # nolint
-# )
 parser$add_argument("-v", "--var_cutoff",
   type = "integer",
   default = 3,
@@ -52,6 +46,7 @@ parser$add_argument("-o", "--output_dir",
   metavar = "PATH",
   help = "Path to the directory to create and write EDA results"
 )
+
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
 
@@ -66,15 +61,8 @@ print(paste0("Reading in RSE from: ", args$rse))
 
 rse <- readRDS(args$rse)
 meta <- rse@metadata
-# meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
 var_cutoff <- args$var_cutoff
 sra <- args$sra
-# meta <- read.csv("./doc/tanaka_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
-# rse <- readRDS("./data/processed/tanaka_filtered_rse.rds")
-# meta <- rse@metadata
-# filepath <- "./results/archive/"
-# var_cutoff <- 4
-# sra <- "tanaka"
 
 # create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
@@ -87,13 +75,13 @@ groupings <- meta %>%
   # filter out metadata that's completely unique
   select_if(function(col) length(unique(col)) < length(col)) %>%
   # filter out data that's completely redundant
-  select_if(function(col) length(unique(col)) != 1) 
+  select_if(function(col) length(unique(col)) != 1)
 
 pdf(paste0(filepath, "metadata_feat_freq.pdf"))
 for (i in 2:ncol(groupings)) {
   freq <- as.data.frame(table(groupings[, i]))
   p <- freq %>%
-    ggplot(aes(x = freq[,1], y = Freq)) +
+    ggplot(aes(x = freq[, 1], y = Freq)) +
     geom_bar(stat = "identity") +
     geom_text(aes(label = Freq), vjust = -.5) +
     xlab(paste(colnames(groupings)[i])) +
@@ -107,7 +95,6 @@ print(paste0(
   filepath, "metadata_feat_freq.pdf"
 ))
 
-
 #### Sample Variation ####
 cts_long <- assays(rse)[["salmon.merged.gene_tpm"]] %>%
   rownames_to_column(var = "genes") %>%
@@ -119,20 +106,25 @@ meta_cts_long <- groupings %>%
 
 meta_cts_plot <- meta_cts_long %>%
   mutate(rep = factor(rep)) %>%
-  ggplot(aes(log2(cts+1), colour = rep)) +
-  geom_freqpoly(binwidth = 5) 
+  ggplot(aes(log2(cts + 1), colour = rep)) +
+  geom_freqpoly(binwidth = 5)
 
-if (sra != "tanaka"){
+if (sra != "tanaka") {
   meta_cts_plot <- meta_cts_plot + facet_grid(cells ~ genotype)
 }
 
 meta_cts_plot
 
 # save plot
-ggsave(paste0(filepath, sra, "_sample_cts_variation_.png"), height = 7, width = 14, units = "cm")
+ggsave(
+  paste0(
+    filepath, sra, "_sample_cts_variation_.png"
+  ),
+  height = 7, width = 14, units = "cm"
+)
 
 #### Sample-Sample Correlation ####
-cts_filtered <- assays(rse)[["salmon.merged.gene_tpm"]] 
+cts_filtered <- assays(rse)[["salmon.merged.gene_tpm"]]
 
 top_cts <- cts_filtered[
   c(
@@ -144,7 +136,7 @@ top_cts <- cts_filtered[
 ]
 sample_cor <- cor(top_cts)
 
-meta_anno <- groupings[match(colnames(sample_cor), row.names(groupings)),]
+meta_anno <- groupings[match(colnames(sample_cor), row.names(groupings)), ]
 
 png(
   paste0(
@@ -195,7 +187,7 @@ if (nrow(var_explained_cutoff) < 2) {
 
 # filter PC's for cutoff
 pc_keep <- pc_df %>%
-  select(1:nrow(var_explained_cutoff))
+  select(seq_len(nrow(var_explained_cutoff)))
 
 # Scree plot
 var_explained_cutoff %>%
@@ -240,22 +232,25 @@ pca_meta <- groupings %>%
   mutate(across(where(is.character), as.factor))
 
 # PCA color by column of interest(s) if supplied by user
-if (sra == "cardo"){
-  int_feats <- c("genotype", "cells", "differentiation_days", "sample", "sample_type", "condition")
+if (sra == "cardo") {
+  int_feats <- c(
+    "genotype", "cells", "differentiation_days", "sample",
+    "sample_type", "condition"
+  )
 }
-if (sra == "shaw"){
+if (sra == "shaw") {
   int_feats <- c("genotype", "cells", "sample", "ACMG", "condition")
 }
-if (sra == "tanaka"){
-  int_feats <- c("sample_type", "AGE", "genotype", "source_name", "sex", "condition")
+if (sra == "tanaka") {
+  int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition")
 }
 
-for (i in seq_along(int_feats)){
+for (i in seq_along(int_feats)) {
   rse_pca(pca_meta, var_explained_cutoff,
-          color_by = int_feats[i],
-          shape = pca_meta$genotype,
-          sra = sra,
-          filepath = paste0(filepath, "PCA_coloredby_", int_feats[i], ".pdf")
+    color_by = int_feats[i],
+    shape = int_feats[1],
+    sra = sra,
+    filepath = paste0(filepath, "PCA_coloredby_", int_feats[i], ".pdf")
   )
 }
 
@@ -291,7 +286,6 @@ for (i in seq_along(model_types)) {
 
 
 #### Compare feature importance by model ####
-
 comp_mods <- list()
 for (i in seq_along(model_types)) {
   tryCatch(
@@ -322,3 +316,4 @@ if (length(comp_mods) == 3) {
 fptm <- proc.time()
 (fptm[3] / 60)
 
+print(sessionInfo())

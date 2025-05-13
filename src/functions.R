@@ -92,7 +92,7 @@ rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath)
   # color by discrete values
     ggplot(
       aes(
-        x = pcameta[,i], y = pcameta[,i+1], color = pcameta[,color_by], shape = shape)) +
+        x = pcameta[,i], y = pcameta[,i+1], color = pcameta[,color_by], shape = pcameta[,shape])) +
     {if(class(pcameta[,color_by]) == "factor") 
       scale_colour_viridis_d(name = paste0(color_by), # fix names and wrap long names
                            labels = function(x) str_wrap(x, width = 15))} +
