@@ -44,7 +44,7 @@ print(paste0("Reading in RSE from: ", args$rse))
 
 rse <- readRDS(args$rse)
 meta <- rse@metadata
-# sra <- args$sra
+sra <- args$sra
 
 # create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
@@ -52,11 +52,11 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 # rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
 # sra <- "cardo"
-filepath <- "./results/archive/"
+# filepath <- "./results/archive/"
 # rse <- readRDS("./data/processed/shaw_filtered_rse.rds")
+# rse <- readRDS("./data/processed/tanaka_filtered_rse.rds")
+# sra <- "tanaka"
 
-rse <- readRDS("./data/processed/tanaka_filtered_rse.rds")
-sra <- "tanaka"
 cts <- "salmon.merged.gene_counts"
 
 # create DGE list
