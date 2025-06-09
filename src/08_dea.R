@@ -180,8 +180,8 @@ degs_comb <- bind_rows(deg_list)
 sig_degs_comb <- degs_comb %>% filter(significance != "NonSig")
 
 # save labeled and sig-filtered results
-write_csv(degs, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
-write_csv(degs, file = paste0(filepath, "combined_contrasts_sig_degs.csv"))
+write_csv(degs_comb, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
+write_csv(sig_degs_comb, file = paste0(filepath, "combined_contrasts_sig_degs.csv"))
 
 # volcano plots across contrasts
 vol_plot <- degs_comb %>%
@@ -198,5 +198,3 @@ ggsave(filename = paste0(filepath,  "degs_volcanoplot.png"))
 
 
 
-# markers <- c("POU5F1", "PAX6", "NES")
-# marker_degs <- degs_comb %>% filter(gene_name %in% markers)
