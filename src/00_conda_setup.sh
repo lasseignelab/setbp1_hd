@@ -17,5 +17,3 @@ else
     echo "Creating environment '$ENV_NAME' from $YML_FILE..."
     conda env create -f "$YML_FILE"
 fi
-conda activate $ENV_NAME
-
