@@ -6,10 +6,8 @@
 #SBATCH --array=0-2
 
 #### CONDA ENVIRONMENT ####
-ENV_NAME="sra-env"
-
 ml Anaconda3/2023.07-2
-conda activate $ENV_NAME
+conda activate "sra-env"
 
 #### SRA TOOLKIT CONFIG ####
 export SRA_CACHE_DIR="$USER_SCRATCH/ncbi_cache"
