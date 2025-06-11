@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#SBATCH --cpus-per-task=2
-#SBATCH --mem-per-cpu=24G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=4G
 #SBATCH --partition=medium
 #SBATCH --array=0-2
 
@@ -10,6 +10,10 @@ ENV_NAME="sra-env"
 
 ml Anaconda3/2023.07-2
 conda activate $ENV_NAME
+
+#### SRA TOOLKIT CONFIG ####
+export SRA_CACHE_DIR="$USER_SCRATCH/ncbi_cache"
+mkdir -p "$SRA_CACHE_DIR/tmp"
 
 #### ACCESSION ID FILES AND OUTPUT DIRECTORIES ####
 declare -A datasets=(
@@ -30,9 +34,9 @@ mkdir -p "$out_dir"
 # fetch fastqs for each SRR in accession list
 while IFS= read -r accession; do
     echo "Processing $accession for $dataset ..."
-    fasterq-dump "$accession" --outdir "$out_dir"
+    fasterq-dump --threads "$SLURM_CPUS_PER_TASK" -t "$SRA_CACHE_DIR/tmp" -x "$accession" --outdir "$out_dir"
+    echo "Validating ..."
     vdb-validate "$accession"
-    echo "SRA $accession validated ..."
 
 done < "$accession_file"
 
