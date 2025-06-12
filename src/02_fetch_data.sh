@@ -5,13 +5,12 @@
 #SBATCH --partition=medium
 #SBATCH --array=0-2
 
-#### CONDA ENVIRONMENT ####
-ml Anaconda3/2023.07-2
-conda activate "sra-env"
+#### SRA TOOLS CONTAINER ####
+cap_container -c singularity "ncbi/sra-tools:3.2.1"
 
 #### SRA TOOLKIT CONFIG ####
-export SRA_CACHE_DIR="$USER_SCRATCH/ncbi_cache"
-mkdir -p "$SRA_CACHE_DIR/tmp"
+export SRA_CACHE_DIR="$CAP_DATA_PATH/tmp"
+mkdir -p "$SRA_CACHE_DIR"
 
 #### ACCESSION ID FILES AND OUTPUT DIRECTORIES ####
 declare -A datasets=(
@@ -32,9 +31,12 @@ mkdir -p "$out_dir"
 # fetch fastqs for each SRR in accession list
 while IFS= read -r accession; do
     echo "Processing $accession for $dataset ..."
-    fasterq-dump --threads "$SLURM_CPUS_PER_TASK" -t "$SRA_CACHE_DIR/tmp" -x "$accession" --outdir "$out_dir"
-    echo "Validating ..."
-    vdb-validate "$accession"
+    singularity exec \
+	--bind "$CAP_DATA_PATH" \
+	"$CAP_CONTAINER_PATH"/sra-tools_3.2.1.sif \
+    	sh -c "fasterq-dump --threads "$SLURM_CPUS_PER_TASK" -t "$SRA_CACHE_DIR/tmp" -x "$accession" --outdir "$out_dir"
+    	echo "Validating ..."
+    	vdb-validate "$accession""
 
 done < "$accession_file"
 
