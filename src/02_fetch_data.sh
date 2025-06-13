@@ -5,7 +5,7 @@
 #SBATCH --partition=medium
 #SBATCH --array=0-2
 
-#### SRA TOOLS CONTAINER ####
+module load parallel
 cap_container -c singularity "ncbi/sra-tools:3.2.1"
 
 #### SRA TOOLKIT CONFIG ####
@@ -43,11 +43,6 @@ done < "$accession_file"
 echo "All files fetched for $dataset. Compressing fastq files now ..."
 
 #### GZIP FASTQ FILES ####
-for file in "$out_dir"/*.fastq; do
-    if [ -f "$file" ]; then
-        gzip "$file"
-        echo "Compressed $file for $dataset"
-    fi
-done
+parallel -j "$SLURM_CPUS_PER_TASK" gzip ::: "$out_dir"/*.fastq
 
 echo "All .fastq files have been compressed for $dataset."
