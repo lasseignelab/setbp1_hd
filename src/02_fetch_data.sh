@@ -34,9 +34,9 @@ while IFS= read -r accession; do
     singularity exec \
 	--bind "$CAP_DATA_PATH" \
 	"$CAP_CONTAINER_PATH"/sra-tools_3.2.1.sif \
-    	sh -c "fasterq-dump --threads "$SLURM_CPUS_PER_TASK" -t "$SRA_CACHE_DIR/tmp" -x "$accession" --outdir "$out_dir"
+    	sh -c "fasterq-dump --threads $SLURM_CPUS_PER_TASK -t $SRA_CACHE_DIR/tmp -x $accession --outdir $out_dir
     	echo "Validating ..."
-    	vdb-validate "$accession""
+    	vdb-validate $accession"
 
 done < "$accession_file"
 
