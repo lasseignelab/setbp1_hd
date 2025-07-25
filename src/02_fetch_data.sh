@@ -50,5 +50,5 @@ done < "$accession_file"
 
 #### COMPRESS FASTQ FILES AFTER ALL DOWNLOADS ####
 echo "All files fetched for $dataset. Compressing fastq files now ..."
-parallel -j "$SLURM_CPUS_PER_TASK" gzip ::: "$out_dir"/*.fastq
+parallel -j "$SLURM_CPUS_PER_TASK" gzip -n ::: "$out_dir"/*.fastq
 echo "All .fastq files have been compressed for $dataset."
