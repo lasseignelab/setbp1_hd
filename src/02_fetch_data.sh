@@ -3,7 +3,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=4G
 #SBATCH --partition=medium
-#SBATCH --array=0-2
+#SBATCH --array=2
 
 module load parallel
 cap_container -c singularity "ncbi/sra-tools:3.2.1"
@@ -44,7 +44,7 @@ echo "$out_dir"
                 rm -r /tmp_dir/$accession && \
                 cd /output_dir/"
     else
-        echo "Directory $data_dir already exists and has fastq files in it." >&2
+        echo "Directory $out_dir already exists and has fastq files in it." >&2
     fi
 done < "$accession_file"
 
