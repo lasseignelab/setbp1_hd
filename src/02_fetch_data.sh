@@ -3,7 +3,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=4G
 #SBATCH --partition=medium
-#SBATCH --array=2
+#SBATCH --array=0-2
 
 module load parallel
 cap_container -c singularity "ncbi/sra-tools:3.2.1"
@@ -29,7 +29,7 @@ mkdir -p "$out_dir"
 echo "$out_dir"
 
 #### READ ACCESSION LIST ####
- while IFS= read -r accession; do
+while IFS= read -r accession; do
     echo "Processing $accession for $dataset ..."
 
     # check if files already exist in directory
