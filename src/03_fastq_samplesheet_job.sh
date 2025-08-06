@@ -5,15 +5,17 @@
 #SBATCH --partition=express
 #SBATCH --array=0-2
  
- 
+#### PULL SCRIPT FOR MAKING SAMPLESHEET ####
+cap_data_download "https://raw.githubusercontent.com/nf-core/rnaseq/refs/heads/master/bin/fastq_dir_to_samplesheet.py"
+
 #### FASTQ DIRECTORIES ####
 dataset_names=("cardo" "shaw" "tanaka")
 dataset=${dataset_names[$SLURM_ARRAY_TASK_ID]}
 fastq_dir="${CAP_DATA_PATH}/raw/${dataset}"
 
 #### CREATE SAMPLESHEETS ####
-script="$CAP_PROJECT_PATH/src/03_fastq_dir_to_samplesheet.py"
-outfile="$CAP_DATA_PATH/samplesheet_${dataset}.csv"
+script="$CAP_DATA_PATH/fastq_dir_to_samplesheet.py"
+outfile="$CAP_DATA_PATH/raw/samplesheet_${dataset}.csv"
 
 # create samplesheet
 python3 "$script" "$fastq_dir" "$outfile" \
