@@ -22,7 +22,7 @@ conda activate $ENV_NAME
 
 # Run pipeline --cheaha profile info https://github.com/nf-core/configs/blob/master/docs/cheaha.md
 nextflow run nf-core/rnaseq -r 3.18.0 \
-    --input "$CAP_DATA_PATH/samplesheet_${dataset}.csv" \
+    --input "$CAP_DATA_PATH/raw/samplesheet_${dataset}.csv" \
     --outdir "$out_dir" \
     -profile cheaha \
     --aligner star_salmon \
