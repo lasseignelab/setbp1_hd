@@ -6,20 +6,24 @@
 
 
 #### VARIABLES ####
-YML_FILE="$CAP_PROJECT_PATH/bin/conda/nfcore-env.yml"
 ENV_NAME="nfcore-env"
-OUT_DIR="$CAP_DATA_PATH/tanaka/"
+dataset="tanaka"
+fastq_dir="$CAP_DATA_PATH/raw/$dataset"
+out_dir="$CAP_DATA_PATH/$dataset"
+run_dir="$USER_SCRATCH/nfcore_runs/${dataset}"
+work_dir="$USER_SCRATCH/nfcore_work/${dataset}"
 
-mkdir -p "$OUT_DIR"
+mkdir -p "$run_dir" "$out_dir" "$work_dir"
+cd "$run_dir"
 
 #### ENVIRONMENT ####
-ml Anaconda3
+ml Anaconda3/2023.07-2
 conda activate $ENV_NAME
 
 # Run pipeline --cheaha profile info https://github.com/nf-core/configs/blob/master/docs/cheaha.md
 nextflow run nf-core/rnaseq -r 3.18.0 \
-    --input "$CAP_DATA_PATH/samplesheet_tanaka.csv" \
-    --outdir "$OUT_DIR" \
+    --input "$CAP_DATA_PATH/samplesheet_${dataset}.csv" \
+    --outdir "$out_dir" \
     -profile cheaha \
     --aligner star_salmon \
     --pseudo_aligner salmon \
