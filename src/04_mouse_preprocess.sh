@@ -8,13 +8,12 @@
 #### VARIABLES ####
 ENV_NAME="nfcore-env"
 dataset="tanaka"
-fastq_dir="$CAP_DATA_PATH/raw/$dataset"
 out_dir="$CAP_DATA_PATH/$dataset"
 run_dir="$USER_SCRATCH/nfcore_runs/${dataset}"
 work_dir="$USER_SCRATCH/nfcore_work/${dataset}"
 
 mkdir -p "$run_dir" "$out_dir" "$work_dir"
-cd "$run_dir"
+cd "$run_dir" || { echo "Error: Unable to CD to ${run_dir}" >&2; exit 1; }
 
 #### ENVIRONMENT ####
 ml Anaconda3/2023.07-2
