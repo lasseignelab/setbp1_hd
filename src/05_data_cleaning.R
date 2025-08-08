@@ -13,15 +13,20 @@ parser$add_argument("-f", "--functions",
   default = NULL,
   help = "Path to functions file to source custom functions" # nolint
 )
-parser$add_argument("-r", "--rse",
+parser$add_argument("-c", "--counts",
   type = "character",
   metavar = "PATH",
-  help = "RSE file (rds format) for EDA from recount3 data (00_data_download or 01_data_preprocessing)" # nolint
+  help = "Counts summarized experiment file (rds format) from nf-core outputs"
 )
-parser$add_argument("-s", "--sra",
+parser$add_argument("-m", "--meta",
   type = "character",
   metavar = "PATH",
-  help = "SRA or dataset for naming purposes" # nolint
+  help = "Metadata for dataset used in --counts"
+)
+parser$add_argument("-n", "--name",
+  type = "character",
+  metavar = "NAME",
+  help = "Dataset name  for labeling purposes" # nolint
 )
 parser$add_argument("-o", "--output_dir",
   type = "character",
@@ -40,10 +45,12 @@ ptm <- proc.time()
 #### Set variables for dataset ####
 print(paste0("Reading in RSE from: ", args$rse))
 
-rse <- readRDS(args$rse)
+rse <- readRDS(args$counts)
 meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
-sra <- args$sra
-
+name <- args$name
+# rse <- readRDS("./data/cardo/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
+# sra <- "cardo"
+# meta <- read.csv("./doc/cardo_metadata.csv")
 # create output dir if needed
 filepath <- paste0(args$output_dir)
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
@@ -51,7 +58,7 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 #### Metadata ####
 # dataset-specific adjustments for easier downstream analyses
 
-if (sra == "cardo") {
+if (name == "cardo") {
   meta_filt <- meta %>%
     select(
       !starts_with("DATASTORE") | c(
@@ -77,7 +84,7 @@ if (sra == "cardo") {
   print(meta_filt)
 }
 
-if (sra == "shaw") {
+if (name == "shaw") {
   meta_filt <- meta %>%
     select(
       !starts_with("DATASTORE") | c(
@@ -108,7 +115,7 @@ if (sra == "shaw") {
   print(meta_filt)
 }
 
-if (sra == "tanaka") {
+if (name == "tanaka") {
   meta_filt <- meta %>%
     select(
       !starts_with("DATASTORE") | c(
@@ -142,7 +149,7 @@ if (sra == "tanaka") {
 }
 
 # save filtered/refined metadata
-write_csv(meta_filt, paste0(filepath, sra, "_filtered_meta.csv"))
+write_csv(meta_filt, paste0(filepath, name, "_filtered_meta.csv"))
 
 ##### Remove Ensembl Versions from Gene IDs #####
 print(paste0("Removing Ensembl versions from ID's... ", head(rownames(rse))))
@@ -158,10 +165,10 @@ rse@metadata <- meta_filt
 print(
   paste0(
     "Saving full prepped (with metadata and non-versioned gene IDs) RSE as: ",
-    sra, "_prepped_rse.rds"
+    name, "_prepped_rse.rds"
   )
 )
-write_rds(rse, paste0(filepath, sra, "_prepped_rse.rds"))
+write_rds(rse, paste0(filepath, name, "_prepped_rse.rds"))
 
 ##### Detect/Filter Gene Counts #####
 # filtering for 0 variance genes
@@ -173,7 +180,7 @@ rse_filtered <- rse[rownames(cts_filtered), ]
 print(
   paste0(
     "Saving prepped RSE filtered for nonzero-variance genes as: ",
-    sra, "_filtered_rse.rds"
+    name, "_filtered_rse.rds"
   )
 )
-write_rds(rse_filtered, paste0(filepath, sra, "_filtered_rse.rds"))
+write_rds(rse_filtered, paste0(filepath, name, "_filtered_rse.rds"))
