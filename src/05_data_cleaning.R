@@ -48,9 +48,9 @@ print(paste0("Reading in RSE from: ", args$rse))
 rse <- readRDS(args$counts)
 meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
 name <- args$name
-# rse <- readRDS("./data/cardo/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
-# sra <- "cardo"
-# meta <- read.csv("./doc/cardo_metadata.csv")
+# rse <- readRDS("./data/tanaka/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
+# name <- "tanaka"
+# meta <- read.csv("./doc/tanaka_metadata.csv")
 # create output dir if needed
 filepath <- paste0(args$output_dir)
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
@@ -168,8 +168,15 @@ print(
     name, "_prepped_rse.rds"
   )
 )
+if(name == "tanaka"){
+  # separate tanaka data sets
+  tanaka1 <- rse[, rse@metadata$BioProject == "PRJNA974068"]
+  tanaka2 <- rse[, rse@metadata$BioProject == "PRJNA898600"]
+  write_rds(tanaka1, paste0(filepath, name, "1_prepped_rse.rds"))
+  write_rds(tanaka2, paste0(filepath, name, "2_prepped_rse.rds"))
+}else {
 write_rds(rse, paste0(filepath, name, "_prepped_rse.rds"))
-
+}
 ##### Detect/Filter Gene Counts #####
 # filtering for 0 variance genes
 cts_filtered <- calc_nonzero(
