@@ -63,8 +63,11 @@ rse <- readRDS(args$rse)
 meta <- rse@metadata
 var_cutoff <- args$var_cutoff
 sra <- args$sra
-
-# create output dir if needed
+# rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
+# sra <- "cardo"
+# meta <- rse@metadata
+# filepath <- "./results/archive/"
+# # create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
@@ -109,7 +112,7 @@ meta_cts_plot <- meta_cts_long %>%
   ggplot(aes(log2(cts + 1), colour = rep)) +
   geom_freqpoly(binwidth = 5)
 
-if (sra != "tanaka") {
+if (!sra %in% c("tanaka1", "tanaka2")) {
   meta_cts_plot <- meta_cts_plot + facet_grid(cells ~ genotype)
 }
 
@@ -131,7 +134,7 @@ top_cts <- cts_filtered[
     order(
       apply(cts_filtered, 1, var),
       decreasing = TRUE
-    )[1:5000]
+    )[1:10000]
   ),
 ]
 sample_cor <- cor(top_cts)
@@ -154,14 +157,14 @@ ComplexHeatmap::Heatmap(as.matrix(sample_cor),
 dev.off()
 
 print(paste0(
-  "Completed sample-sample correlations by top 5000 var genes and plotted: ",
+  "Completed sample-sample correlations by top 10000 var genes and plotted: ",
   filepath, "QC_sample_to_sample_corr.png"
 ))
 
 #### PCA ####
 
 # calculate PC's
-pc <- prcomp(t(cts_filtered), scale = TRUE)
+pc <- prcomp(t(top_cts), scale = TRUE)
 pc_df <- as.data.frame(pc$x)
 
 # calculate variance explained
@@ -204,7 +207,7 @@ ggsave(paste0(filepath, "PC_scree_plot.png"))
 # correlation of PCs to numeric QC metadata
 pca_cor <- meta %>%
   select_if(is.numeric) %>%
-  select_if(function(col) length(unique(col)) != 1) %>%
+  # select_if(function(col) length(unique(col)) != 1) %>%
   bind_cols(pc_keep, .) %>%
   cor()
 
@@ -237,11 +240,9 @@ if (sra == "cardo") {
     "genotype", "cells", "differentiation_days", "sample",
     "sample_type", "condition"
   )
-}
-if (sra == "shaw") {
+} else if (sra == "shaw") {
   int_feats <- c("genotype", "cells", "sample", "ACMG", "condition")
-}
-if (sra == "tanaka") {
+} else { # for Tanaka 1 and 2 data sets
   int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition")
 }
 
