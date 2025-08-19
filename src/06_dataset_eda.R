@@ -63,36 +63,54 @@ rse <- readRDS(args$rse)
 meta <- rse@metadata
 var_cutoff <- args$var_cutoff
 sra <- args$sra
+# args for testing
 # rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
 # sra <- "cardo"
 # meta <- rse@metadata
 # filepath <- "./results/archive/"
-# # create output dir if needed
+# create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Metadata exploration ####
+# create a metadata column for SETBP1 TPM expression
+setbp1 <- rse[rse@elementMetadata@listData$gene_name == "SETBP1",] 
+str(setbp1)
+setbp1_exp <- t(assays(setbp1)[["salmon.merged.gene_tpm"]])
+str(setbp1_exp) 
+rownames(setbp1_exp)
 # frequency of metadata variables
-
 groupings <- meta %>%
   # filter out metadata that's completely unique
   select_if(function(col) length(unique(col)) < length(col)) %>%
   # filter out data that's completely redundant
-  select_if(function(col) length(unique(col)) != 1)
+  select_if(function(col) length(unique(col)) != 1) %>%
+  # add SETBP1 TPM
+  bind_cols(t(assays(setbp1)[["salmon.merged.gene_tpm"]]))
+
+print(paste0("Metadata groupings: \n"))
+groupings
 
 pdf(paste0(filepath, "metadata_feat_freq.pdf"))
 for (i in 2:ncol(groupings)) {
-  freq <- as.data.frame(table(groupings[, i]))
+  freq <- as.data.frame(table(groupings[, i]))#, groupings$ENSG00000152217))
+  # colnames(freq) <- c("Feature", "SETBP1_TPM", "Freq")
+
   p <- freq %>%
-    ggplot(aes(x = freq[, 1], y = Freq)) +
-    geom_bar(stat = "identity") +
+    ggplot(aes(x = freq[, 1], y = Freq)) + #, fill = SETBP1_TPM)) +
+    geom_bar(stat = "identity") + #, position = "stack") +
+    # geom_bar(aes(fill = ENSG00000152217), position = position_stack()) +
     geom_text(aes(label = Freq), vjust = -.5) +
     xlab(paste(colnames(groupings)[i])) +
     coord_flip()
   print(p)
 }
 dev.off()
-
+# groupings %>%
+#   ggplot(aes(x = ENSG00000152217, y = differentiation_days, colour = genotype)) +
+#   scale_x_continuous(transform = "log2") +
+#   geom_point(position = position_jitterdodge())
+# ggsave(paste0(filepath, "metadata_dotplot.png"))
 print(paste0(
   "Completed metadata variable frequency plots and saved: ",
   filepath, "metadata_feat_freq.pdf"
@@ -238,12 +256,14 @@ pca_meta <- groupings %>%
 if (sra == "cardo") {
   int_feats <- c(
     "genotype", "cells", "differentiation_days", "sample",
-    "sample_type", "condition"
+    "sample_type", "condition", "ENSG00000152217" 
   )
 } else if (sra == "shaw") {
-  int_feats <- c("genotype", "cells", "sample", "ACMG", "condition")
+  int_feats <- c("genotype", "cells", "sample", "ACMG", "condition", "ENSG00000152217" 
+)
 } else { # for Tanaka 1 and 2 data sets
-  int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition")
+  int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition", "ENSG00000152217" 
+)
 }
 
 for (i in seq_along(int_feats)) {
