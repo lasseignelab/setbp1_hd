@@ -88,6 +88,8 @@ return(vi_list)
 rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath){
   pdf(filepath, width = )
   for(i in 1:(nrow(var_explained)-1)){
+    set.seed(42)
+
     pca_plot <- pcameta %>%
   # color by discrete values
     ggplot(
