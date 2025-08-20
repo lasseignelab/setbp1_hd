@@ -11,8 +11,12 @@ dataset_names=("cardo" "shaw" "tanaka1" "tanaka2")
 dataset=${dataset_names[$SLURM_ARRAY_TASK_ID]}
 
 #### RUN EDA SCRIPT ####
-singularity exec -B ${CAP_PROJECT_PATH} ${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif Rscript --vanilla ${CAP_PROJECT_PATH}/src/06_dataset_eda.R \
--f ${CAP_PROJECT_PATH}/src/functions.R \
--r "${CAP_DATA_PATH}/processed/${dataset}_prepped_rse.rds" \
--s ${dataset} \
--o ${CAP_PROJECT_PATH}/results/eda/
+singularity exec --cleanenv \
+                 --containall \
+                 -B /data/project/lasseigne_lab \
+                 -B ${CAP_PROJECT_PATH} \
+                 ${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif Rscript --vanilla ${CAP_PROJECT_PATH}/src/06_dataset_eda.R \
+                 -f ${CAP_PROJECT_PATH}/src/functions.R \
+                 -r "${CAP_DATA_PATH}/processed/${dataset}_prepped_rse.rds" \
+                 -s ${dataset} \
+                 -o ${CAP_PROJECT_PATH}/results/eda/

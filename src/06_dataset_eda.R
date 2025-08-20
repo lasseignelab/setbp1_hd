@@ -64,23 +64,23 @@ meta <- rse@metadata
 var_cutoff <- args$var_cutoff
 sra <- args$sra
 # args for testing
-# rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
-# sra <- "cardo"
+# rse <- readRDS("./data/processed/tanaka1_prepped_rse.rds")
+# sra <- "tanaka1"
 # meta <- rse@metadata
 # filepath <- "./results/archive/"
+# var_cutoff <- 4
 # create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Metadata exploration ####
-# create a metadata column for SETBP1 TPM expression
-setbp1 <- rse[rse@elementMetadata@listData$gene_name == "SETBP1",] 
+# SETBP1 TPM expression
+setbp1 <- rse[rse@elementMetadata@listData$gene_name %in% c("SETBP1", "Setbp1"),] 
 str(setbp1)
-setbp1_exp <- t(assays(setbp1)[["salmon.merged.gene_tpm"]])
-str(setbp1_exp) 
-rownames(setbp1_exp)
+
 # frequency of metadata variables
 groupings <- meta %>%
+  filter(rownames(.) %in% colnames(rse)) %>%
   # filter out metadata that's completely unique
   select_if(function(col) length(unique(col)) < length(col)) %>%
   # filter out data that's completely redundant
@@ -224,6 +224,7 @@ ggsave(paste0(filepath, "PC_scree_plot.png"))
 
 # correlation of PCs to numeric QC metadata
 pca_cor <- meta %>%
+  filter(rownames(.) %in% colnames(rse)) %>%
   select_if(is.numeric) %>%
   # select_if(function(col) length(unique(col)) != 1) %>%
   bind_cols(pc_keep, .) %>%
@@ -262,7 +263,8 @@ if (sra == "cardo") {
   int_feats <- c("genotype", "cells", "sample", "ACMG", "condition", "ENSG00000152217" 
 )
 } else { # for Tanaka 1 and 2 data sets
-  int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition", "ENSG00000152217" 
+  # int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition", "ENSG00000152217" 
+  int_feats <- c("sample_type", "sample_name", "condition", "ENSMUSG00000024548" 
 )
 }
 
