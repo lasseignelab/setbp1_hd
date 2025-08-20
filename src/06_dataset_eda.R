@@ -88,7 +88,6 @@ groupings <- meta %>%
   # add SETBP1 TPM
   bind_cols(t(assays(setbp1)[["salmon.merged.gene_tpm"]]))
 
-print(paste0("Metadata groupings: \n"))
 groupings
 write.csv(groupings, paste0(filepath, sra, "_metadata_groupings.csv"))
 
@@ -224,7 +223,6 @@ var_explained_cutoff %>%
 # save plot
 ggsave(paste0(filepath, "PC_scree_plot.png"))
 
-
 # correlation of PCs to numeric QC metadata
 pca_cor <- meta %>%
   filter(rownames(.) %in% colnames(rse)) %>%
@@ -233,7 +231,7 @@ pca_cor <- meta %>%
   bind_cols(pc_keep, .) %>%
   cor()
 
-
+write.csv(pca_cor, paste0(filepath, "PC_metadata_correlation.csv"))
 png(
   paste0(
     filepath, "QC_PC_correlation.png"
@@ -273,6 +271,7 @@ if (sra == "cardo") {
 }
 
 for (i in seq_along(int_feats)) {
+
   rse_pca(pca_meta, var_explained_cutoff,
     color_by = int_feats[i],
     shape = int_feats[1],
@@ -287,6 +286,8 @@ for (i in seq_along(int_feats)) {
 model_types <- c("rf", "svm")
 
 for (i in seq_along(model_types)) {
+set.seed(42)
+
   tryCatch(
     {
       print(paste0("Creating ", model_types[i], " and explainer"))
@@ -315,6 +316,8 @@ for (i in seq_along(model_types)) {
 #### Compare feature importance by model ####
 comp_mods <- list()
 for (i in seq_along(model_types)) {
+set.seed(42)
+
   tryCatch(
     {
       comp_mods[[i]] <- readRDS(
