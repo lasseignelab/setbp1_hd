@@ -280,7 +280,7 @@ for (i in seq_along(int_feats)) {
 #### Feature importance of each PC ####
 
 # model types to use for predicting feature importance for each PC
-model_types <- c("rf", "svm", "gbm")
+model_types <- c("rf", "svm")
 
 for (i in seq_along(model_types)) {
   tryCatch(
@@ -327,10 +327,10 @@ for (i in seq_along(model_types)) {
     }
   )
 }
-if (length(comp_mods) == 3) {
+if (length(comp_mods) == 2) {
   pdf(paste0(filepath, "PC_feat_imp_model_comparison.pdf"))
   for (i in seq_along(var_explained_cutoff)) {
-    print(plot(comp_mods[[1]][[i]], comp_mods[[2]][[i]], comp_mods[[3]][[i]]))
+    print(plot(comp_mods[[1]][[i]], comp_mods[[2]][[i]]))
   }
   dev.off()
 }
