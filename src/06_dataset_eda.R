@@ -64,8 +64,8 @@ meta <- rse@metadata
 var_cutoff <- args$var_cutoff
 sra <- args$sra
 # args for testing
-# rse <- readRDS("./data/processed/tanaka1_prepped_rse.rds")
-# sra <- "tanaka1"
+# rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
+# sra <- "cardo"
 # meta <- rse@metadata
 # filepath <- "./results/archive/"
 # var_cutoff <- 4
@@ -90,6 +90,7 @@ groupings <- meta %>%
 
 print(paste0("Metadata groupings: \n"))
 groupings
+write.csv(groupings, paste0(filepath, sra, "_metadata_groupings.csv"))
 
 pdf(paste0(filepath, "metadata_feat_freq.pdf"))
 for (i in 2:ncol(groupings)) {
@@ -165,6 +166,8 @@ png(
   ),
   width = 35, height = 35, units = "cm", res = 300
 )
+set.seed(42)
+
 ComplexHeatmap::Heatmap(as.matrix(sample_cor),
   top_annotation = HeatmapAnnotation(
     df = meta_anno,
@@ -237,6 +240,7 @@ png(
   ),
   width = 30, height = 30, units = "cm", res = 300
 )
+set.seed(42)
 ComplexHeatmap::Heatmap(as.matrix(pca_cor))
 dev.off()
 
