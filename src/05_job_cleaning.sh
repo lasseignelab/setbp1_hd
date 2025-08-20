@@ -17,11 +17,11 @@ metadata="${CAP_PROJECT_PATH}/doc/${dataset}_metadata.csv"
 #### RUN EDA SCRIPT ####
 singularity exec --cleanenv \
                  --containall \
-                 -B ${CAP_PROJECT_PATH} \
+                 -B "${CAP_PROJECT_PATH}" \
                  -B /data/project/lasseigne_lab \
-                 ${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif Rscript --vanilla ${CAP_PROJECT_PATH}/src/05_data_cleaning.R \
-                 -f ${CAP_PROJECT_PATH}/src/functions.R \
-                 -c ${counts} \
-                 -m ${metadata} \
-                 -n ${dataset} \
-                 -o ${CAP_DATA_PATH}/processed/
+                 "${CAP_CONTAINER_PATH}/lw_eda_2.1.1.sif" Rscript --vanilla "${CAP_PROJECT_PATH}/src/05_data_cleaning.R" \
+                 -f "${CAP_PROJECT_PATH}/src/functions.R" \
+                 -c "${counts}" \
+                 -m "${metadata}" \
+                 -n "${dataset}" \
+                 -o "${CAP_DATA_PATH}/processed/"
