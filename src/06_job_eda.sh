@@ -3,7 +3,7 @@
 #SBATCH --ntasks=1  ## number of tasks (analyses) to run, i.e. # of nodes to request resource from
 #SBATCH --cpus-per-task=12  ## the number of threads allocated to each task
 #SBATCH --mem=64G  # memory per CPU core
-#SBATCH --partition=short  ## the partition to run in (short == 12h max run time)
+#SBATCH --partition=express ## the partition to run in (short == 12h max run time)
 #SBATCH --array=0-3
 
 #### DATASETS ####
