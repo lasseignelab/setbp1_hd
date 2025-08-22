@@ -1,4 +1,4 @@
-"","cell_line","cell_type","genotype","create_date","source_name","cells","sample","ACMG","condition","rep","ENSG00000152217"
+"","cell_line","cell_type","genotype","create_date","source_name","cells","sample","ACMG","condition","rep","SETBP1_TPM"
 "SRR28491290","KOLF2_derived_NPCs","neural_progenitor_cells","PATH3","2024-03-28T18:02:00Z","KOLF2_derived_NPCs","NPC","NPC_PATH3","PATH","SETBP1-HD",1,12.317782
 "SRR28491291","KOLF2_derived_NPCs","neural_progenitor_cells","PATH3","2024-03-28T18:02:00Z","KOLF2_derived_NPCs","NPC","NPC_PATH3","PATH","SETBP1-HD",2,14.211799
 "SRR28491292","KOLF2_derived_NPCs","neural_progenitor_cells","PATH3","2024-03-28T18:05:00Z","KOLF2_derived_NPCs","NPC","NPC_PATH3","PATH","SETBP1-HD",3,12.748652
