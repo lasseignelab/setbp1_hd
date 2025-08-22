@@ -75,7 +75,9 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Metadata exploration ####
 # SETBP1 TPM expression
-setbp1 <- rse[rse@elementMetadata@listData$gene_name %in% c("SETBP1", "Setbp1"),] 
+setbp1_subset <- rse[rse@elementMetadata@listData$gene_name %in% c("SETBP1", "Setbp1"),] 
+setbp1 <- t(assays(setbp1_subset)[["salmon.merged.gene_tpm"]])
+colnames(setbp1) <- "SETBP1_TPM"
 str(setbp1)
 
 # frequency of metadata variables
@@ -86,7 +88,7 @@ groupings <- meta %>%
   # filter out data that's completely redundant
   select_if(function(col) length(unique(col)) != 1) %>%
   # add SETBP1 TPM
-  bind_cols(t(assays(setbp1)[["salmon.merged.gene_tpm"]]))
+  bind_cols(setbp1)
 
 groupings
 write.csv(groupings, paste0(filepath, sra, "_metadata_groupings.csv"))
@@ -137,10 +139,7 @@ if (!sra %in% c("tanaka1", "tanaka2")) {
 meta_cts_plot
 
 # save plot
-ggsave(
-  paste0(
-    filepath, sra, "_sample_cts_variation_.png"
-  ),
+ggsave(paste0(filepath, sra, "_sample_cts_variation_.png"),
   height = 7, width = 14, units = "cm"
 )
 
@@ -231,11 +230,8 @@ pca_cor <- meta %>%
   bind_cols(pc_keep, .) %>%
   cor()
 
-write.csv(pca_cor, paste0(filepath, "PC_metadata_correlation.csv"))
-png(
-  paste0(
-    filepath, "QC_PC_correlation.png"
-  ),
+write.csv(paste0(filepath, "PC_metadata_correlation.csv"))
+png(paste0(filepath, "QC_PC_correlation.png"),
   width = 30, height = 30, units = "cm", res = 300
 )
 set.seed(42)
@@ -259,18 +255,25 @@ pca_meta <- groupings %>%
 if (sra == "cardo") {
   int_feats <- c(
     "genotype", "cells", "differentiation_days", "sample",
-    "sample_type", "condition", "ENSG00000152217" 
+    "sample_type", "condition", "SETBP1_TPM" 
   )
 } else if (sra == "shaw") {
-  int_feats <- c("genotype", "cells", "sample", "ACMG", "condition", "ENSG00000152217" 
+  int_feats <- c("genotype", "cells", "sample", "ACMG", "condition", "SETBP1_TPM" 
 )
 } else { # for Tanaka 1 and 2 data sets
   # int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition", "ENSG00000152217" 
-  int_feats <- c("sample_type", "sample_name", "condition", "ENSMUSG00000024548" 
+  int_feats <- c("sample_type", "sample_name", "condition", "SETBP1_TPM" 
 )
 }
 
 for (i in seq_along(int_feats)) {
+  p <- groupings %>%
+    ggplot(aes(
+      x = SETBP1_TPM, y = groupings[,int_feats[i]], colour = groupings[,int_feats[1]])) + 
+    geom_boxplot() +
+    geom_point(position = position_jitterdodge(seed = 42))
+  print(p)
+  ggsave(paste0(filepath, "setbp1_tpm_", int_feats[i],  "_boxplot.png"))
 
   rse_pca(pca_meta, var_explained_cutoff,
     color_by = int_feats[i],
