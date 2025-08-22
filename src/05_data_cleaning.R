@@ -48,10 +48,10 @@ print(paste0("Reading in RSE from: ", args$rse))
 rse <- readRDS(args$counts)
 meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
 name <- args$name
-# rse <- readRDS("./data/tanaka/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
-# name <- "tanaka"
-# meta <- read.csv("./doc/tanaka_metadata.csv")
-# create output dir if needed
+# rse <- readRDS("./data/cardo/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
+# name <- "cardo"
+# meta <- read.csv("./doc/cardo_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
+# # create output dir if needed
 filepath <- paste0(args$output_dir)
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
@@ -160,8 +160,12 @@ for (i in seq_along(assays(rse))) {
   rownames(rse@assays@data@listData[[i]]) <- rownames(rse)
 }
 
+# ensure ordering consistency with metadata and rse
+meta_filt <- meta_filt[colnames(rse),]
 print(paste0("Adding metadata to RSE...", str(rse)))
 rse@metadata <- meta_filt
+
+# adding filtered metadata to rse
 print(
   paste0(
     "Saving full prepped (with metadata and non-versioned gene IDs) RSE as: ",
