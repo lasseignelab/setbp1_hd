@@ -270,8 +270,16 @@ for (i in seq_along(int_feats)) {
   p <- groupings %>%
     ggplot(aes(
       x = SETBP1_TPM, y = groupings[,int_feats[i]], colour = groupings[,int_feats[1]])) + 
+    labs(y = paste0(int_feats[i])) +
+    scale_colour_viridis_d(option = "viridis", end = 0.75) +
     geom_boxplot() +
-    geom_point(position = position_jitterdodge(seed = 42))
+    geom_point(position = position_jitterdodge(seed = 42)) +
+    theme(
+      legend.title = element_blank(),
+      panel.grid = element_blank(),
+      panel.background = element_blank(),
+      text = element_text(face = "bold")
+    )
   print(p)
   ggsave(paste0(filepath, "setbp1_tpm_", int_feats[i],  "_boxplot.png"))
 
