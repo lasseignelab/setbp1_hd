@@ -50,9 +50,9 @@ sra <- args$sra
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
-# rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
-# sra <- "cardo"
-# filepath <- "./results/archive/"
+rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
+sra <- "cardo"
+filepath <- "./results/archive/"
 # rse <- readRDS("./data/processed/shaw_filtered_rse.rds")
 # rse <- readRDS("./data/processed/tanaka_filtered_rse.rds")
 # sra <- "tanaka"
@@ -75,13 +75,6 @@ meta <- rse@metadata %>%
 #     condition = gsub("-", "_", condition),
 #     across(where(is.character), as.factor)
 #   )
-# testing for sample swap in cardo et al
-# t <- assays(rse)$salmon.merged.gene_tpm["ENSG00000152217",]
-# tt <- cbind(meta, t(t))
-# avg <- mean(tt$ENSG00000152217)
-# tt <- tt %>% mutate(setbp1 = ifelse(ENSG00000152217 < avg, "low", "high"))
-# tt <- tt %>% mutate(setbp1 = as.factor(setbp1))
-# dge <- DGEList(counts = assay(rse, paste0(cts)), group = tt$setbp1, genes = as.data.frame(rse@elementMetadata@listData))
 dge <- DGEList(counts = assay(rse, paste0(cts)), group = meta$sample, genes = as.data.frame(rse@elementMetadata@listData))
 
 # create design matrix
@@ -99,10 +92,10 @@ dge <- calcNormFactors(dge)
 
 if(sra == "cardo"){
   # contrast pre vs post condition
-  contr <- makeContrasts(
-    LOWvsHI = setbp1low - setbp1high,
-    levels = des
-  )
+  # contr <- makeContrasts(
+  #   LOWvsHI = setbp1low - setbp1high,
+  #   levels = des
+  # )
   contr <- makeContrasts(
     KOvsWT_15 = SETBP1_KO_15 - WT_15,
     KOvsWT_21 = SETBP1_KO_21 - WT_21,
