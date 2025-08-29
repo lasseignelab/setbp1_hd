@@ -50,23 +50,33 @@ sra <- args$sra
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
-rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
-sra <- "cardo"
-filepath <- "./results/archive/"
+# rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
+# sra <- "cardo"
+# filepath <- "./results/archive/"
+
 # rse <- readRDS("./data/processed/shaw_filtered_rse.rds")
-# rse <- readRDS("./data/processed/tanaka_filtered_rse.rds")
+
 # sra <- "tanaka"
+# rse <- readRDS("./data/processed/tanaka1_prepped_rse.rds")
 
 cts <- "salmon.merged.gene_counts"
 
 # create DGE list
 meta <- rse@metadata %>%
+  # ensure metadata samples match samples for counts
+  filter(rownames(.) %in% colnames(rse)) %>%
   mutate(
+    # sample = gsub("-", "_", sample_name),
+    # might need to update for shaw and cardo!! double check!!
     sample = gsub("-", "_", sample),
     condition = gsub("-", "_", condition),
     across(where(is.character), as.factor)
     )
 
+if(sra %in% c("tanaka1", "tanaka2")){
+  # rename sample column
+  meta$sample <- meta$sample_name
+}
 # fix for tanaka
 # meta <- rse@metadata %>%
 #   mutate(
@@ -117,12 +127,13 @@ if(sra == "shaw"){
     levels = des
     )
 }
-if(sra == "tanaka"){
+if(sra %in% c("tanaka1", "tanaka2")){
   # contrast pre vs post condition
   contr <- makeContrasts(
-    HDvsWT_LS = SETBP1_HD_LS - Control_LS,
-    HDvsWT_LSK = SETBP1_HD_LSK - Control_LSK,
-    HDvsWT_all = (SETBP1_HD_LS + SETBP1_HD_LSK)/2 - (Control_LS + Control_LSK)/2,
+    HDvsWT = control - KO,
+    # HDvsWT_LS = SETBP1_HD_LS - Control_LS,
+    # HDvsWT_LSK = SETBP1_HD_LSK - Control_LSK,
+    # HDvsWT_all = (SETBP1_HD_LS + SETBP1_HD_LSK)/2 - (Control_LS + Control_LSK)/2,
     levels = des
   )
 }
