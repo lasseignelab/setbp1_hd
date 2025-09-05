@@ -7,8 +7,6 @@ suppressPackageStartupMessages({
   library(limma)
   library(statmod)
   library(edgeR)
-  # source(paste0(getwd(), "/functions.R"))
-  # source(paste0(getwd(), "/src/functions.R"))
 })
 
 # create parser object
@@ -47,17 +45,22 @@ meta <- rse@metadata
 sra <- args$sra
 
 # create output dir if needed
-filepath <- paste0(args$output_dir, sra, "/")
+filepath <- paste0(args$output_dir, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
+
+# filepath <- "./results/archive/"
 
 # rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
 # sra <- "cardo"
-# filepath <- "./results/archive/"
 
 # rse <- readRDS("./data/processed/shaw_filtered_rse.rds")
+# sra <- "shaw"
 
-# sra <- "tanaka"
+# sra <- "tanaka1"
 # rse <- readRDS("./data/processed/tanaka1_prepped_rse.rds")
+
+# sra <- "tanaka2"
+# rse <- readRDS("./data/processed/tanaka2_prepped_rse.rds")
 
 cts <- "salmon.merged.gene_counts"
 
@@ -75,7 +78,8 @@ meta <- rse@metadata %>%
 
 if(sra %in% c("tanaka1", "tanaka2")){
   # rename sample column
-  meta$sample <- meta$sample_name
+  # meta$sample <- str_to_title(meta$sample_name)
+  meta$sample <- meta$condition
 }
 # fix for tanaka
 # meta <- rse@metadata %>%
@@ -91,6 +95,7 @@ dge <- DGEList(counts = assay(rse, paste0(cts)), group = meta$sample, genes = as
 # des <- model.matrix(~0 + setbp1, data = tt)
 des <- model.matrix(~0 + sample, data = meta)
 colnames(des) <- levels(meta$sample)
+print(paste0("Number of samples per condition"))
 table(meta$sample)
 
 # filter genes with low counts
@@ -130,7 +135,7 @@ if(sra == "shaw"){
 if(sra %in% c("tanaka1", "tanaka2")){
   # contrast pre vs post condition
   contr <- makeContrasts(
-    HDvsWT = control - KO,
+    HDvsWT = Control - SETBP1_HD,
     # HDvsWT_LS = SETBP1_HD_LS - Control_LS,
     # HDvsWT_LSK = SETBP1_HD_LSK - Control_LSK,
     # HDvsWT_all = (SETBP1_HD_LS + SETBP1_HD_LSK)/2 - (Control_LS + Control_LSK)/2,
@@ -166,11 +171,14 @@ if(sra %in% c("tanaka1", "tanaka2")){
     mutate(contrast = paste0(contrast)) %>%
     # add significance labels
     mutate(significance = as.factor(case_when(
-      logFC > 0.5 & adj.P.Val < 0.05 ~ "Up",
-      logFC < -0.5 & adj.P.Val < 0.05 ~ "Down",
-      .default = "NonSig"
+      logFC > 1.5 & adj.P.Val < 0.05 ~ "Up",
+      logFC < -1.5 & adj.P.Val < 0.05 ~ "Down",
+      # logFC > 0.5 & adj.P.Val < 0.1 ~ "Up",
+      # logFC < -0.5 & adj.P.Val < 0.1 ~ "Down",
+       .default = "NonSig"
     )))
-  print(paste0("DEGs summary: ", table(degs$significance)))
+  print(paste0("DEGs summary: ")) 
+  print(table(degs$significance))
   
   # add degs to list
   deg_list[[i]] <- degs
@@ -194,11 +202,9 @@ vol_plot <- degs_comb %>%
   ggplot(aes(y = -log10(`adj.P.Val`), x = logFC, color = significance)) +
   geom_point() +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_vline(xintercept = c(-1.5, 1.5), linetype = "dashed") +
   facet_wrap(~ contrast)
 
 vol_plot
 ggsave(filename = paste0(filepath,  "degs_volcanoplot.png"))
-
-
 
