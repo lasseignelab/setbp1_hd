@@ -130,7 +130,7 @@ if(sra == "shaw"){
     NPC_HD = (NPC_PATH2 + NPC_PATH3 + NPC_VUS2)/3 - (NPC_WT),
     IPSC_HD = (IPSC_PATH2 + IPSC_PATH3 + IPSC_VUS2)/3 - (IPSC_WT),
     # compare heterogeneity of the 2 different pathogenic variants
-    # PATH_vs_PATH = (NPC_PATH2 + IPSC_PATH2)/2 - (NPC_PATH3 + IPSC_PATH3)/2,
+    PATH_vs_PATH = (NPC_PATH2 + IPSC_PATH2)/2 - (NPC_PATH3 + IPSC_PATH3)/2,
     levels = des
     )
 }
@@ -173,8 +173,8 @@ if(sra %in% c("tanaka1", "tanaka2")){
     mutate(contrast = paste0(contrast)) %>%
     # add significance labels
     mutate(significance = as.factor(case_when(
-      logFC > 1.5 & adj.P.Val < 0.05 ~ "Up",
-      logFC < -1.5 & adj.P.Val < 0.05 ~ "Down",
+      logFC > 0.5 & adj.P.Val < 0.05 ~ "Up",
+      logFC < -0.5 & adj.P.Val < 0.05 ~ "Down",
       # logFC > 0.5 & adj.P.Val < 0.1 ~ "Up",
       # logFC < -0.5 & adj.P.Val < 0.1 ~ "Down",
        .default = "NonSig"
