@@ -6,6 +6,8 @@ suppressPackageStartupMessages({
   library(ComplexHeatmap)
   library(limma)
   library(statmod)
+  library(ComplexHeatmap)
+  library(circlize)
   library(edgeR)
 })
 
@@ -207,4 +209,52 @@ vol_plot <- degs_comb %>%
 
 vol_plot
 ggsave(filename = paste0(filepath,  "degs_volcanoplot.png"))
+
+# DEG counts per contrast
+degs_comb %>%
+  ggplot(aes(y = contrast, fill = significance)) +
+  geom_bar(position = position_dodge()) +
+  scale_x_log10()
+ggsave(filename = paste0(filepath,  "degs_summary_bar.png"))
+
+# TPM of top DEGs
+top_degs <- sig_degs_comb %>%
+  slice_max(n = 50, order_by = abs(logFC))
+
+top_cts <- assay(rse, "salmon.merged.gene_tpm") %>%
+  filter(rownames(.) %in% top_degs$gene) %>%
+  mutate_if(is.numeric, ~ log2(. + 1)) %>%
+  rownames_to_column(var = "gene") %>%
+  left_join(top_degs[,c("gene", "gene_name")], by = "gene") %>%
+  select(!gene) %>%
+  distinct()
+  # column_to_rownames(var = "gene_name")
+  # bind_cols(top_degs[,c("gene", "gene_name")], by)
+top_mat <- as.matrix(top_cts[, !names(top_cts) %in% c("gene_name")]) 
+
+# Set column names to sample names
+colnames(top_cts) <- c(paste0(meta$sample), "gene_name")
+
+# Create heatmap
+png(paste0(filepath, "top_degs_heatmap.png"), width = 22, height = 24, units = "cm", res = 300)
+set.seed(42)
+sample_anno <- HeatmapAnnotation(df = meta$sample)
+
+Heatmap(top_mat,# ,colnames(top_cts) %in% c("gene_name"))],
+        name = "log2(TPM)",
+        col = colorRamp2(c(min(top_mat), 0, max(top_mat)), 
+                         c("blue", "white", "red")),
+        cluster_rows = TRUE,
+        cluster_columns = TRUE,
+  row_labels = top_cts$gene_name,
+  bottom_annotation = sample_anno,
+        # show_row_names = TRUE,
+        show_column_names = TRUE,
+        column_names_gp = gpar(fontsize = 10),
+        # row_names_gp = gpar(fontsize = 8),
+        heatmap_legend_param = list(title = "Expression", 
+                                    title_gp = gpar(fontsize = 10, fontface = "bold"),
+                                    labels_gp = gpar(fontsize = 8)))
+
+dev.off()
 
