@@ -240,3 +240,4 @@ src/.nextflow*
 bin/conda/work/
 bin/conda/work/*
 bin/conda/.nextflow/
+bin/container/*
