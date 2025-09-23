@@ -48,16 +48,11 @@ print(paste0("Reading in RSE from: ", args$rse))
 rse <- readRDS(args$counts)
 meta <- read.csv(args$meta, row.names = 1, stringsAsFactors = TRUE)
 name <- args$name
-# rse <- readRDS("./data/cardo/star_salmon/salmon.merged.gene_counts.SummarizedExperiment.rds")
-# name <- "cardo"
-# meta <- read.csv("./doc/cardo_metadata.csv", row.names = 1, stringsAsFactors = TRUE)
-# # create output dir if needed
 filepath <- paste0(args$output_dir)
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Metadata ####
 # dataset-specific adjustments for easier downstream analyses
-
 if (name == "cardo") {
   meta_filt <- meta %>%
     select(

@@ -63,17 +63,11 @@ rse <- readRDS(args$rse)
 meta <- rse@metadata
 var_cutoff <- args$var_cutoff
 sra <- args$sra
-# args for testing
-# rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
-# sra <- "cardo"
-# meta <- rse@metadata
-# filepath <- "./results/archive/"
-# var_cutoff <- 4
-# create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Metadata exploration ####
+
 # SETBP1 TPM expression
 setbp1_subset <- rse[rse@elementMetadata@listData$gene_name %in% c("SETBP1", "Setbp1"),] 
 setbp1 <- t(assays(setbp1_subset)[["salmon.merged.gene_tpm"]])
@@ -95,30 +89,24 @@ write.csv(groupings, paste0(filepath, sra, "_metadata_groupings.csv"))
 
 pdf(paste0(filepath, "metadata_feat_freq.pdf"))
 for (i in 2:ncol(groupings)) {
-  freq <- as.data.frame(table(groupings[, i]))#, groupings$ENSG00000152217))
-  # colnames(freq) <- c("Feature", "SETBP1_TPM", "Freq")
+  freq <- as.data.frame(table(groupings[, i]))
 
   p <- freq %>%
-    ggplot(aes(x = freq[, 1], y = Freq)) + #, fill = SETBP1_TPM)) +
-    geom_bar(stat = "identity") + #, position = "stack") +
-    # geom_bar(aes(fill = ENSG00000152217), position = position_stack()) +
+    ggplot(aes(x = freq[, 1], y = Freq)) + 
+    geom_bar(stat = "identity") + 
     geom_text(aes(label = Freq), vjust = -.5) +
     xlab(paste(colnames(groupings)[i])) +
     coord_flip()
   print(p)
 }
 dev.off()
-# groupings %>%
-#   ggplot(aes(x = ENSG00000152217, y = differentiation_days, colour = genotype)) +
-#   scale_x_continuous(transform = "log2") +
-#   geom_point(position = position_jitterdodge())
-# ggsave(paste0(filepath, "metadata_dotplot.png"))
 print(paste0(
   "Completed metadata variable frequency plots and saved: ",
   filepath, "metadata_feat_freq.pdf"
 ))
 
 #### Sample Variation ####
+
 cts_long <- assays(rse)[["salmon.merged.gene_tpm"]] %>%
   rownames_to_column(var = "genes") %>%
   pivot_longer(cols = !genes, names_to = "sample_ID", values_to = "cts")
@@ -144,6 +132,7 @@ ggsave(paste0(filepath, sra, "_sample_cts_variation_.png"),
 )
 
 #### Sample-Sample Correlation ####
+
 cts_filtered <- assays(rse)[["salmon.merged.gene_tpm"]]
 
 top_cts <- cts_filtered[
@@ -325,6 +314,7 @@ set.seed(42)
 
 
 #### Compare feature importance by model ####
+
 comp_mods <- list()
 for (i in seq_along(model_types)) {
 set.seed(42)
