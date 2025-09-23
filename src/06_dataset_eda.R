@@ -69,7 +69,8 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 #### Metadata exploration ####
 
 # SETBP1 TPM expression
-setbp1_subset <- rse[rse@elementMetadata@listData$gene_name %in% c("SETBP1", "Setbp1"),] 
+setbp1_subset <- rse[rse@elementMetadata@listData$gene_name %in% c(
+  "SETBP1", "Setbp1"), ]
 setbp1 <- t(assays(setbp1_subset)[["salmon.merged.gene_tpm"]])
 colnames(setbp1) <- "SETBP1_TPM"
 str(setbp1)
@@ -92,8 +93,8 @@ for (i in 2:ncol(groupings)) {
   freq <- as.data.frame(table(groupings[, i]))
 
   p <- freq %>%
-    ggplot(aes(x = freq[, 1], y = Freq)) + 
-    geom_bar(stat = "identity") + 
+    ggplot(aes(x = freq[, 1], y = Freq)) +
+    geom_bar(stat = "identity") +
     geom_text(aes(label = Freq), vjust = -.5) +
     xlab(paste(colnames(groupings)[i])) +
     coord_flip()

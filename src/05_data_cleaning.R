@@ -156,7 +156,7 @@ for (i in seq_along(assays(rse))) {
 }
 
 # ensure ordering consistency with metadata and rse
-meta_filt <- meta_filt[colnames(rse),]
+meta_filt <- meta_filt[colnames(rse), ]
 print(paste0("Adding metadata to RSE...", str(rse)))
 rse@metadata <- meta_filt
 
@@ -167,14 +167,14 @@ print(
     name, "_prepped_rse.rds"
   )
 )
-if(name == "tanaka"){
+if (name == "tanaka") {
   # separate tanaka data sets
   tanaka1 <- rse[, rse@metadata$BioProject == "PRJNA974068"]
   tanaka2 <- rse[, rse@metadata$BioProject == "PRJNA898600"]
   write_rds(tanaka1, paste0(filepath, name, "1_prepped_rse.rds"))
   write_rds(tanaka2, paste0(filepath, name, "2_prepped_rse.rds"))
 }else {
-write_rds(rse, paste0(filepath, name, "_prepped_rse.rds"))
+  write_rds(rse, paste0(filepath, name, "_prepped_rse.rds"))
 }
 ##### Detect/Filter Gene Counts #####
 # filtering for 0 variance genes
