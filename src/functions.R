@@ -86,7 +86,7 @@ return(vi_list)
 # sra = SRA number or some other identifier for the dataset for plot title
 # filepath = filepath for saving PCA plot
 rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath){
-  pdf(filepath, width = )
+  pdf(filepath)
   for(i in 1:(nrow(var_explained)-1)){
     set.seed(42)
 
@@ -109,7 +109,7 @@ rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath)
     ylab(paste0("PC", i+1, " ", 
                 round(var_explained[i+1,2] *100, digits = 2),# % variance explained by PC
                 "% Variance")) +
-    labs(title=str_wrap(paste0("PCA of ", sra)), width = 23) +
+    labs(title=str_wrap(paste0("PCA of ", sra), width = 23)) +
       theme(panel.background = element_blank(),
             text = element_text(face = "bold", size = 12))
   
