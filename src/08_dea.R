@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
   library(ComplexHeatmap)
   library(circlize)
   library(edgeR)
+  library(gprofiler2)
 })
 
 # create parser object
@@ -257,4 +258,89 @@ Heatmap(top_mat,# ,colnames(top_cts) %in% c("gene_name"))],
                                     labels_gp = gpar(fontsize = 8)))
 
 dev.off()
+
+#### Compare DEGs Across Conditions ####
+# Upset plot of DEGs across conditions
+gene_contrast_matrix <- sig_degs_comb %>%
+  select(gene, contrast) %>%
+  distinct() %>%
+  mutate(value = 1) %>%
+  pivot_wider(names_from = contrast, values_from = value, values_fill = 0)
+
+# Convert to data frame for UpSetR
+gene_contrast_matrix <- as.data.frame(gene_contrast_matrix)
+rownames(gene_contrast_matrix) <- gene_contrast_matrix$gene
+gene_contrast_matrix$gene <- NULL
+str(gene_contrast_matrix)
+
+# Plot using UpSetR
+png(paste0(filepath, "upset_plot.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(gene_contrast_matrix, sets = colnames(gene_contrast_matrix), order.by = "freq")
+dev.off()
+
+# Plot shared DEGs
+sig_degs_freq <- sig_degs_comb %>%
+  add_count(gene)
+print(paste0("Frequency of shared DEGs across contrasts (1=only in one contrast)"))
+table(sig_degs_freq$n)
+
+sig_degs_freq %>%
+  filter(contrast != "PATH_vs_PATH") %>%
+  filter(n > 2) %>%
+  ggplot(aes(x = logFC, y = gene_name, colour = contrast)) +
+  geom_point()
+ggsave(paste0(filepath, "sig_degs_across_conditions_dotplot.png"))
+
+#### ORA ####
+consensus_up <- sig_degs_freq %>%
+  # rm comparisons that are not SETBP1 HD to WT comparisons
+  filter(contrast != "PATH_vs_PATH") %>%
+  filter(n > 1 & logFC > 0) 
+consensus_ora_up <- gost(consensus_up$gene, sources = "GO")
+write_csv(consensus_ora_up$result, paste0(filepath, "consensus_up_degs_ora.csv"))
+
+consensus_down <- sig_degs_freq %>%
+  # rm comparisons that are not SETBP1 HD to WT comparisons
+  filter(contrast != "PATH_vs_PATH") %>%
+  filter(n > 1 & logFC < 0) 
+consensus_ora_down <- gost(consensus_down$gene, sources = "GO")
+write_csv(consensus_ora_down$result, paste0(filepath, "consensus_down_degs_ora.csv"))
+
+conditions <- unique(sig_degs_comb$contrast)
+
+ for(i in seq_along(colnames(contr))) {
+  print(paste0(colnames(contr)[i]))
+  contrast <- colnames(contr)[i]
+
+  up_degs <- sig_degs_comb %>%
+    filter(contrast == paste0(contrast)) %>%
+    filter(logFC > 0)
+
+  ora_up <- gost(up_degs$gene, sources = "GO")
+  write_csv(ora_up$result, paste0(filepath, contrast, "_up_degs_ora.csv"))
+
+  down_degs <- sig_degs_comb %>%
+    filter(contrast == paste0(contrast)) %>%
+    filter(logFC < 0)
+
+  ora_down <- gost(down_degs$gene, sources = "GO")
+  write_csv(ora_down$result, paste0(filepath, contrast, "_down_degs_ora.csv"))
+
+  # Plot Pathways
+  ora_up %>%
+    filter(term_size < 750) %>%
+    slice_max(recall, n = 30) %>%
+    ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
+    geom_point()
+  ggsave(paste0(filepath, contrast, "_up_top_ora.png"))
+
+  ora_down %>%
+    filter(term_size < 750) %>%
+    slice_max(recall, n = 30) %>%
+    ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
+    geom_point()
+  ggsave(paste0(filepath, contrast, "_down_top_ora.png"))
+
+
+}
 
