@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(ComplexHeatmap)
   library(statmod)
+  library(UpSetR)
   # source(paste0(getwd(), "/functions.R"))
   # source(paste0(getwd(), "/src/functions.R"))
 })
@@ -43,27 +44,29 @@ print(paste0("Reading in RSE from: ", args$rse))
 rse <- readRDS(args$rse)
 meta <- rse@metadata
 sra <- args$sra
-
-filepath <- "./results/dea/"
 # create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
-# save labeled and sig-filtered results
+
+filepath <- "./results/dea/"
+
 # degs_comb <- read_csv(, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
 sig_degs_comb <- read_csv(file = paste0(filepath, "shaw/combined_contrasts_sig_degs.csv"))
 
-# volcano plots across contrasts
-vol_plot <- degs_comb %>%
-  # filter out highest p-adj genes for easier plotting
-  #filter(adj.P.Val < 0.5) %>%
-  ggplot(aes(y = -log10(`adj.P.Val`), x = logFC, color = significance)) +
-  geom_point() +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
-  facet_wrap(~ contrast)
 
-vol_plot
-ggsave(filename = paste0(filepath,  "degs_volcanoplot.png"))
+gene_contrast_matrix <- sig_degs_comb %>%
+  select(gene, contrast) %>%
+  distinct() %>%
+  mutate(value = 1) %>%
+  pivot_wider(names_from = contrast, values_from = value, values_fill = 0)
 
+# Convert to data frame for UpSetR
+gene_contrast_matrix <- as.data.frame(gene_contrast_matrix)
+rownames(gene_contrast_matrix) <- gene_contrast_matrix$gene
+gene_contrast_matrix$gene <- NULL
+str(gene_contrast_matrix)
 
-
+# Plot using UpSetR
+png(paste0(filepath, "upset_plot.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(gene_contrast_matrix, sets = colnames(gene_contrast_matrix), order.by = "freq")
+dev.off()
