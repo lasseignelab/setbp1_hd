@@ -4,13 +4,55 @@ suppressPackageStartupMessages({
   library(gprofiler2)
   source(paste0(getwd(), "/src/functions.R"))
 })
+# create parser object
+parser <- ArgumentParser()
 
+# specify desired options
+parser$add_argument("-f", "--functions",
+  type = "character",
+  metavar = "PATH",
+  default = NULL,
+  help = "Path to functions file to source custom functions" # nolint
+)
+parser$add_argument("-r", "--rse",
+  type = "character",
+  metavar = "PATH",
+  help = "Filepath to directory with *_prepped_rse.rds files"
+)
+parser$add_argument("-v", "--var_cutoff",
+  type = "integer",
+  default = 3,
+  help = "Integer value representing % variance threshold cutoff for PC's to retain (i.e. 3 = retain PC's explaining > 3.0% total variation)" # nolint
+)
+parser$add_argument("-o", "--output_dir",
+  type = "character",
+  metavar = "PATH",
+  help = "Path to the directory to create and write EDA results"
+)
 
-c_rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
-s_rse <- readRDS("./data/processed/shaw_prepped_rse.rds")
-t_rse <- readRDS("./data/processed/tanaka_prepped_rse.rds")
+# get command line options, if help option encountered print help and exit
+args <- parser$parse_args()
 
-meta_comb <- t_rse@metadata %>%
+# source functions file if supplied
+if (!is.null(args$functions)) source(args$functions)
+
+# start timer
+ptm <- proc.time()
+
+#### Set variables for dataset ####
+print(paste0("Reading in RSE from: ", args$rse))
+
+var_cutoff <- args$var_cutoff
+sra <- args$sra
+filepath <- args$output_dir
+if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
+
+c_rse <- readRDS(paste0(args$rse, "cardo_prepped_rse.rds"))
+s_rse <- readRDS(paste0(args$rse, "shaw_prepped_rse.rds"))
+t1_rse <- readRDS(paste0(args$rse, "tanaka1_prepped_rse.rds"))
+t2_rse <- readRDS(paste0(args$rse, "tanaka2_prepped_rse.rds"))
+
+meta_comb <- t1_rse@metadata %>%
   bind_rows(c_rse@metadata, s_rse@metadata) %>%
   mutate(author = ifelse(
     BioProject == "PRJNA746989", "Cardo",
@@ -19,7 +61,7 @@ meta_comb <- t_rse@metadata %>%
     )
   ))
 
-write_csv(meta_comb, file = "./results/combined_metadata.csv")
+write_csv(meta_comb, file = paste0(filepath, "combined_metadata.csv"))
 
 # combine cardo and shaw data, subset for nonzero var genes
 nonzero_genes <- intersect(rownames(c_rse), rownames(s_rse))
@@ -28,9 +70,7 @@ cts_filtered <- assay(cts_comb, "salmon.merged.gene_tpm")
 
 # convert tanaka mouse IDs to human orthologs
 conv <- gorth(
-  rownames(
-    t_rse
-  ),
+  rownames(t1_rse),
   source_organism = "mmusculus",
   target_organism = "hsapiens", filter_na = TRUE, mthreshold = 1
 )
@@ -41,7 +81,7 @@ ortho_filtered <- cts_filtered[rownames(cts_filtered) %in% ortho_genes, ] %>%
   rownames_to_column()
 
 # mouse genes w/ multiple orthologs for 1 human
-comb_genes <- t_rse@assays@data@listData$salmon.merged.gene_tpm %>%
+comb_genes <- t1_rse@assays@data@listData$salmon.merged.gene_tpm %>%
   rownames_to_column() %>%
   mutate(rowname = gsub("\\.\\d+$", "", rowname)) %>%
   inner_join(conv, by = c("rowname" = "input")) %>%
@@ -67,7 +107,7 @@ top_cts_filt <- top_cts %>%
   column_to_rownames("ortholog_ensg")
 
 ### SAVE
-write_csv(top_cts_filt, file = "./results/combined_counts_topvar.csv")
+write_csv(top_cts_filt, file = paste0(filepath, "combined_counts_topvar.csv"))
 
 # calculate PC's
 cts_mat <- t(top_cts_filt)
@@ -81,7 +121,6 @@ var_explained_df <- data.frame(
   PC = paste0("PC", seq_along(pc_df)),
   var_explained = pc$sdev^2 / sum(pc$sdev^2)
 )
-summary(var_explained_df)
 
 # select variance cutoff to filter by for retaining PC's
 var_explained_cutoff <- filter(
@@ -91,8 +130,11 @@ var_explained_cutoff <- filter(
 # filter PC's for cutoff
 pc_keep <- pc_df %>%
   select(seq_len(nrow(var_explained_cutoff)))
+print(paste0("Summary of top var-gene PCs across data sets: "))
+print(summary(pc_keep))
 
 pca_meta <- meta_comb %>%
+  filter(rownames(.) %in% rownames(pc_keep)) %>%
   filter(rownames(.) %in% colnames(top_cts_filt)) %>%
   # filter metadata for features of interest
   select(BioProject, cells, genotype, Instrument, rep, condition, author) %>%
@@ -105,6 +147,8 @@ pca_meta <- meta_comb %>%
   )
 
 meta_feats <- setdiff(colnames(pca_meta), colnames(pc_keep))
+print(paste0("Metadata features to color by:"))
+meta_feats
 
 # color by condition
 for (i in seq_along(meta_feats)) {
@@ -114,8 +158,7 @@ for (i in seq_along(meta_feats)) {
     shape = meta_feats[6],
     sra = "Combined Datasets",
     filepath = paste0(
-      "./results/eda/combined_datasets/combined_datasets_PCA_coloredby_",
-      meta_feats[i], "_WTvsHD.pdf"
+      filepath, "PCA_coloredby_", meta_feats[i], "_WTvsHD.pdf"
     )
   )
 }
@@ -128,8 +171,7 @@ for (i in seq_along(meta_feats)) {
     shape = meta_feats[2],
     sra = "Combined Datasets",
     filepath = paste0(
-      "./results/eda/combined_datasets/combined_datasets_PCA_coloredby_",
-      meta_feats[i], "_cells.pdf"
+      filepath, "PCA_coloredby_", meta_feats[i], "_cells.pdf"
     )
   )
 }
@@ -142,8 +184,7 @@ for (i in seq_along(meta_feats)) {
     shape = meta_feats[7],
     sra = "Combined Datasets",
     filepath = paste0(
-      "./results/eda/combined_datasets/combined_datasets_PCA_coloredby_",
-      meta_feats[i], "_author.pdf"
+      filepath, "PCA_coloredby_", meta_feats[i], "_author.pdf"
     )
   )
 }
