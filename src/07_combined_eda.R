@@ -175,7 +175,7 @@ for (i in seq_along(meta_feats)) {
   rse_pca(pca_meta,
     var_explained_cutoff,
     color_by = meta_feats[i],
-    shape = meta_feats[6],
+    shape = meta_feats[5],
     sra = "Combined Datasets",
     filepath = paste0(
       filepath, "PCA_coloredby_", meta_feats[i], "_WTvsHD.pdf"
@@ -188,7 +188,7 @@ for (i in seq_along(meta_feats)) {
   rse_pca(pca_meta,
     var_explained_cutoff,
     color_by = meta_feats[i],
-    shape = meta_feats[2],
+    shape = meta_feats[1],
     sra = "Combined Datasets",
     filepath = paste0(
       filepath, "PCA_coloredby_", meta_feats[i], "_cells.pdf"
@@ -201,7 +201,7 @@ for (i in seq_along(meta_feats)) {
   rse_pca(pca_meta,
     var_explained_cutoff,
     color_by = meta_feats[i],
-    shape = meta_feats[7],
+    shape = meta_feats[6],
     sra = "Combined Datasets",
     filepath = paste0(
       filepath, "PCA_coloredby_", meta_feats[i], "_author.pdf"
