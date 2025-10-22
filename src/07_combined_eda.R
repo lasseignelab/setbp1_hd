@@ -12,7 +12,7 @@ parser$add_argument("-f", "--functions",
   type = "character",
   metavar = "PATH",
   default = NULL,
-  help = "Path to functions file to source custom functions" # nolint
+  help = "Path to functions file to source custom functions"
 )
 parser$add_argument("-r", "--rse",
   type = "character",
@@ -40,12 +40,6 @@ if (!is.null(args$functions)) source(args$functions)
 ptm <- proc.time()
 
 #### Set variables for dataset ####
-# input <- "./data/processed/"
-# var_cutoff <- 3
-# filepath <- "./results/eda/combined_datasets/"
-#
-# session info
-print(sessionInfo())
 input <- args$rse
 var_cutoff <- args$var_cutoff
 filepath <- args$output_dir
@@ -69,25 +63,18 @@ meta_comb <- t1_rse@metadata %>%
 
 write_csv(meta_comb, file = paste0(filepath, "combined_metadata.csv"))
 
-# combine cardo and shaw data, subset for nonzero var genes
-# print(paste0("Genes: "))
-# length(s_rse@elementMetadata@listData$gene_name)
-# print(head(intersect(rownames(c_rse), rownames(s_rse))))
-# nonzero_genes <- intersect(rownames(c_rse), rownames(s_rse))
-# cts_comb <- cbind(c_rse[nonzero_genes, ], s_rse[nonzero_genes, ])
+# combine cardo and shaw data
 cts_comb <- cbind(c_rse, s_rse)
 cts_filtered <- assay(cts_comb, "salmon.merged.gene_tpm")
-# str(cts_comb)
 #
-# Strip version numbers from gene IDs in cts_filtered
+# strip version numbers from gene IDs in cts_filtered
 cts_filtered_ids <- gsub("\\.\\d+$", "", s_rse@elementMetadata@listData$gene_id)
 rownames(cts_filtered) <- cts_filtered_ids  # update rownames in the matrix
 
-# Check gorth output
+# check gorth output
 mouse_ids <- gsub("\\.\\d+$", "", t1_rse@elementMetadata@listData$gene_id)
 conv <- gorth(
   mouse_ids,
-  # rownames(t1_rse),
   source_organism = "mmusculus",
   target_organism = "hsapiens",
   filter_na = TRUE,
@@ -110,19 +97,7 @@ ortho_filtered <- cts_filtered[rownames(cts_filtered) %in% ortho_genes, ] %>%
 if (nrow(ortho_filtered) == 0) {
   stop("No orthologous genes found after filtering. Check gene ID formats and gorth output.")
 }
-# # convert tanaka mouse IDs to human orthologs
-# conv <- gorth(
-#   rownames(t1_rse),
-#   source_organism = "mmusculus",
-#   target_organism = "hsapiens", filter_na = TRUE, mthreshold = 1
-# )
-#
-# # subset RSEs by genes w/ mouse-human ortholog available
-# ortho_genes <- intersect(rownames(cts_filtered), conv$ortholog_ensg)
-# ortho_filtered <- cts_filtered[rownames(cts_filtered) %in% ortho_genes, ] %>%
-#   rownames_to_column()
-# paste0("Ortholog-filtered genes structure: ", str(meta_comb))
-#
+
 # mouse genes w/ multiple orthologs for 1 human
 comb_genes <- t1_rse@assays@data@listData$salmon.merged.gene_tpm %>%
   rownames_to_column() %>%
@@ -143,7 +118,6 @@ top_cts <- comb_cts[
   ),
 ]
 
-
 top_cts_filt <- top_cts %>%
   # remove non-unique genes
   distinct(ortholog_ensg, .keep_all = TRUE) %>%
@@ -153,13 +127,12 @@ top_cts_filt <- top_cts %>%
   column_to_rownames("ortholog_ensg")
 paste0("Top var human genes with orthologs: ", str(top_cts_filt))
 
-### SAVE
+# save combined top var counts
 write_csv(top_cts_filt, file = paste0(filepath, "combined_counts_topvar.csv"))
 
 # calculate PC's
 cts_mat <- t(top_cts_filt)
 cts_mat <- cts_mat[, apply(cts_mat, 2, var) > 0]
-# pc <- prcomp(t(top_cts_filt), scale = TRUE)
 pc <- prcomp(cts_mat, scale = TRUE)
 pc_df <- as.data.frame(pc$x)
 
@@ -188,7 +161,7 @@ pca_meta <- meta_comb %>%
   bind_cols(pc_keep, .) %>%
   mutate(
     Organism = ifelse(
-      BioProject %in% c("PRJNA898600", "PRJNA974068"), "Mouse", "Human"
+      author == "Tanaka", "Mouse", "Human"
     ),
     across(where(is.character), as.factor)
   )
@@ -235,3 +208,6 @@ for (i in seq_along(meta_feats)) {
     )
   )
 }
+
+# session info
+print(sessionInfo())
