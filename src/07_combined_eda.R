@@ -2,7 +2,7 @@ suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
   library(gprofiler2)
-  source(paste0(getwd(), "/src/functions.R"))
+  library(SummarizedExperiment)
 })
 # create parser object
 parser <- ArgumentParser()
@@ -40,17 +40,23 @@ if (!is.null(args$functions)) source(args$functions)
 ptm <- proc.time()
 
 #### Set variables for dataset ####
-print(paste0("Reading in RSE from: ", args$rse))
-
+# input <- "./data/processed/"
+# var_cutoff <- 3
+# filepath <- "./results/eda/combined_datasets/"
+#
+# session info
+print(sessionInfo())
+input <- args$rse
 var_cutoff <- args$var_cutoff
-sra <- args$sra
 filepath <- args$output_dir
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
-c_rse <- readRDS(paste0(args$rse, "cardo_prepped_rse.rds"))
-s_rse <- readRDS(paste0(args$rse, "shaw_prepped_rse.rds"))
-t1_rse <- readRDS(paste0(args$rse, "tanaka1_prepped_rse.rds"))
-t2_rse <- readRDS(paste0(args$rse, "tanaka2_prepped_rse.rds"))
+print(paste0("Reading in RSE from: ", input))
+
+c_rse <- readRDS(paste0(input, "cardo_prepped_rse.rds"))
+s_rse <- readRDS(paste0(input, "shaw_prepped_rse.rds"))
+t1_rse <- readRDS(paste0(input, "tanaka1_prepped_rse.rds"))
+t2_rse <- readRDS(paste0(input, "tanaka2_prepped_rse.rds"))
 
 meta_comb <- t1_rse@metadata %>%
   bind_rows(c_rse@metadata, s_rse@metadata) %>%
@@ -64,22 +70,59 @@ meta_comb <- t1_rse@metadata %>%
 write_csv(meta_comb, file = paste0(filepath, "combined_metadata.csv"))
 
 # combine cardo and shaw data, subset for nonzero var genes
-nonzero_genes <- intersect(rownames(c_rse), rownames(s_rse))
-cts_comb <- cbind(c_rse[nonzero_genes, ], s_rse[nonzero_genes, ])
+# print(paste0("Genes: "))
+# length(s_rse@elementMetadata@listData$gene_name)
+# print(head(intersect(rownames(c_rse), rownames(s_rse))))
+# nonzero_genes <- intersect(rownames(c_rse), rownames(s_rse))
+# cts_comb <- cbind(c_rse[nonzero_genes, ], s_rse[nonzero_genes, ])
+cts_comb <- cbind(c_rse, s_rse)
 cts_filtered <- assay(cts_comb, "salmon.merged.gene_tpm")
+# str(cts_comb)
+#
+# Strip version numbers from gene IDs in cts_filtered
+cts_filtered_ids <- gsub("\\.\\d+$", "", s_rse@elementMetadata@listData$gene_id)
+rownames(cts_filtered) <- cts_filtered_ids  # update rownames in the matrix
 
-# convert tanaka mouse IDs to human orthologs
+# Check gorth output
+mouse_ids <- gsub("\\.\\d+$", "", t1_rse@elementMetadata@listData$gene_id)
 conv <- gorth(
-  rownames(t1_rse),
+  mouse_ids,
+  # rownames(t1_rse),
   source_organism = "mmusculus",
-  target_organism = "hsapiens", filter_na = TRUE, mthreshold = 1
+  target_organism = "hsapiens",
+  filter_na = TRUE,
+  mthreshold = 1
 )
 
-# subset RSEs by genes w/ mouse-human ortholog available
+if (nrow(conv) == 0) {
+  stop("gorth() returned no ortholog mappings. Check input gene IDs and API status.")
+}
+
+# Intersect cleaned IDs
 ortho_genes <- intersect(rownames(cts_filtered), conv$ortholog_ensg)
+print(paste0("Number of matched orthologs: ", length(ortho_genes)))
+
+# Subset filtered matrix
 ortho_filtered <- cts_filtered[rownames(cts_filtered) %in% ortho_genes, ] %>%
   rownames_to_column()
 
+# Add a check to prevent zero-dimension PCA input
+if (nrow(ortho_filtered) == 0) {
+  stop("No orthologous genes found after filtering. Check gene ID formats and gorth output.")
+}
+# # convert tanaka mouse IDs to human orthologs
+# conv <- gorth(
+#   rownames(t1_rse),
+#   source_organism = "mmusculus",
+#   target_organism = "hsapiens", filter_na = TRUE, mthreshold = 1
+# )
+#
+# # subset RSEs by genes w/ mouse-human ortholog available
+# ortho_genes <- intersect(rownames(cts_filtered), conv$ortholog_ensg)
+# ortho_filtered <- cts_filtered[rownames(cts_filtered) %in% ortho_genes, ] %>%
+#   rownames_to_column()
+# paste0("Ortholog-filtered genes structure: ", str(meta_comb))
+#
 # mouse genes w/ multiple orthologs for 1 human
 comb_genes <- t1_rse@assays@data@listData$salmon.merged.gene_tpm %>%
   rownames_to_column() %>%
@@ -104,7 +147,11 @@ top_cts <- comb_cts[
 top_cts_filt <- top_cts %>%
   # remove non-unique genes
   distinct(ortholog_ensg, .keep_all = TRUE) %>%
+  filter(!is.na(ortholog_ensg)) %>%
+  rownames_to_column() %>%
+  select(!rowname) %>%
   column_to_rownames("ortholog_ensg")
+paste0("Top var human genes with orthologs: ", str(top_cts_filt))
 
 ### SAVE
 write_csv(top_cts_filt, file = paste0(filepath, "combined_counts_topvar.csv"))
@@ -137,7 +184,7 @@ pca_meta <- meta_comb %>%
   filter(rownames(.) %in% rownames(pc_keep)) %>%
   filter(rownames(.) %in% colnames(top_cts_filt)) %>%
   # filter metadata for features of interest
-  select(BioProject, cells, genotype, Instrument, rep, condition, author) %>%
+  select(cells, genotype, Instrument, rep, condition, author) %>%
   bind_cols(pc_keep, .) %>%
   mutate(
     Organism = ifelse(
