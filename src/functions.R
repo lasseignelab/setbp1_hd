@@ -3,7 +3,7 @@ suppressPackageStartupMessages({
   library(tibble)
   library(magrittr)
   library(e1071)
-  library(gbm)    # for gbm
+  library(gbm) # for gbm
 })
 
 ##### calc_nonzero #####
@@ -99,7 +99,7 @@ get_imp_feats <- function(pcameta, modeltype, suffix, numpc, sra, filepath) {
 # sra = SRA number or some other identifier for the dataset for plot title
 # filepath = filepath for saving PCA plot
 rse_pca <- function(
-  pcameta, var_explained, color_by, shape = 16, sra, filepath) {
+    pcameta, var_explained, color_by, shape = 16, sra, filepath) {
   pdf(filepath)
   for (i in 1:(nrow(var_explained) - 1)) {
     set.seed(42)
@@ -113,15 +113,17 @@ rse_pca <- function(
           color = pcameta[, color_by],
           shape = pcameta[, shape]
         )
-      ) + {
+      ) +
+      {
         if (class(pcameta[, color_by]) == "factor") {
           scale_colour_viridis_d(
             name = paste0(color_by), # fix names and wrap long names
             labels = function(x) str_wrap(x, width = 15)
           )
         }
-      } + {
-      # color by continuous values, check for discrete vs continuous
+      } +
+      {
+        # color by continuous values, check for discrete vs continuous
         if (class(pcameta[, color_by]) != "factor") {
           scale_colour_viridis_c(
             # wrap long names
@@ -134,12 +136,12 @@ rse_pca <- function(
       xlab(paste0(
         "PC", i, " ",
         # % variance explained by PC
-        round(var_explained[i, 2] * 100, digits = 2), 
+        round(var_explained[i, 2] * 100, digits = 2),
         "% Variance"
       )) +
       ylab(paste0(
         "PC", i + 1, " ",
-       # % variance explained by PC 
+        # % variance explained by PC
         round(var_explained[i + 1, 2] * 100, digits = 2),
         "% Variance"
       )) +
@@ -164,7 +166,7 @@ rse_pca <- function(
 # filepath = filepath to save PCA's
 # function plots and saves PCA's colored by variable importance
 pca_topvar_plot <- function(
-  imp_feats_res, pcameta, var_explained, sra, modeltype, filepath) {
+    imp_feats_res, pcameta, var_explained, sra, modeltype, filepath) {
   # plot
   savefile <- paste0(filepath, "/PCA_coloredby_imp_feat_", modeltype, ".pdf")
   pdf(savefile)
@@ -186,7 +188,9 @@ pca_topvar_plot <- function(
         aes(
           x = pcameta[, i],
           y = pcameta[, i + 1],
-          color = pcameta[, top_v])) + {
+          color = pcameta[, top_v]
+        )
+      ) + {
         if (class(pcameta[, top_v]) == "factor") {
           scale_color_discrete(
             name = paste0(top_v), # fix names and wrap long names
@@ -194,7 +198,7 @@ pca_topvar_plot <- function(
           )
         }
       } + {
-      # color by continuous values
+        # color by continuous values
         if (class(pcameta[, top_v]) != "factor") {
           # check for discrete vs continuous
           scale_color_continuous(
@@ -228,7 +232,7 @@ pca_topvar_plot <- function(
 }
 
 ##### simplify_cts #####
-# reformats RSE w/ nonzero var genes into a simplified dataframe with 
+# reformats RSE w/ nonzero var genes into a simplified dataframe with
 # rownames as columns
 # checks for adj_cts assay and uses it be default, otherewise uses TPM
 simplify_cts <- function(rse) {
@@ -265,4 +269,3 @@ top_quartile <- function(rse) {
     filter(Variance >= var_quart[4]) %>%
     select(!Variance)
 }
-
