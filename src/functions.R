@@ -43,18 +43,16 @@ get_imp_feats <- function(pcameta, modeltype, suffix, numpc, sra, filepath) {
         data = temp,
         probability = TRUE
       )
-    }
+    } else if (modeltype == "gbm") {
     # Generalized Boosted Model
-    else if (modeltype == "gbm") {
       mod <- gbm(PC ~ .,
         data = temp,
         n.trees = 500,
         interaction.depth = 1,
         n.cores = 2
       )
-    }
+    } else if (modeltype == "rf") {
     # Random Forest Model
-    else if (modeltype == "rf") {
       mod <- ranger(PC ~ .,
         data = temp,
         classification = FALSE
@@ -113,16 +111,14 @@ rse_pca <- function(
           color = pcameta[, color_by],
           shape = pcameta[, shape]
         )
-      ) +
-      {
+      ) + {
         if (class(pcameta[, color_by]) == "factor") {
           scale_colour_viridis_d(
             name = paste0(color_by), # fix names and wrap long names
             labels = function(x) str_wrap(x, width = 15)
           )
         }
-      } +
-      {
+      } + {
         # color by continuous values, check for discrete vs continuous
         if (class(pcameta[, color_by]) != "factor") {
           scale_colour_viridis_c(
@@ -191,7 +187,7 @@ pca_topvar_plot <- function(
           color = pcameta[, top_v]
         )
       ) + {
-        if (class(pcameta[, top_v]) == "factor") {
+      if (class(pcameta[, top_v]) == "factor") {
           scale_color_discrete(
             name = paste0(top_v), # fix names and wrap long names
             labels = function(x) str_wrap(x, width = 15)
