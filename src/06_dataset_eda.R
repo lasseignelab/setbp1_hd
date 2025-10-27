@@ -70,7 +70,8 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 # SETBP1 TPM expression
 setbp1_subset <- rse[rse@elementMetadata@listData$gene_name %in% c(
-  "SETBP1", "Setbp1"), ]
+  "SETBP1", "Setbp1"
+), ]
 setbp1 <- t(assays(setbp1_subset)[["salmon.merged.gene_tpm"]])
 colnames(setbp1) <- "SETBP1_TPM"
 str(setbp1)
@@ -171,7 +172,6 @@ print(paste0(
 ))
 
 #### PCA ####
-
 # calculate PC's
 pc <- prcomp(t(top_cts), scale = TRUE)
 pc_df <- as.data.frame(pc$x)
@@ -216,7 +216,6 @@ ggsave(paste0(filepath, "PC_scree_plot.png"))
 pca_cor <- meta %>%
   filter(rownames(.) %in% colnames(rse)) %>%
   select_if(is.numeric) %>%
-  # select_if(function(col) length(unique(col)) != 1) %>%
   bind_cols(pc_keep, .) %>%
   cor()
 
@@ -237,7 +236,6 @@ print(paste0(
 
 pca_meta <- groupings %>%
   # filter for data that's individual
-  # select_if(function(col) length(unique(col)) < length(col)) %>%
   bind_cols(pc_keep, .) %>%
   mutate(across(where(is.character), as.factor))
 
@@ -245,21 +243,23 @@ pca_meta <- groupings %>%
 if (sra == "cardo") {
   int_feats <- c(
     "genotype", "cells", "differentiation_days", "sample",
-    "sample_type", "condition", "SETBP1_TPM" 
+    "sample_type", "condition", "SETBP1_TPM"
   )
 } else if (sra == "shaw") {
-  int_feats <- c("genotype", "cells", "sample", "ACMG", "condition", "SETBP1_TPM" 
-)
+  int_feats <- c(
+    "genotype", "cells", "sample", "ACMG", "condition", "SETBP1_TPM"
+  )
 } else { # for Tanaka 1 and 2 data sets
-  # int_feats <- c("sample_type", "AGE", "source_name", "sex", "condition", "ENSG00000152217" 
-  int_feats <- c("sample_type", "sample_name", "condition", "SETBP1_TPM" 
-)
+  int_feats <- c("sample_type", "sample_name", "condition", "SETBP1_TPM")
 }
 
 for (i in seq_along(int_feats)) {
   p <- groupings %>%
     ggplot(aes(
-      x = SETBP1_TPM, y = groupings[,int_feats[i]], colour = groupings[,int_feats[1]])) + 
+      x = SETBP1_TPM,
+      y = groupings[, int_feats[i]],
+      colour = groupings[, int_feats[1]]
+    )) +
     labs(y = paste0(int_feats[i])) +
     scale_colour_viridis_d(option = "viridis", end = 0.75) +
     geom_boxplot() +
@@ -271,7 +271,7 @@ for (i in seq_along(int_feats)) {
       text = element_text(face = "bold")
     )
   print(p)
-  ggsave(paste0(filepath, "setbp1_tpm_", int_feats[i],  "_boxplot.png"))
+  ggsave(paste0(filepath, "setbp1_tpm_", int_feats[i], "_boxplot.png"))
 
   rse_pca(pca_meta, var_explained_cutoff,
     color_by = int_feats[i],
@@ -287,7 +287,7 @@ for (i in seq_along(int_feats)) {
 model_types <- c("rf", "svm")
 
 for (i in seq_along(model_types)) {
-set.seed(42)
+  set.seed(42)
 
   tryCatch(
     {
@@ -318,7 +318,7 @@ set.seed(42)
 
 comp_mods <- list()
 for (i in seq_along(model_types)) {
-set.seed(42)
+  set.seed(42)
 
   tryCatch(
     {

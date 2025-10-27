@@ -82,7 +82,7 @@ conv <- gorth(
 )
 
 if (nrow(conv) == 0) {
-  stop("gorth() returned no ortholog mappings. Check input gene IDs and API status.")
+  stop("gorth() returned no ortholog mappings. Check input gene IDs.")
 }
 
 # Intersect cleaned IDs
@@ -93,9 +93,9 @@ print(paste0("Number of matched orthologs: ", length(ortho_genes)))
 ortho_filtered <- cts_filtered[rownames(cts_filtered) %in% ortho_genes, ] %>%
   rownames_to_column()
 
-# Add a check to prevent zero-dimension PCA input
+# check to prevent zero-dimension PCA input
 if (nrow(ortho_filtered) == 0) {
-  stop("No orthologous genes found after filtering. Check gene ID formats and gorth output.")
+  stop("No orthologous genes found after filtering.")
 }
 
 # mouse genes w/ multiple orthologs for 1 human
