@@ -27,5 +27,10 @@ SHOW_ELAPSED_TIME: true
 
 FILEIO_REPORTER: false
 
+
+# Ignore specific file from linting -- issue with megalinter and purrr:keep
+IGNORED_FILES:
+  - src/functions.R
+
 # Uncomment if you want MegaLinter to detect errors but not block CI to pass
 # DISABLE_ERRORS: true
