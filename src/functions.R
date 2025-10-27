@@ -3,7 +3,7 @@ suppressPackageStartupMessages({
   library(tibble)
   library(magrittr)
   library(e1071)
-  library(gbm)
+  library(gbm)    # for gbm
 })
 
 ##### calc_nonzero #####
@@ -95,10 +95,11 @@ get_imp_feats <- function(pcameta, modeltype, suffix, numpc, sra, filepath) {
 ##### rse_pca accepts #####
 # pcameta = dataframe (with PCs and metadata)
 # var_explained = PCs meeting variance explained cutoff
-# color_by = desired metadata variable to color PC's by (must be pcameta colname)
+# color_by = desired pcameta metadata variable to color PC's by
 # sra = SRA number or some other identifier for the dataset for plot title
 # filepath = filepath for saving PCA plot
-rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath) {
+rse_pca <- function(
+  pcameta, var_explained, color_by, shape = 16, sra, filepath) {
   pdf(filepath)
   for (i in 1:(nrow(var_explained) - 1)) {
     set.seed(42)
@@ -107,22 +108,24 @@ rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath)
       # color by discrete values
       ggplot(
         aes(
-          x = pcameta[, i], y = pcameta[, i + 1], color = pcameta[, color_by], shape = pcameta[, shape]
+          x = pcameta[, i],
+          y = pcameta[, i + 1],
+          color = pcameta[, color_by],
+          shape = pcameta[, shape]
         )
-      ) +
-      {
+      ) + {
         if (class(pcameta[, color_by]) == "factor") {
           scale_colour_viridis_d(
             name = paste0(color_by), # fix names and wrap long names
             labels = function(x) str_wrap(x, width = 15)
           )
         }
-      } +
-      # color by continuous values
-      {
-        if (class(pcameta[, color_by]) != "factor") { # check for discrete vs continuous
+      } + {
+      # color by continuous values, check for discrete vs continuous
+        if (class(pcameta[, color_by]) != "factor") {
           scale_colour_viridis_c(
-            name = paste0(color_by), # fix names and wrap long names
+            # wrap long names
+            name = paste0(color_by),
             labels = function(x) str_wrap(x, width = 15)
           )
         }
@@ -130,12 +133,14 @@ rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath)
       geom_point(size = 6, alpha = 0.6) +
       xlab(paste0(
         "PC", i, " ",
-        round(var_explained[i, 2] * 100, digits = 2), # % variance explained by PC
+        # % variance explained by PC
+        round(var_explained[i, 2] * 100, digits = 2), 
         "% Variance"
       )) +
       ylab(paste0(
         "PC", i + 1, " ",
-        round(var_explained[i + 1, 2] * 100, digits = 2), # % variance explained by PC
+       # % variance explained by PC 
+        round(var_explained[i + 1, 2] * 100, digits = 2),
         "% Variance"
       )) +
       labs(title = str_wrap(paste0("PCA of ", sra), width = 23)) +
@@ -152,13 +157,14 @@ rse_pca <- function(pcameta, var_explained, color_by, shape = 16, sra, filepath)
 ##### pca_topvar_plot #####
 # imp_feats_res = DALEX object of feature importance from get_imp_feats
 # pcameta = df of PC's + metadata aggrgated,
-# var_explained = var_explained_cutoff, a df with columns "PC" and "var_explained" values
+# var_explained = a df with columns "PC" and "var_explained" values
 # sra = sra ID for data set being analyzed
 # study = study title for data set being analyzed
 # modeltype = model used with explainer
 # filepath = filepath to save PCA's
 # function plots and saves PCA's colored by variable importance
-pca_topvar_plot <- function(imp_feats_res, pcameta, var_explained, sra, modeltype, filepath) {
+pca_topvar_plot <- function(
+  imp_feats_res, pcameta, var_explained, sra, modeltype, filepath) {
   # plot
   savefile <- paste0(filepath, "/PCA_coloredby_imp_feat_", modeltype, ".pdf")
   pdf(savefile)
@@ -167,27 +173,30 @@ pca_topvar_plot <- function(imp_feats_res, pcameta, var_explained, sra, modeltyp
     # find top variable by median dropout loss
     top_v <- imp_feats_res[[i]] %>%
       group_by(variable) %>%
-      summarise(Median_DL = median(dropout_loss)) %>% # find highest median
-      filter(variable %in% colnames(pcameta)) %>% # rm model info
-      arrange(desc(Median_DL)) # reorder variables by median
+      # find highest median
+      summarise(Median_DL = median(dropout_loss)) %>%
+      filter(variable %in% colnames(pcameta)) %>%
+      arrange(desc(Median_DL))
 
     top_v <- top_v$variable[1] # name of top variable for PC
 
     pca_plot <- pcameta %>%
-      # rse_pca(pcameta, var_explained, color_by = top_v, sra, study, filepath)
       # color by discrete values
-      ggplot(aes(x = pcameta[, i], y = pcameta[, i + 1], color = pcameta[, top_v])) +
-      {
+      ggplot(
+        aes(
+          x = pcameta[, i],
+          y = pcameta[, i + 1],
+          color = pcameta[, top_v])) + {
         if (class(pcameta[, top_v]) == "factor") {
           scale_color_discrete(
             name = paste0(top_v), # fix names and wrap long names
             labels = function(x) str_wrap(x, width = 15)
           )
         }
-      } +
+      } + {
       # color by continuous values
-      {
-        if (class(pcameta[, top_v]) != "factor") { # check for discrete vs continuous
+        if (class(pcameta[, top_v]) != "factor") {
+          # check for discrete vs continuous
           scale_color_continuous(
             name = paste0(top_v), # fix names and wrap long names
             labels = function(x) str_wrap(x, width = 15)
@@ -197,12 +206,14 @@ pca_topvar_plot <- function(imp_feats_res, pcameta, var_explained, sra, modeltyp
       geom_point(size = 4) +
       xlab(paste0(
         "PC", i, " ",
-        round(var_explained[i, 2] * 100, digits = 2), # % variance explained by PC
+        # % variance explained by PC
+        round(var_explained[i, 2] * 100, digits = 2),
         "% Variance"
       )) +
       ylab(paste0(
         "PC", i + 1, " ",
-        round(var_explained[i + 1, 2] * 100, digits = 2), # % variance explained by PC
+        # % variance explained by PC
+        round(var_explained[i + 1, 2] * 100, digits = 2),
         "% Variance"
       )) +
       labs(title = str_wrap(paste0("PCA of ", sra, ": ")), width = 23)
@@ -216,77 +227,9 @@ pca_topvar_plot <- function(imp_feats_res, pcameta, var_explained, sra, modeltyp
   print(paste0("Plot saved to: ", savefile))
 }
 
-
-##### prep_exerc_data #####
-# fxn renames exercise column, corrects for known batch effect (if any),
-# removes zero var genes,  adds log transformations, and adds lab name to rse
-# rse = recount3 RSE object
-# batch = colname indicating known batch effect to correct for (if any)
-# lab = adds lab name to RSE to help distinguish datasets (if)
-prep_exerc_data <- function(rse, exercise_col, exercise_pre_term = NULL, interact_cov = NULL, batch = NULL, lab = NULL) {
-  # rename exercise column to "exercise" for consistency across data sets
-  names(rse@colData)[names(rse@colData) == exercise_col] <- "sra_attribute.exercise"
-
-  # remove sample_attribute column -- aggregate info across the other cols
-  rse@colData@listData$sra.sample_attributes <- NULL
-
-  # rm zero var genes and adjust rse
-  cts <- calc_nonzero(assays(rse)$TPM)
-  rse <- rse[rownames(rse) %in% rownames(cts), ]
-
-  # LIMMA correct for batch affects if provided
-  if (!is.null(batch)) {
-    print(paste0("Adjusting for ", batch, " and log transforming counts"))
-    print(paste0("Ensure non 'exercise_pre_term' options are post-exercise"))
-    print(paste0(unique(rse@colData@listData$sra_attribute.exercise)))
-    # coerce pre/post terminology to be consistent across data sets
-    prepost <- as.data.frame(rse@colData@listData) %>%
-      transmute(
-        group = ifelse(
-          sra_attribute.exercise == paste0(exercise_pre_term), "pre", "post"
-        )
-      )
-    exercise <- prepost$group
-
-    # make design
-    des <- model.matrix(~ 0 + exercise)
-
-    # batch correction
-    if (is.null(interact_cov)) {
-      assay(rse, "adj_cts") <- removeBatchEffect(
-        assays(rse)$TPM,
-        batch = rse@colData[[paste0(batch)]],
-        design = des
-      )
-    } else {
-      assay(rse, "adj_cts") <- removeBatchEffect(
-        assays(rse)$TPM,
-        batch = rse@colData[[paste0(batch)]],
-        covariates = rse@colData[[paste0(interact_cov)]],
-        design = des
-      )
-    }
-
-    print(paste0("Corrected counts stored in 'adj_cts' of assay(rse)"))
-    # log transformed adjusted counts
-    assay(rse, "log_adj") <- log((1 + assays(rse)$adj_cts), base = 2)
-    print(
-      paste0(
-        "Log-transformed adjusted counts stored in 'log_adj' of assay(rse)"
-      )
-    )
-  }
-  # log-transform counts as recommended in projectR paper
-  assay(rse, "logTPM") <- log((1 + assays(rse)$TPM), base = 2)
-  print(paste0("Log-transformed TPM counts stored in 'logTPM' of assay(rse)"))
-  # add lab name for easier referencing
-  rse$lab <- paste0(lab)
-
-  return(rse)
-}
-
 ##### simplify_cts #####
-# reformats RSE w/ nonzero var genes into a simplified dataframe with rownames as columns
+# reformats RSE w/ nonzero var genes into a simplified dataframe with 
+# rownames as columns
 # checks for adj_cts assay and uses it be default, otherewise uses TPM
 simplify_cts <- function(rse) {
   # check if there are cts adjustments -- use TPM if not
@@ -301,7 +244,7 @@ simplify_cts <- function(rse) {
 }
 
 ##### top_quartile #####
-# accepts RSE and returns dataframe of top quartile variable genes across dataset
+# accepts RSE and returns dataframe of top quartile variable genes
 # checks for adj_cts assay and uses it be default, otherewise uses TPM
 top_quartile <- function(rse) {
   # check if there are cts adjustments -- use TPM if not
@@ -323,42 +266,3 @@ top_quartile <- function(rse) {
     select(!Variance)
 }
 
-##### dea_exercise #####
-# accepts RSE, count type to use from RSE, and pre-exercise term to run LIMMA on pre/post exercise samples and convert ens genes to symbols
-# exercise_pre_term = how "pre" exercise metadata is listed in sra_attribute.exercise of RSE
-dea_exercise <- function(rse, cts, exercise_pre_term) {
-  # check options
-  print(paste0(
-    "Ensure non 'exercise_pre_term' options are referring to post-exercise"
-  ))
-  print(paste0(nique(rse@colData@listData$sra_attribute.exercise)))
-  # coerce pre/post terminology to be conistent acros data sets
-  prepost <- as.data.frame(rse@colData@listData) %>%
-    # column_to_rownames(var = "external_id") %>%
-    transmute(
-      group = ifelse(
-        sra_attribute.exercise == paste0(exercise_pre_term), "pre", "post"
-      )
-    )
-  exercise <- prepost$group
-
-  # make design
-  des <- model.matrix(~ 0 + exercise)
-
-  # contrast pre vs post exercise
-  contr <- makeContrasts(
-    preVSpost = exercisepre - exercisepost, levels = colnames(des)
-  )
-
-  # LIMMA and empirical bayes, take top 100 DEGs
-  fit <- lmFit(rse@assays@data@listData[[paste0(cts)]], des)
-  fit <- contrasts.fit(fit, contrasts = contr)
-  efit <- eBayes(fit)
-  degs <- topTreat(efit, n = 500, p.value = 0.05)
-
-  # ens to symbol conversion
-  t <- gconvert(rownames(degs))
-  degs <- degs %>%
-    rownames_to_column(var = "input") %>%
-    inner_join(t, c = "input")
-}
