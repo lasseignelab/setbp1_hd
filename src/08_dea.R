@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(limma)
   library(statmod)
   library(ComplexHeatmap)
+  library(UpSetR)
   library(circlize)
   library(edgeR)
   library(gprofiler2)
@@ -44,7 +45,7 @@ ptm <- proc.time()
 print(paste0("Reading in RSE from: ", args$rse))
 
 rse <- readRDS(args$rse)
-meta <- rse@metadata
+# meta <- rse@metadata
 sra <- args$sra
 
 # create output dir if needed
@@ -56,7 +57,7 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 # rse <- readRDS("./data/processed/cardo_prepped_rse.rds")
 # sra <- "cardo"
 
-# rse <- readRDS("./data/processed/shaw_filtered_rse.rds")
+# rse <- readRDS("./data/processed/shaw_prepped_rse.rds")
 # sra <- "shaw"
 
 # sra <- "tanaka1"
@@ -138,7 +139,7 @@ if(sra == "shaw"){
 if(sra %in% c("tanaka1", "tanaka2")){
   # contrast pre vs post condition
   contr <- makeContrasts(
-    HDvsWT = Control - SETBP1_HD,
+    HDvsWT = SETBP1_HD - Control,
     # HDvsWT_LS = SETBP1_HD_LS - Control_LS,
     # HDvsWT_LSK = SETBP1_HD_LSK - Control_LSK,
     # HDvsWT_all = (SETBP1_HD_LS + SETBP1_HD_LSK)/2 - (Control_LS + Control_LSK)/2,
@@ -327,14 +328,14 @@ conditions <- unique(sig_degs_comb$contrast)
   write_csv(ora_down$result, paste0(filepath, contrast, "_down_degs_ora.csv"))
 
   # Plot Pathways
-  ora_up %>%
+  ora_up$result %>%
     filter(term_size < 750) %>%
     slice_max(recall, n = 30) %>%
     ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
     geom_point()
   ggsave(paste0(filepath, contrast, "_up_top_ora.png"))
 
-  ora_down %>%
+  ora_down$result %>%
     filter(term_size < 750) %>%
     slice_max(recall, n = 30) %>%
     ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
