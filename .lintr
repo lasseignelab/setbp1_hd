@@ -1,0 +1,5 @@
+linters: with_defaults()
+
+exclusions: list(
+  "src/functions.R"
+)

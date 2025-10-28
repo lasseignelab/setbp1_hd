@@ -15,8 +15,7 @@ ENABLE:
   - PERL
   - MARKDOWN
 
-# Ignore specific file from linting -- issue with megalinter and purrr:keep
-R_LINTR_FILTER_REGEX_EXCLUDE: (src/functions\\.R)
+R_LINTER_CONFIG_FILE: .lintr
 
 # If you use ENABLE_LINTERS variable, all other linters will be disabled by
 # default
