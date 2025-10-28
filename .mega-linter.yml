@@ -15,6 +15,9 @@ ENABLE:
   - PERL
   - MARKDOWN
 
+# Ignore specific file from linting -- issue with megalinter and purrr:keep
+R_LINTR_FILTER_REGEX_EXCLUDE: (src/functions\\.R)
+
 # If you use ENABLE_LINTERS variable, all other linters will be disabled by
 # default
 # ENABLE_LINTERS:
@@ -28,9 +31,6 @@ SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 
 
-# Ignore specific file from linting -- issue with megalinter and purrr:keep
-IGNORED_FILES:
-  - src/functions.R
 
 # Uncomment if you want MegaLinter to detect errors but not block CI to pass
 # DISABLE_ERRORS: true
