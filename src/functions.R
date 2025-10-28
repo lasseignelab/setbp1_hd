@@ -1,13 +1,4 @@
-suppressPackageStartupMessages({
-  library(dplyr)
-  library(tibble)
-  library(magrittr)
-  library(ggplot2)
-  library(DALEX)
-  library(e1071)
-  library(gbm)
-})
-
+# nolint start
 ##### calc_nonzero #####
 # fxn removes genes with zero variance across samples
 # counts = counts dataframe/matrix
@@ -267,3 +258,4 @@ top_quartile <- function(rse) {
     filter(Variance >= var_quart[4]) %>%
     select(!Variance)
 }
+# nolint end
