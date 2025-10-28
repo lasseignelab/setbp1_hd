@@ -2,8 +2,10 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(tibble)
   library(magrittr)
+  library(ggplot2)
+  library(DALEX)
   library(e1071)
-  library(gbm) # for gbm
+  library(gbm)
 })
 
 ##### calc_nonzero #####
