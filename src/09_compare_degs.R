@@ -3,6 +3,7 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(recount3)
   library(ggplot2)
+  library(UpSetR)
   library(ComplexHeatmap)
   library(statmod)
   library(gprofiler2)
@@ -49,44 +50,137 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 # save labeled and sig-filtered results
 # degs_comb <- read_csv(, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
 filepath <- "./results/dea/"
-cardo_degs <- read_csv(file = paste0(filepath, "cardo/combined_contrasts_sig_degs.csv"))
-shaw_degs <- read_csv(file = paste0(filepath, "shaw/combined_contrasts_sig_degs.csv"))
+cardo_up <- read_csv(file = paste0(filepath, "cardo/upregulated_degs_combined.csv"))
+cardo_down <- read_csv(file = paste0(filepath, "cardo/downregulated_degs_combined.csv"))
+shaw_up <- read_csv(file = paste0(filepath, "shaw/upregulated_degs_combined.csv"))
+shaw_down <- read_csv(file = paste0(filepath, "shaw/downregulated_degs_combined.csv"))
 
-unique(cardo_degs$contrast)
-unique(shaw_degs$contrast)
+setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 
-# compare DEGs from NPCs across data sets
-# long format
-npc_degs <- cardo_degs %>%
-  bind_rows(shaw_degs) %>%
-  filter(contrast %in% c("KOvsWT_NPC", "NPC_HD")) %>%
-  # find common DEGs -- they'll be duplicated
-  add_count(gene, name = "n") %>%
-  filter(n > 1)
+unique(cardo_up$contrast)
+unique(shaw_up$contrast)
 
-str(npc_degs)
-unique(npc_degs$gene_name)
+# function to find consensus between cardo/shaw DEGs
+find_consensus <- function(df1, df2, contrasts) {
+  df2_wide <- df2 %>%
+    filter(contrast %in% paste0(contrasts)) %>%
+    select(gene, contrast, logFC, adj.P.Val) %>%
+    pivot_wider(
+      names_from = contrast,
+      values_from = c(logFC, adj.P.Val))
 
-npc_degs %>%
-  ggplot(aes(x = logFC, y = gene_name, colour = contrast, size = adj.P.Val)) +
-  geom_point()
+  consensus_df <- df1 %>%
+    filter(contrast %in% paste0(contrasts)) %>%
+    select(!c(AveExpr, t, P.Value, B)) %>%
+    pivot_wider(
+      names_from = contrast,
+      values_from = c(logFC, adj.P.Val)) %>%
+    inner_join(df2_wide, by = "gene")
 
-ggsave(paste0(filepath, "combined/NPC_combined_degs.png"))
+  return(consensus_df)
+}
 
+# contrasts to keep
+contrasts_keep <- c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "IPSC_HD", "NPC_HD")
+# consensus up DEGs
+consen_up <- find_consensus(cardo_up, shaw_up, contrasts_keep)
+# consen_up <- cardo_up %>%
+#   filter(contrast %in% c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34")) %>%
+#   pivot_wider(
+#     names_from = contrast,
+#     values_from = c(logFC, adj.P.Val))
+#   # inner_join(shaw_up, by = "gene") %>%
+  # filter(contrast %in% c("IPSC_HD", "NPC_HD"))
+str(consen_up)
 
-# wide format
-npc_wide <- cardo_degs %>%
-  filter(contrast == "KOvsWT_NPC") %>%
-  inner_join(filter(shaw_degs, contrast == "NPC_HD"), by = "gene")
+# consensus down DEGs
+consen_down <- find_consensus(cardo_down, shaw_down, contrasts_keep)
+str(consen_down)
 
-str(npc_wide)
+# long format for plotting
+consen_up_long <- consen_up %>%
+  pivot_longer(
+    cols = starts_with("logFC"),
+    names_to = "contrast",
+    names_prefix = "logFC_",
+    values_to = "logFC",
+    values_drop_na = TRUE
+  ) %>%
+  add_count(gene)
+str(consen_up_long)
+table(consen_up_long$contrast)
 
-npc_wide %>%
-  ggplot(aes(x = logFC.x, y = logFC.y )) +
-  geom_point()
+consen_down_long <- consen_down %>%
+  pivot_longer(
+    cols = starts_with("logFC"),
+    names_to = "contrast",
+    names_prefix = "logFC_",
+    values_to = "logFC",
+    values_drop_na = TRUE
+  ) %>%
+  add_count(gene)
+str(consen_down_long)
+table(consen_down_long$contrast)
 
-ggsave(paste0(filepath, "combined/NPC_compare_degs.png"))
+# intersect(shaw_down$gene_name, setbp1_targets$X1)
+intersect(consen_up$gene_name, setbp1_targets$X1)
+intersect(consen_down$gene_name, setbp1_targets$X1)
 
+consen_up_long %>%
+  ggplot(aes(x = logFC, y = reorder(gene_name, n), colour = contrast)) +
+  geom_point(size = 2.5)
+ggsave(paste0(filepath, "combined/consensus_up_degs.png"), height = 22, width = 18, units = "cm")
 
-# npc_up_degs <- npc_degs %>%
-  # filter(
+consen_down_long %>%
+  ggplot(aes(x = -logFC, y = reorder(gene_name, n), colour = contrast)) +
+  geom_point(size = 2.5)
+ggsave(paste0(filepath, "combined/consensus_down_degs.png"), height = 32, width = 18, units = "cm")
+
+# consensus up DEGs upset
+upset_df_up <- consen_up_long %>%
+    select(gene, contrast) %>%
+    distinct() %>%
+    mutate(value = 1) %>%
+    pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
+  column_to_rownames(var = "gene")
+str(upset_df_up)
+
+png(paste0(filepath, "combined/upset_plot_upregulated.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(upset_df_up, sets = colnames(upset_df_up), order.by = "freq")
+dev.off()
+
+# consensus down DEGs upset
+upset_df_down <- consen_down_long %>%
+    select(gene, contrast) %>%
+    distinct() %>%
+    mutate(value = 1) %>%
+    pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
+  column_to_rownames(var = "gene")
+str(upset_df_down)
+
+png(paste0(filepath, "combined/upset_plot_downregulated.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(upset_df_down, sets = colnames(upset_df_down), order.by = "freq")
+dev.off()
+
+#### ORA of Consensus DEGs ####
+ora_up <- gost(consen_up$gene, sources = c("GO", "KEGG", "CORUM", "WP"))
+ora_up$result$term_name
+
+ora_down <- gost(consen_down$gene, sources = c("GO", "KEGG", "CORUM", "WP"))
+ora_down$result$term_name
+
+# plot pathways
+  ora_up$result %>%
+      filter(term_size < 750) %>%
+      slice_max(recall, n = 35) %>%
+      ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
+      geom_point()
+  ggsave(paste0(filepath, "combined/up_top_ora.png"))
+
+# plot pathways
+  ora_down$result %>%
+      filter(term_size < 750) %>%
+      slice_max(recall, n = 35) %>%
+      ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
+      geom_point()
+  ggsave(paste0(filepath, "combined/down_top_ora.png"))
