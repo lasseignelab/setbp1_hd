@@ -81,7 +81,7 @@ find_consensus <- function(df1, df2, contrasts) {
 }
 
 # contrasts to keep
-contrasts_keep <- c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "IPSC_HD", "NPC_HD")
+contrasts_keep <- c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT", "PATH3vsWT")
 # consensus up DEGs
 consen_up <- find_consensus(cardo_up, shaw_up, contrasts_keep)
 # consen_up <- cardo_up %>%
@@ -97,6 +97,15 @@ str(consen_up)
 consen_down <- find_consensus(cardo_down, shaw_down, contrasts_keep)
 str(consen_down)
 
+# compare to SETBP1 targets
+# intersect(shaw_down$gene_name, setbp1_targets$X1)
+intersect(consen_up$gene_name, setbp1_targets$X1)
+intersect(consen_down$gene_name, setbp1_targets$X1)
+
+# save consensus signature
+write_csv(consen_up, paste0(filepath, "combined/consensus_up_degs_wide_unfiltered.csv"))
+write_csv(consen_down, paste0(filepath, "combined/consensus_down_degs_wide_unfiltered.csv"))
+
 # long format for plotting
 consen_up_long <- consen_up %>%
   pivot_longer(
@@ -106,7 +115,10 @@ consen_up_long <- consen_up %>%
     values_to = "logFC",
     values_drop_na = TRUE
   ) %>%
-  add_count(gene)
+  add_count(gene) %>%
+  # DEG in 3+ contrasts
+  filter(n > 2)
+length(unique(consen_up_long$gene))
 str(consen_up_long)
 table(consen_up_long$contrast)
 
@@ -118,20 +130,30 @@ consen_down_long <- consen_down %>%
     values_to = "logFC",
     values_drop_na = TRUE
   ) %>%
-  add_count(gene)
+  add_count(gene) %>%
+  # DEG in 3+ contrasts
+  filter(n > 2)
+length(unique(consen_down_long$gene))
 str(consen_down_long)
 table(consen_down_long$contrast)
 
+# save consensus signature
+write_csv(consen_up_long, paste0(filepath, "combined/consensus_up_degs.csv"))
+write_csv(consen_down_long, paste0(filepath, "combined/consensus_down_degs.csv"))
+
+# compare to SETBP1 targets
 # intersect(shaw_down$gene_name, setbp1_targets$X1)
-intersect(consen_up$gene_name, setbp1_targets$X1)
-intersect(consen_down$gene_name, setbp1_targets$X1)
+intersect(consen_up_long$gene_name, setbp1_targets$X1)
+intersect(consen_down_long$gene_name, setbp1_targets$X1)
 
 consen_up_long %>%
+  filter(n > 3) %>%
   ggplot(aes(x = logFC, y = reorder(gene_name, n), colour = contrast)) +
   geom_point(size = 2.5)
 ggsave(paste0(filepath, "combined/consensus_up_degs.png"), height = 22, width = 18, units = "cm")
 
 consen_down_long %>%
+  filter(n > 3) %>%
   ggplot(aes(x = -logFC, y = reorder(gene_name, n), colour = contrast)) +
   geom_point(size = 2.5)
 ggsave(paste0(filepath, "combined/consensus_down_degs.png"), height = 32, width = 18, units = "cm")
@@ -163,16 +185,16 @@ upset(upset_df_down, sets = colnames(upset_df_down), order.by = "freq")
 dev.off()
 
 #### ORA of Consensus DEGs ####
-ora_up <- gost(consen_up$gene, sources = c("GO", "KEGG", "CORUM", "WP"))
+ora_up <- gost(unique(consen_up_long$gene), sources = c("GO", "KEGG", "WP"))
 ora_up$result$term_name
 
-ora_down <- gost(consen_down$gene, sources = c("GO", "KEGG", "CORUM", "WP"))
+ora_down <- gost(unique(consen_down_long$gene), sources = c("GO", "KEGG", "WP"))
 ora_down$result$term_name
 
 # plot pathways
   ora_up$result %>%
       filter(term_size < 750) %>%
-      slice_max(recall, n = 35) %>%
+      slice_max(recall, n = 40) %>%
       ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
       geom_point()
   ggsave(paste0(filepath, "combined/up_top_ora.png"))
@@ -180,7 +202,7 @@ ora_down$result$term_name
 # plot pathways
   ora_down$result %>%
       filter(term_size < 750) %>%
-      slice_max(recall, n = 35) %>%
+      slice_max(recall, n = 40) %>%
       ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
       geom_point()
   ggsave(paste0(filepath, "combined/down_top_ora.png"))
