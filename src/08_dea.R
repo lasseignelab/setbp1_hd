@@ -127,8 +127,13 @@ if(sra == "cardo"){
 if(sra == "shaw"){ 
   # contrast pre vs post condition
   contr <- makeContrasts(
-    NPC_PATH = (NPC_PATH2 + NPC_PATH3)/2 - (NPC_WT),
-    IPSC_PATH = (IPSC_PATH2 + IPSC_PATH3)/2 - (IPSC_WT),
+    # individual variants vs wt
+    VUSvsWT = NPC_VUS2 - NPC_WT,
+    PATH2vsWT = NPC_PATH2 - NPC_WT,
+    PATH3vsWT = NPC_PATH3 - NPC_WT,
+    # grouped comparisons
+    # NPC_PATH = (NPC_PATH2 + NPC_PATH3)/2 - (NPC_WT),
+    # IPSC_PATH = (IPSC_PATH2 + IPSC_PATH3)/2 - (IPSC_WT),
     NPC_HD = (NPC_PATH2 + NPC_PATH3 + NPC_VUS2)/3 - (NPC_WT),
     IPSC_HD = (IPSC_PATH2 + IPSC_PATH3 + IPSC_VUS2)/3 - (IPSC_WT),
     # compare heterogeneity of the 2 different pathogenic variants
@@ -260,26 +265,48 @@ Heatmap(top_mat,# ,colnames(top_cts) %in% c("gene_name"))],
 
 dev.off()
 
-#### Compare DEGs Across Conditions ####
-# Upset plot of DEGs across conditions
-gene_contrast_matrix <- sig_degs_comb %>%
+#### Compare Up/Down DEGs Across Conditions ####
+# split significant DEGs by direction
+up_degs_comb <- sig_degs_comb %>% filter(logFC > 0)
+down_degs_comb <- sig_degs_comb %>% filter(logFC < 0)
+
+# gene-contrast matrix for upregulated DEGs
+up_gene_contrast_matrix <- up_degs_comb %>%
   select(gene, contrast) %>%
   distinct() %>%
   mutate(value = 1) %>%
   pivot_wider(names_from = contrast, values_from = value, values_fill = 0)
 
-# Convert to data frame for UpSetR
-gene_contrast_matrix <- as.data.frame(gene_contrast_matrix)
-rownames(gene_contrast_matrix) <- gene_contrast_matrix$gene
-gene_contrast_matrix$gene <- NULL
-str(gene_contrast_matrix)
+# gene-contrast matrix for downregulated DEGs
+down_gene_contrast_matrix <- down_degs_comb %>%
+  select(gene, contrast) %>%
+  distinct() %>%
+  mutate(value = 1) %>%
+  pivot_wider(names_from = contrast, values_from = value, values_fill = 0)
 
-# Plot using UpSetR
-png(paste0(filepath, "upset_plot.png"), width = 30, height = 20, units = "cm", res = 300)
-upset(gene_contrast_matrix, sets = colnames(gene_contrast_matrix), order.by = "freq")
+# prep dataframes for UpSetR
+up_gene_contrast_matrix <- as.data.frame(up_gene_contrast_matrix)
+rownames(up_gene_contrast_matrix) <- up_gene_contrast_matrix$gene
+up_gene_contrast_matrix$gene <- NULL
+
+down_gene_contrast_matrix <- as.data.frame(down_gene_contrast_matrix)
+rownames(down_gene_contrast_matrix) <- down_gene_contrast_matrix$gene
+down_gene_contrast_matrix$gene <- NULL
+
+# up DEGs upset plot
+png(paste0(filepath, "upset_plot_upregulated.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(up_gene_contrast_matrix, sets = colnames(up_gene_contrast_matrix), order.by = "freq")
 dev.off()
 
-# Plot shared DEGs
+# down DEGs upset plot
+png(paste0(filepath, "upset_plot_downregulated.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(down_gene_contrast_matrix, sets = colnames(down_gene_contrast_matrix), order.by = "freq")
+dev.off()
+
+write_csv(up_degs_comb, paste0(filepath, "upregulated_degs_combined.csv"))
+write_csv(down_degs_comb, paste0(filepath, "downregulated_degs_combined.csv"))
+
+# plot shared DEGs
 sig_degs_freq <- sig_degs_comb %>%
   add_count(gene)
 print(paste0("Frequency of shared DEGs across contrasts (1=only in one contrast)"))
