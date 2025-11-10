@@ -115,9 +115,7 @@ consen_up_long <- consen_up %>%
     values_to = "logFC",
     values_drop_na = TRUE
   ) %>%
-  add_count(gene) %>%
-  # DEG in 3+ contrasts
-  filter(n > 2)
+  add_count(gene)
 length(unique(consen_up_long$gene))
 str(consen_up_long)
 table(consen_up_long$contrast)
@@ -130,12 +128,86 @@ consen_down_long <- consen_down %>%
     values_to = "logFC",
     values_drop_na = TRUE
   ) %>%
-  add_count(gene) %>%
-  # DEG in 3+ contrasts
-  filter(n > 2)
+  add_count(gene)
 length(unique(consen_down_long$gene))
 str(consen_down_long)
 table(consen_down_long$contrast)
+
+### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
+# opt 1) majority vote DEGs
+majority_up <- consen_up_long %>%
+  filter(n > 2)
+
+majority_down <- consen_down_long %>%
+  filter(n > 2)
+str(majority_down)
+
+# opt 2) top median logFC
+med_lfc_up <- consen_up_long %>%
+  group_by(gene) %>%
+  summarise(median_lfc = median(logFC)) %>%
+  slice_max(median_lfc, n = 100)
+str(med_lfc_up)
+
+med_lfc_down <- consen_down_long %>%
+  group_by(gene) %>%
+  summarise(median_lfc = median(logFC)) %>%
+  slice_min(median_lfc, n = 100)
+str(med_lfc_down)
+
+# opt 3) top mean logFC
+mean_lfc_up <- consen_up_long %>%
+  group_by(gene) %>%
+  summarise(mean_lfc = mean(logFC)) %>%
+  slice_max(mean_lfc, n = 100)
+str(mean_lfc_up)
+
+mean_lfc_down <- consen_down_long %>%
+  group_by(gene) %>%
+  summarise(mean_lfc = mean(logFC)) %>%
+  slice_min(mean_lfc, n = 100)
+str(mean_lfc_down)
+
+# opt 4) top median p-val
+med_p_up <- consen_up %>%
+  pivot_longer(
+    cols = starts_with("adj.P.Val_"),
+    names_to = "contrast",
+    names_prefix = "adj.P.Val_",
+    values_to = "adj_p_val",
+    values_drop_na = TRUE
+  ) %>%
+  group_by(gene) %>%
+  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val)) %>%
+  slice_min(median_p, n = 100)
+str(med_p_up)
+
+med_p_down <- consen_down %>%
+  pivot_longer(
+    cols = starts_with("adj.P.Val_"),
+    names_to = "contrast",
+    names_prefix = "adj.P.Val_",
+    values_to = "adj_p_val",
+    values_drop_na = TRUE
+  ) %>%
+  group_by(gene) %>%
+  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val)) %>%
+  slice_min(median_p, n = 100)
+str(med_p_down)
+
+## overlap between options for finding signature ##
+length(intersect(majority_up$gene, med_lfc_up$gene)) #28
+length(intersect(majority_down$gene, med_lfc_down$gene)) # 18
+
+length(intersect(mean_lfc_up$gene, med_lfc_up$gene)) #92
+length(intersect(mean_lfc_down$gene, med_lfc_down$gene)) #92
+
+length(intersect(majority_up$gene, mean_lfc_up$gene)) # 28
+length(intersect(majority_down$gene, mean_lfc_down$gene)) #21
+
+length(intersect(majority_up$gene, med_p_up$gene)) # 91
+length(intersect(majority_down$gene, med_p_down$gene)) # 100
+
 
 # save consensus signature
 write_csv(consen_up_long, paste0(filepath, "combined/consensus_up_degs.csv"))
