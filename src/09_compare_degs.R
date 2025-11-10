@@ -7,6 +7,8 @@ suppressPackageStartupMessages({
   library(ComplexHeatmap)
   library(statmod)
   library(gprofiler2)
+  library(RobustRankAggreg)
+  library(metafor)
 })
 
 # create parser object
@@ -136,40 +138,47 @@ table(consen_down_long$contrast)
 ### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
 # opt 1) majority vote DEGs
 majority_up <- consen_up_long %>%
+  mutate(method = "majority") %>%
   filter(n > 2)
 
 majority_down <- consen_down_long %>%
+  mutate(method = "majority") %>%
   filter(n > 2)
 str(majority_down)
 
-# opt 2) top median logFC
-med_lfc_up <- consen_up_long %>%
+# opt 2) top DEGs by logFC
+lfc_up <- consen_up_long %>%
   group_by(gene) %>%
-  summarise(median_lfc = median(logFC)) %>%
+  summarise(median_lfc = median(logFC), mean_lfc = mean(logFC))
+str(lfc_up)
+
+lfc_down <- consen_down_long %>%
+  group_by(gene) %>%
+  summarise(median_lfc = median(logFC), mean_lfc = mean(logFC))
+str(lfc_down)
+
+# by median
+med_lfc_up <- lfc_up %>%
+  mutate(method = "median_lfc") %>%
   slice_max(median_lfc, n = 100)
-str(med_lfc_up)
 
-med_lfc_down <- consen_down_long %>%
-  group_by(gene) %>%
-  summarise(median_lfc = median(logFC)) %>%
+med_lfc_down <- lfc_down %>%
+  mutate(method = "median_lfc") %>%
   slice_min(median_lfc, n = 100)
-str(med_lfc_down)
 
-# opt 3) top mean logFC
-mean_lfc_up <- consen_up_long %>%
-  group_by(gene) %>%
-  summarise(mean_lfc = mean(logFC)) %>%
+# by mean
+mean_lfc_up <- lfc_up %>%
+  mutate(method = "mean_lfc") %>%
   slice_max(mean_lfc, n = 100)
 str(mean_lfc_up)
 
-mean_lfc_down <- consen_down_long %>%
-  group_by(gene) %>%
-  summarise(mean_lfc = mean(logFC)) %>%
+mean_lfc_down <- lfc_down %>%
+  mutate(method = "mean_lfc") %>%
   slice_min(mean_lfc, n = 100)
 str(mean_lfc_down)
 
 # opt 4) top median p-val
-med_p_up <- consen_up %>%
+p_up <- consen_up %>%
   pivot_longer(
     cols = starts_with("adj.P.Val_"),
     names_to = "contrast",
@@ -178,11 +187,10 @@ med_p_up <- consen_up %>%
     values_drop_na = TRUE
   ) %>%
   group_by(gene) %>%
-  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val)) %>%
-  slice_min(median_p, n = 100)
-str(med_p_up)
+  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val))
+str(p_up)
 
-med_p_down <- consen_down %>%
+p_down <- consen_down %>%
   pivot_longer(
     cols = starts_with("adj.P.Val_"),
     names_to = "contrast",
@@ -191,22 +199,76 @@ med_p_down <- consen_down %>%
     values_drop_na = TRUE
   ) %>%
   group_by(gene) %>%
-  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val)) %>%
+  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val))
+str(p_down)
+
+# by median
+med_p_up <- p_up %>%
+  mutate(method = "median_p") %>%
   slice_min(median_p, n = 100)
-str(med_p_down)
 
-## overlap between options for finding signature ##
-length(intersect(majority_up$gene, med_lfc_up$gene)) #28
-length(intersect(majority_down$gene, med_lfc_down$gene)) # 18
+med_p_down <- p_down %>%
+  mutate(method = "median_p") %>%
+  slice_min(median_p, n = 100)
 
-length(intersect(mean_lfc_up$gene, med_lfc_up$gene)) #92
-length(intersect(mean_lfc_down$gene, med_lfc_down$gene)) #92
+ # by mean
+mean_p_up <- p_up %>%
+  mutate(method = "mean_p") %>%
+  slice_min(mean_p, n = 100)
 
-length(intersect(majority_up$gene, mean_lfc_up$gene)) # 28
-length(intersect(majority_down$gene, mean_lfc_down$gene)) #21
+mean_p_down <- p_down %>%
+  mutate(method = "mean_p") %>%
+  slice_min(mean_p, n = 100)
 
-length(intersect(majority_up$gene, med_p_up$gene)) # 91
-length(intersect(majority_down$gene, med_p_down$gene)) # 100
+# opt 4) robust rang aggregate -- create ranked lists per contrast
+ranked_lists_up <- lapply(unique(consen_up_long$contrast), function(c) {
+  consen_up_long %>%
+                          filter(contrast == c) %>%
+                          arrange(desc(abs(logFC))) %>%
+                          pull(gene)
+})
+
+ranked_lists_down <- lapply(unique(consen_down_long$contrast), function(c) {
+  consen_down_long %>%
+                          filter(contrast == c) %>%
+                          arrange(desc(abs(logFC))) %>%
+                          pull(gene)
+})
+
+# run RRA
+rra_up <- aggregateRanks(ranked_lists_up, exact = TRUE)
+str(rra_up)
+summary(rra_up)
+rra_down <- aggregateRanks(ranked_lists_down, exact = TRUE)
+str(rra_down)
+summary(rra_down)
+
+rra_results <- rra_up %>%
+  mutate(direction = "up") %>%
+  bind_rows(rra_down) %>%
+  group_by(direction) %>%
+  slice_min(order_by = Score, n = 100) %>%
+  mutate(method = "RRA") %>%
+  select(gene = Name, method)
+ 
+## compare overlap between options for finding signature ##
+compare_sigs_up <- majority_up %>%
+  bind_rows(
+    majority_down, rra_results,
+    med_p_up, med_p_down, mean_p_up, mean_p_down, 
+    med_lfc_up, med_lfc_down, mean_lfc_up, mean_lfc_down) %>%
+  select(gene, method) %>%
+    distinct() %>%
+    mutate(value = 1) %>%
+    pivot_wider(names_from = method, values_from = value, values_fill = 0) %>%
+  column_to_rownames(var = "gene")
+
+str(compare_sigs_up)
+
+png(paste0(filepath, "combined/upset_plot_compare_sigs.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(compare_sigs_up, sets = colnames(compare_sigs_up), order.by = "freq")
+dev.off()
+
 
 
 # save consensus signature
