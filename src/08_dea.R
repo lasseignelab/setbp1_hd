@@ -372,3 +372,9 @@ conditions <- unique(sig_degs_comb$contrast)
 
 }
 
+# end timer
+fptm <- proc.time()
+(fptm[3] / 60)
+
+#  session info
+print(sessionInfo())
