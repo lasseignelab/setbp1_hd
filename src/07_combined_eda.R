@@ -66,7 +66,7 @@ write_csv(meta_comb, file = paste0(filepath, "combined_metadata.csv"))
 # combine cardo and shaw data
 cts_comb <- cbind(c_rse, s_rse)
 cts_filtered <- assay(cts_comb, "salmon.merged.gene_tpm")
-#
+
 # strip version numbers from gene IDs in cts_filtered
 cts_filtered_ids <- gsub("\\.\\d+$", "", s_rse@elementMetadata@listData$gene_id)
 rownames(cts_filtered) <- cts_filtered_ids  # update rownames in the matrix
@@ -125,7 +125,7 @@ top_cts_filt <- top_cts %>%
   rownames_to_column() %>%
   select(!rowname) %>%
   column_to_rownames("ortholog_ensg")
-paste0("Top var human genes with orthologs: ", str(top_cts_filt))
+paste0("Top var human genes with orthologs: ", print(head(top_cts_filt)))
 
 # save combined top var counts
 write_csv(top_cts_filt, file = paste0(filepath, "combined_counts_topvar.csv"))
@@ -145,7 +145,7 @@ var_explained_df <- data.frame(
 # select variance cutoff to filter by for retaining PC's
 var_explained_cutoff <- filter(
   var_explained_df,
-  var_explained > 2 / 100
+  var_explained > var_cutoff / 100
 )
 # filter PC's for cutoff
 pc_keep <- pc_df %>%
@@ -208,6 +208,10 @@ for (i in seq_along(meta_feats)) {
     )
   )
 }
+
+# end timer
+fptm <- proc.time()
+(fptm[3] / 60)
 
 # session info
 print(sessionInfo())
