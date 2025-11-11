@@ -26,7 +26,7 @@ parser$add_argument("-m", "--meta",
 parser$add_argument("-n", "--name",
   type = "character",
   metavar = "NAME",
-  help = "Dataset name  for labeling purposes" # nolint
+  help = "Dataset name for labeling purposes" # nolint
 )
 parser$add_argument("-o", "--output_dir",
   type = "character",
@@ -168,12 +168,12 @@ print(
   )
 )
 if (name == "tanaka") {
-  # separate tanaka data sets
+  # separate the 2 different tanaka data sets
   tanaka1 <- rse[, rse@metadata$BioProject == "PRJNA974068"]
   tanaka2 <- rse[, rse@metadata$BioProject == "PRJNA898600"]
   write_rds(tanaka1, paste0(filepath, name, "1_prepped_rse.rds"))
   write_rds(tanaka2, paste0(filepath, name, "2_prepped_rse.rds"))
-}else {
+} else {
   write_rds(rse, paste0(filepath, name, "_prepped_rse.rds"))
 }
 ##### Detect/Filter Gene Counts #####
@@ -190,3 +190,10 @@ print(
   )
 )
 write_rds(rse_filtered, paste0(filepath, name, "_filtered_rse.rds"))
+
+# end timer
+fptm <- proc.time()
+(fptm[3] / 60)
+
+#  session info
+print(sessionInfo())
