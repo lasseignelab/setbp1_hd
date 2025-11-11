@@ -90,16 +90,16 @@ groupings
 write.csv(groupings, paste0(filepath, sra, "_metadata_groupings.csv"))
 
 pdf(paste0(filepath, "metadata_feat_freq.pdf"))
-for (i in 2:ncol(groupings)) {
-  freq <- as.data.frame(table(groupings[, i]))
+for (meta in 2:ncol(groupings)) {
+  freq <- as.data.frame(table(groupings[, meta]))
 
-  p <- freq %>%
+  metadata_plot <- freq %>%
     ggplot(aes(x = freq[, 1], y = Freq)) +
     geom_bar(stat = "identity") +
     geom_text(aes(label = Freq), vjust = -.5) +
-    xlab(paste(colnames(groupings)[i])) +
+    xlab(paste(colnames(groupings)[meta])) +
     coord_flip()
-  print(p)
+  print(metadata_plot)
 }
 dev.off()
 print(paste0(
