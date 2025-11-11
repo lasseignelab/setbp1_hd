@@ -129,7 +129,7 @@ if (!sra %in% c("tanaka1", "tanaka2")) {
 meta_cts_plot
 
 # save plot
-ggsave(paste0(filepath, sra, "_sample_cts_variation_.png"),
+ggsave(paste0(filepath, sra, "_sample_cts_variation.png"),
   height = 7, width = 14, units = "cm"
 )
 
@@ -208,7 +208,7 @@ var_explained_cutoff %>%
   )) +
   geom_point(size = 4) +
   xlab("PC's Above Var Explained Threshold") +
-  labs(title = str_wrap(paste0("Scree plot of ", ": ")), width = 23)
+  labs(title = str_wrap(paste0("Scree plot of ", sra)), width = 23)
 # save plot
 ggsave(paste0(filepath, "PC_scree_plot.png"))
 
