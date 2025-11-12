@@ -58,8 +58,8 @@ shaw_degs <- read_csv(paste0(filepath, "shaw/combined_contrasts_sig_degs.csv")) 
   mutate(dataset = "shaw")
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 
-unique(cardo_up$contrast)
-unique(shaw_up$contrast)
+unique(cardo_degs$contrast)
+unique(shaw_degs$contrast)
 
 # contrasts to keep
 contrasts_keep <- c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT", "PATH3vsWT")
@@ -120,6 +120,34 @@ length(unique(consensus_long$gene))
 #   slice_max(mean_lfc, n = 100)
 # str(mean_lfc_up)
 #
+# meta-analysis per gene
+meta_results <- consensus_degs %>%
+  add_count(gene) %>%
+  filter(n > 1) %>%
+  group_by(gene) %>%
+  nest() %>%
+  mutate(meta = map(data, ~ tryCatch(
+    rma(yi = .x$logFC, sei = .x$se_logFC, method = "REML"),
+    error = function(e) NULL
+  ))) %>%
+  mutate(
+    meta_logFC = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$b) else NA_real_),
+    meta_pval   = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$pval) else NA_real_),
+    meta_ci_lb  = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$ci.lb) else NA_real_),
+    meta_ci_ub  = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$ci.ub) else NA_real_)
+  ) %>%
+  select(-data)
+str(meta_results)
+summary(consensus_degs$se_logFC)
+any(is.na(consensus_degs$se_logFC))
+any(consensus_degs$se_logFC == 0)
+
+test <- consensus_degs %>% filter(gene_name == "VAMP8")
+test
+t <- rma(yi = test$logFC, sei = test$se_logFC, method = "REML")
+t$b[1]
+class(as.numeric(t$b))
+
 # opt 4) robust rang aggregate -- create ranked lists per contrast
 ranked_lists_up <- lapply(unique(consen_up_long$contrast), function(c) {
   consen_up_long %>%
