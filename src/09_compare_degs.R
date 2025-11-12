@@ -97,86 +97,29 @@ length(unique(consensus_long$gene))
 
 ### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
 # opt 1) high frequency DEGs
-top_freq_degs <- consensus_long %>%
-  add_count(gene) %>%
-  mutate(method = "majority") %>%
-  filter(n > 2)
-
-# opt 2) top DEGs by logFC
-lfc_degs <- consensus_long %>%
-  filter(metric == "logFC") %>%
-  group_by(gene) %>%
-  summarise(median_lfc = median(metric), mean_lfc = mean(metric))
-str(lfc_up)
-
-lfc_down <- consen_down_long %>%
-  group_by(gene) %>%
-  summarise(median_lfc = median(logFC), mean_lfc = mean(logFC))
-str(lfc_down)
-
-# by median
-med_lfc_up <- lfc_up %>%
-  mutate(method = "median_lfc") %>%
-  slice_max(median_lfc, n = 100)
-
-med_lfc_down <- lfc_down %>%
-  mutate(method = "median_lfc") %>%
-  slice_min(median_lfc, n = 100)
-
-# by mean
-mean_lfc_up <- lfc_up %>%
-  mutate(method = "mean_lfc") %>%
-  slice_max(mean_lfc, n = 100)
-str(mean_lfc_up)
-
-mean_lfc_down <- lfc_down %>%
-  mutate(method = "mean_lfc") %>%
-  slice_min(mean_lfc, n = 100)
-str(mean_lfc_down)
-
-# opt 4) top median p-val
-p_up <- consen_up %>%
-  pivot_longer(
-    cols = starts_with("adj.P.Val_"),
-    names_to = "contrast",
-    names_prefix = "adj.P.Val_",
-    values_to = "adj_p_val",
-    values_drop_na = TRUE
-  ) %>%
-  group_by(gene) %>%
-  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val))
-str(p_up)
-
-p_down <- consen_down %>%
-  pivot_longer(
-    cols = starts_with("adj.P.Val_"),
-    names_to = "contrast",
-    names_prefix = "adj.P.Val_",
-    values_to = "adj_p_val",
-    values_drop_na = TRUE
-  ) %>%
-  group_by(gene) %>%
-  summarise(median_p = median(adj_p_val), mean_p = mean(adj_p_val))
-str(p_down)
-
-# by median
-med_p_up <- p_up %>%
-  mutate(method = "median_p") %>%
-  slice_min(median_p, n = 100)
-
-med_p_down <- p_down %>%
-  mutate(method = "median_p") %>%
-  slice_min(median_p, n = 100)
-
- # by mean
-mean_p_up <- p_up %>%
-  mutate(method = "mean_p") %>%
-  slice_min(mean_p, n = 100)
-
-mean_p_down <- p_down %>%
-  mutate(method = "mean_p") %>%
-  slice_min(mean_p, n = 100)
-
+# top_freq_degs <- consensus_long %>%
+#   add_count(gene) %>%
+#   mutate(method = "majority") %>%
+#   filter(n > 2)
+#
+# # opt 2) top DEGs by logFC
+# lfc_degs <- consensus_long %>%
+#   filter(metric == "logFC") %>%
+#   group_by(gene) %>%
+#   summarise(median_lfc = median(metric), mean_lfc = mean(metric))
+# str(lfc_up)
+#
+# # by median
+# med_lfc_up <- lfc_up %>%
+#   mutate(method = "median_lfc") %>%
+#   slice_max(median_lfc, n = 100)
+#
+# # by mean
+# mean_lfc_up <- lfc_up %>%
+#   mutate(method = "mean_lfc") %>%
+#   slice_max(mean_lfc, n = 100)
+# str(mean_lfc_up)
+#
 # opt 4) robust rang aggregate -- create ranked lists per contrast
 ranked_lists_up <- lapply(unique(consen_up_long$contrast), function(c) {
   consen_up_long %>%
