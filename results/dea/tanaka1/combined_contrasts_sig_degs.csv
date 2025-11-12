@@ -1,1 +1,1 @@
-gene,gene_name,logFC,AveExpr,t,P.Value,adj.P.Val,B,contrast,significance
+gene,gene_name,logFC,AveExpr,t,P.Value,adj.P.Val,B,contrast,significance,se_logFC

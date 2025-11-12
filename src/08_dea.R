@@ -198,7 +198,9 @@ if(sra %in% c("tanaka1", "tanaka2")){
 
 # combine degs across contrasts
 degs_comb <- bind_rows(deg_list)
-sig_degs_comb <- degs_comb %>% filter(significance != "NonSig")
+sig_degs_comb <- degs_comb %>%
+  filter(significance != "NonSig") %>%
+  mutate(se_logFC = abs(logFC / t))
 
 # save labeled and sig-filtered results
 write_csv(degs_comb, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
