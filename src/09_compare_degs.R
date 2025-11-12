@@ -149,27 +149,17 @@ t$b[1]
 class(as.numeric(t$b))
 
 # opt 4) robust rang aggregate -- create ranked lists per contrast
-ranked_lists_up <- lapply(unique(consen_up_long$contrast), function(c) {
-  consen_up_long %>%
+ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
+  consensus_degs %>%
                           filter(contrast == c) %>%
-                          arrange(desc(abs(logFC))) %>%
+                          arrange(abs(logFC)) %>%
                           pull(gene)
 })
-
-ranked_lists_down <- lapply(unique(consen_down_long$contrast), function(c) {
-  consen_down_long %>%
-                          filter(contrast == c) %>%
-                          arrange(desc(abs(logFC))) %>%
-                          pull(gene)
-})
-
+head(ranked_lists)
 # run RRA
-rra_up <- aggregateRanks(ranked_lists_up, exact = TRUE)
-str(rra_up)
+rra <- aggregateRanks(ranked_lists, exact = TRUE)
+str(rra)
 summary(rra_up)
-rra_down <- aggregateRanks(ranked_lists_down, exact = TRUE)
-str(rra_down)
-summary(rra_down)
 
 rra_results <- rra_up %>%
   mutate(direction = "up") %>%
