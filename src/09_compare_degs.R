@@ -52,104 +52,61 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 # save labeled and sig-filtered results
 # degs_comb <- read_csv(, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
 filepath <- "./results/dea/"
-cardo_up <- read_csv(file = paste0(filepath, "cardo/upregulated_degs_combined.csv"))
-cardo_down <- read_csv(file = paste0(filepath, "cardo/downregulated_degs_combined.csv"))
-shaw_up <- read_csv(file = paste0(filepath, "shaw/upregulated_degs_combined.csv"))
-shaw_down <- read_csv(file = paste0(filepath, "shaw/downregulated_degs_combined.csv"))
-
+cardo_degs <- read_csv(paste0(filepath, "cardo/combined_contrasts_sig_degs.csv")) %>%
+  mutate(dataset = "cardo")
+shaw_degs <- read_csv(paste0(filepath, "shaw/combined_contrasts_sig_degs.csv")) %>%
+  mutate(dataset = "shaw")
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 
 unique(cardo_up$contrast)
 unique(shaw_up$contrast)
 
-# function to find consensus between cardo/shaw DEGs
-find_consensus <- function(df1, df2, contrasts) {
-  df2_wide <- df2 %>%
-    filter(contrast %in% paste0(contrasts)) %>%
-    select(gene, contrast, logFC, adj.P.Val) %>%
-    pivot_wider(
-      names_from = contrast,
-      values_from = c(logFC, adj.P.Val))
-
-  consensus_df <- df1 %>%
-    filter(contrast %in% paste0(contrasts)) %>%
-    select(!c(AveExpr, t, P.Value, B)) %>%
-    pivot_wider(
-      names_from = contrast,
-      values_from = c(logFC, adj.P.Val)) %>%
-    inner_join(df2_wide, by = "gene")
-
-  return(consensus_df)
-}
-
 # contrasts to keep
 contrasts_keep <- c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT", "PATH3vsWT")
-# consensus up DEGs
-consen_up <- find_consensus(cardo_up, shaw_up, contrasts_keep)
-# consen_up <- cardo_up %>%
-#   filter(contrast %in% c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34")) %>%
-#   pivot_wider(
-#     names_from = contrast,
-#     values_from = c(logFC, adj.P.Val))
-#   # inner_join(shaw_up, by = "gene") %>%
-  # filter(contrast %in% c("IPSC_HD", "NPC_HD"))
-str(consen_up)
 
-# consensus down DEGs
-consen_down <- find_consensus(cardo_down, shaw_down, contrasts_keep)
-str(consen_down)
+# combine data sets
+combined_degs <- bind_rows(cardo_degs, shaw_degs)
+
+# consensus DEGs
+consensus_genes <- intersect(cardo_degs$gene, shaw_degs$gene)
+consensus_degs <- combined_degs %>%
+  filter(contrast %in% contrasts_keep) %>%
+  filter(gene %in% consensus_genes)
+str(consensus_degs)
 
 # compare to SETBP1 targets
-# intersect(shaw_down$gene_name, setbp1_targets$X1)
-intersect(consen_up$gene_name, setbp1_targets$X1)
-intersect(consen_down$gene_name, setbp1_targets$X1)
+intersect(consensus_degs$gene_name, setbp1_targets$X1)
 
-# save consensus signature
-write_csv(consen_up, paste0(filepath, "combined/consensus_up_degs_wide_unfiltered.csv"))
-write_csv(consen_down, paste0(filepath, "combined/consensus_down_degs_wide_unfiltered.csv"))
+# save consensus DEGs
+write_csv(consensus_degs, paste0(filepath, "combined/consensus_degs_unfiltered.csv"))
 
 # long format for plotting
-consen_up_long <- consen_up %>%
-  pivot_longer(
-    cols = starts_with("logFC"),
-    names_to = "contrast",
-    names_prefix = "logFC_",
-    values_to = "logFC",
-    values_drop_na = TRUE
-  ) %>%
-  add_count(gene)
-length(unique(consen_up_long$gene))
-str(consen_up_long)
-table(consen_up_long$contrast)
+consensus_long <- consensus_degs %>%
+  select(gene, gene_name, contrast, dataset, logFC, adj.P.Val, se_logFC) %>%
+  pivot_longer(cols = c(logFC, adj.P.Val, se_logFC),
+               names_to = "metric",
+               values_to = "value") 
+str(consensus_long)
+table(consensus_long$contrast)
 
-consen_down_long <- consen_down %>%
-  pivot_longer(
-    cols = starts_with("logFC"),
-    names_to = "contrast",
-    names_prefix = "logFC_",
-    values_to = "logFC",
-    values_drop_na = TRUE
-  ) %>%
-  add_count(gene)
-length(unique(consen_down_long$gene))
-str(consen_down_long)
-table(consen_down_long$contrast)
+consensus_wide <- consensus_long %>%
+  unite("contrast_dataset_metric", contrast, dataset, metric) %>%
+  pivot_wider(names_from = contrast_dataset_metric, values_from = value)
+str(consensus_wide)
+length(unique(consensus_long$gene))
 
 ### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
-# opt 1) majority vote DEGs
-majority_up <- consen_up_long %>%
+# opt 1) high frequency DEGs
+top_freq_degs <- consensus_long %>%
+  add_count(gene) %>%
   mutate(method = "majority") %>%
   filter(n > 2)
-
-majority_down <- consen_down_long %>%
-  mutate(method = "majority") %>%
-  filter(n > 2)
-str(majority_down)
 
 # opt 2) top DEGs by logFC
-lfc_up <- consen_up_long %>%
+lfc_degs <- consensus_long %>%
+  filter(metric == "logFC") %>%
   group_by(gene) %>%
-  summarise(median_lfc = median(logFC), mean_lfc = mean(logFC))
+  summarise(median_lfc = median(metric), mean_lfc = mean(metric))
 str(lfc_up)
 
 lfc_down <- consen_down_long %>%
