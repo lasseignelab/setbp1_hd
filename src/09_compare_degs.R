@@ -97,29 +97,34 @@ length(unique(consensus_long$gene))
 
 ### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
 # opt 1) high frequency DEGs
-# top_freq_degs <- consensus_long %>%
-#   add_count(gene) %>%
-#   mutate(method = "majority") %>%
-#   filter(n > 2)
-#
-# # opt 2) top DEGs by logFC
-# lfc_degs <- consensus_long %>%
-#   filter(metric == "logFC") %>%
-#   group_by(gene) %>%
-#   summarise(median_lfc = median(metric), mean_lfc = mean(metric))
-# str(lfc_up)
-#
-# # by median
-# med_lfc_up <- lfc_up %>%
-#   mutate(method = "median_lfc") %>%
-#   slice_max(median_lfc, n = 100)
-#
-# # by mean
-# mean_lfc_up <- lfc_up %>%
-#   mutate(method = "mean_lfc") %>%
-#   slice_max(mean_lfc, n = 100)
-# str(mean_lfc_up)
-#
+freq_degs <- consensus_long %>%
+  select(!c(metric, value)) %>%
+  distinct() %>%
+  add_count(gene)
+
+top_freq_degs <- freq_degs %>%
+  mutate(method = "majority") %>%
+  filter(n > 3)
+str(top_freq_degs)
+
+# opt 2) top DEGs by logFC
+lfc_degs <- consensus_long %>%
+  filter(metric == "logFC") %>%
+  group_by(gene) %>%
+  summarise(median_lfc = median(abs(value)), mean_lfc = mean(abs(value)))
+str(lfc_degs)
+
+# by median
+med_lfc <- lfc_degs %>%
+  mutate(method = "median_lfc") %>%
+  slice_max(median_lfc, n = 200)
+
+# by mean
+mean_lfc <- lfc_degs %>%
+  mutate(method = "mean_lfc") %>%
+  slice_max(mean_lfc, n = 200)
+str(mean_lfc)
+
 # meta-analysis per gene
 meta_results <- consensus_degs %>%
   add_count(gene) %>%
@@ -137,44 +142,42 @@ meta_results <- consensus_degs %>%
     meta_ci_ub  = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$ci.ub) else NA_real_)
   ) %>%
   select(-data)
-str(meta_results)
-summary(consensus_degs$se_logFC)
-any(is.na(consensus_degs$se_logFC))
-any(consensus_degs$se_logFC == 0)
 
-test <- consensus_degs %>% filter(gene_name == "VAMP8")
-test
-t <- rma(yi = test$logFC, sei = test$se_logFC, method = "REML")
-t$b[1]
-class(as.numeric(t$b))
+meta_stats <- as.data.frame(meta_results[,-2])
+str(meta_stats)
+summary(meta_stats$meta_pval)
+
+meta_lfc <- meta_stats %>%
+  slice_max(abs(meta_logFC), n = 200) %>%
+  mutate(method = "meta_lfc")
+
+meta_p <- meta_stats %>%
+  slice_min(meta_pval, n = 200) %>%
+  mutate(method = "meta_p")
 
 # opt 4) robust rang aggregate -- create ranked lists per contrast
 ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
   consensus_degs %>%
                           filter(contrast == c) %>%
-                          arrange(abs(logFC)) %>%
+                          arrange(abs(adj.P.Val)) %>%
                           pull(gene)
 })
 head(ranked_lists)
 # run RRA
 rra <- aggregateRanks(ranked_lists, exact = TRUE)
 str(rra)
-summary(rra_up)
+summary(rra)
 
-rra_results <- rra_up %>%
-  mutate(direction = "up") %>%
-  bind_rows(rra_down) %>%
-  group_by(direction) %>%
-  slice_min(order_by = Score, n = 100) %>%
+rra_results <- rra %>%
+  slice_min(order_by = Score, n = 200) %>%
   mutate(method = "RRA") %>%
   select(gene = Name, method)
  
 ## compare overlap between options for finding signature ##
-compare_sigs_up <- majority_up %>%
+compare_sigs_up <- top_freq_degs %>%
   bind_rows(
-    majority_down, rra_results,
-    med_p_up, med_p_down, mean_p_up, mean_p_down, 
-    med_lfc_up, med_lfc_down, mean_lfc_up, mean_lfc_down) %>%
+    rra_results, med_lfc, mean_lfc, meta_lfc, meta_p, rra_results, composite_signature
+  ) %>%
   select(gene, method) %>%
     distinct() %>%
     mutate(value = 1) %>%
@@ -187,74 +190,74 @@ png(paste0(filepath, "combined/upset_plot_compare_sigs.png"), width = 30, height
 upset(compare_sigs_up, sets = colnames(compare_sigs_up), order.by = "freq")
 dev.off()
 
+composite_scores <- top_freq_degs %>%
+  select(gene, gene_name, n) %>%
+  distinct() %>%
+  inner_join(meta_stats, by = "gene") %>%
+  inner_join(rra, by = c("gene" = "Name")) %>%
+  mutate(
+  freq_weight = log2(n),
+  rank_pval = Score,
+  composite_score = -log10(meta_pval) + -log10(rank_pval) + freq_weight)
+str(composite_scores)
 
+# save scores across methods for DEGs + composite scores
+write_csv(composite_scores, paste0(filepath, "combined/full_scored_degs.csv"))
 
-# save consensus signature
-write_csv(consen_up_long, paste0(filepath, "combined/consensus_up_degs.csv"))
-write_csv(consen_down_long, paste0(filepath, "combined/consensus_down_degs.csv"))
+# top 200 by composite score
+composite_signature <- composite_scores %>%
+  slice_max(composite_score, n = 200)
+composite_signature
 
+# save composite score signature
+write_csv(composite_signature, paste0(filepath, "combined/consensus_signature.csv"))
+
+# up vs down DEGs in signature
+composite_up <- composite_signature %>% filter(meta_logFC > 0)
+composite_up
+composite_down <- composite_signature %>% filter(meta_logFC < 0)
+composite_down
 # compare to SETBP1 targets
-# intersect(shaw_down$gene_name, setbp1_targets$X1)
-intersect(consen_up_long$gene_name, setbp1_targets$X1)
-intersect(consen_down_long$gene_name, setbp1_targets$X1)
-
-consen_up_long %>%
-  filter(n > 3) %>%
-  ggplot(aes(x = logFC, y = reorder(gene_name, n), colour = contrast)) +
-  geom_point(size = 2.5)
-ggsave(paste0(filepath, "combined/consensus_up_degs.png"), height = 22, width = 18, units = "cm")
-
-consen_down_long %>%
-  filter(n > 3) %>%
-  ggplot(aes(x = -logFC, y = reorder(gene_name, n), colour = contrast)) +
-  geom_point(size = 2.5)
-ggsave(paste0(filepath, "combined/consensus_down_degs.png"), height = 32, width = 18, units = "cm")
-
-# consensus up DEGs upset
-upset_df_up <- consen_up_long %>%
-    select(gene, contrast) %>%
-    distinct() %>%
-    mutate(value = 1) %>%
-    pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
-  column_to_rownames(var = "gene")
-str(upset_df_up)
-
-png(paste0(filepath, "combined/upset_plot_upregulated.png"), width = 30, height = 20, units = "cm", res = 300)
-upset(upset_df_up, sets = colnames(upset_df_up), order.by = "freq")
-dev.off()
-
-# consensus down DEGs upset
-upset_df_down <- consen_down_long %>%
-    select(gene, contrast) %>%
-    distinct() %>%
-    mutate(value = 1) %>%
-    pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
-  column_to_rownames(var = "gene")
-str(upset_df_down)
-
-png(paste0(filepath, "combined/upset_plot_downregulated.png"), width = 30, height = 20, units = "cm", res = 300)
-upset(upset_df_down, sets = colnames(upset_df_down), order.by = "freq")
-dev.off()
+setbp1_genes <- gconvert(query = setbp1_targets$X1)
+intersect(composite_signature$gene, setbp1_genes$target)
+intersect(rra_results$gene, setbp1_genes$target)
+intersect(meta_p$gene, setbp1_genes$target)
 
 #### ORA of Consensus DEGs ####
-ora_up <- gost(unique(consen_up_long$gene), sources = c("GO", "KEGG", "WP"))
-ora_up$result$term_name
+ora_sig <- gost(unique(composite_signature$gene), sources = c("GO", "KEGG", "WP"))
+ora_sig$result$term_name
 
-ora_down <- gost(unique(consen_down_long$gene), sources = c("GO", "KEGG", "WP"))
-ora_down$result$term_name
+ora_rank <- gost(unique(rra_results$gene), sources = c("GO", "KEGG", "WP"))
+ora_rank$result$term_name
+
+ora_meta <- gost(unique(meta_p$gene), sources = c("GO", "KEGG", "WP"))
+ora_meta$result$term_name
+
+ora_setbp1 <- gost(unique(setbp1_genes$target), sources = c("GO", "KEGG", "WP"))
+ora_setbp1$result$term_name
 
 # plot pathways
-  ora_up$result %>%
+ora_sig$result %>%
+  filter(term_size < 750) %>%
+  slice_max(recall, n = 40) %>%
+  ggplot(
+    aes(
+      x = recall, y = reorder(term_name, recall), size = intersection_size, colour = precision)) +
+  geom_point()
+
+ggsave(paste0(filepath, "combined/sig_top_ora.png"), width = 35, height = 25, units = "cm")
+
+# plot pathways
+  ora_rank$result %>%
       filter(term_size < 750) %>%
       slice_max(recall, n = 40) %>%
       ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
       geom_point()
-  ggsave(paste0(filepath, "combined/up_top_ora.png"))
+  ggsave(paste0(filepath, "combined/rank_top_ora.png"))  
 
-# plot pathways
-  ora_down$result %>%
+ora_meta$result %>%
       filter(term_size < 750) %>%
       slice_max(recall, n = 40) %>%
       ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
       geom_point()
-  ggsave(paste0(filepath, "combined/down_top_ora.png"))
+  ggsave(paste0(filepath, "combined/meta_top_ora.png"))
