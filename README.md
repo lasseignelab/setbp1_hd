@@ -6,7 +6,7 @@ README
 
 # README Template
 
-**\[Replace this header with your project name\]**
+**SETBP1-HD**
 
 ## Purpose
 
@@ -25,6 +25,19 @@ the University of Alabama at Birmingham](https://www.lasseigne.org/)
 “Dependencies” or “Scripts” Include a code chunk (if relevant) on what
 your project depends on. Include a “script tree” on how to reproduce
 your results with descriptions for all scripts
+
+## Data
+GSE262710
+- Cardo et al.: [Identifying SETBP1 haploinsufficiency molecular pathways to improve patient diagnosis using induced pluripotent stem cells and neural disease modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11443744/)
+
+GSE180185
+- Shaw et al.: [Impaired neurogenesis and neural progenitor fate choice in a human stem cell model of SETBP1 disorder](https://pmc.ncbi.nlm.nih.gov/articles/PMC9940404/)
+
+PRJNA898600 (Lin−c-Kit+ cells)
+- Tanaka et al.: [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
+
+PRJNA974068 (Lin−c-Kit+ Sca-1+ cells)
+- Tanaka et al.: [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
 
 ## Authors
 
