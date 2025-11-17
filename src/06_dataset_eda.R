@@ -90,14 +90,14 @@ groupings
 write.csv(groupings, paste0(filepath, sra, "_metadata_groupings.csv"))
 
 pdf(paste0(filepath, "metadata_feat_freq.pdf"))
-for (meta in 2:ncol(groupings)) {
-  freq <- as.data.frame(table(groupings[, meta]))
+for (var in 2:ncol(groupings)) {
+  freq <- as.data.frame(table(groupings[, var]))
 
   metadata_plot <- freq %>%
     ggplot(aes(x = freq[, 1], y = Freq)) +
     geom_bar(stat = "identity") +
     geom_text(aes(label = Freq), vjust = -.5) +
-    xlab(paste(colnames(groupings)[meta])) +
+    xlab(paste(colnames(groupings)[var])) +
     coord_flip()
   print(metadata_plot)
 }
@@ -219,7 +219,7 @@ pca_cor <- meta %>%
   bind_cols(pc_keep, .) %>%
   cor()
 
-write.csv(paste0(filepath, "PC_metadata_correlation.csv"))
+write.csv(pca_cor, paste0(filepath, "PC_metadata_correlation.csv"))
 png(paste0(filepath, "QC_PC_correlation.png"),
   width = 30, height = 30, units = "cm", res = 300
 )
