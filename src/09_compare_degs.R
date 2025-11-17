@@ -172,24 +172,8 @@ rra_results <- rra %>%
   slice_min(order_by = Score, n = 200) %>%
   mutate(method = "RRA") %>%
   select(gene = Name, method)
- 
-## compare overlap between options for finding signature ##
-compare_sigs_up <- top_freq_degs %>%
-  bind_rows(
-    rra_results, med_lfc, mean_lfc, meta_lfc, meta_p, rra_results, composite_signature
-  ) %>%
-  select(gene, method) %>%
-    distinct() %>%
-    mutate(value = 1) %>%
-    pivot_wider(names_from = method, values_from = value, values_fill = 0) %>%
-  column_to_rownames(var = "gene")
 
-str(compare_sigs_up)
-
-png(paste0(filepath, "combined/upset_plot_compare_sigs.png"), width = 30, height = 20, units = "cm", res = 300)
-upset(compare_sigs_up, sets = colnames(compare_sigs_up), order.by = "freq")
-dev.off()
-
+## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 composite_scores <- top_freq_degs %>%
   select(gene, gene_name, n) %>%
   distinct() %>%
@@ -211,6 +195,24 @@ composite_signature
 
 # save composite score signature
 write_csv(composite_signature, paste0(filepath, "combined/consensus_signature.csv"))
+
+ 
+## compare overlap between options for finding signature ##
+compare_sigs_up <- top_freq_degs %>%
+  bind_rows(
+    rra_results, med_lfc, mean_lfc, meta_lfc, meta_p, rra_results, composite_signature
+  ) %>%
+  select(gene, method) %>%
+    distinct() %>%
+    mutate(value = 1) %>%
+    pivot_wider(names_from = method, values_from = value, values_fill = 0) %>%
+  column_to_rownames(var = "gene")
+
+str(compare_sigs_up)
+
+png(paste0(filepath, "combined/upset_plot_compare_sigs.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(compare_sigs_up, sets = colnames(compare_sigs_up), order.by = "freq")
+dev.off()
 
 # up vs down DEGs in signature
 composite_up <- composite_signature %>% filter(meta_logFC > 0)
