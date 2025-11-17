@@ -125,7 +125,8 @@ top_cts_filt <- top_cts %>%
   rownames_to_column() %>%
   select(!rowname) %>%
   column_to_rownames("ortholog_ensg")
-paste0("Top var human genes with orthologs: ", print(head(top_cts_filt)))
+paste0("Top var human genes with orthologs: ")
+paste0(print(head(rownames(top_cts_filt))))
 
 # save combined top var counts
 write_csv(top_cts_filt, file = paste0(filepath, "combined_counts_topvar.csv"))
