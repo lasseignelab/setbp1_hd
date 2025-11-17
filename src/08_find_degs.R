@@ -177,10 +177,10 @@ if(sra %in% c("tanaka1", "tanaka2")){
     mutate(contrast = paste0(contrast)) %>%
     # add significance labels
     mutate(significance = as.factor(case_when(
-      logFC > 0.5 & adj.P.Val < 0.05 ~ "Up",
-      logFC < -0.5 & adj.P.Val < 0.05 ~ "Down",
-      # logFC > 0.5 & adj.P.Val < 0.1 ~ "Up",
-      # logFC < -0.5 & adj.P.Val < 0.1 ~ "Down",
+      # logFC > 0.5 & adj.P.Val < 0.05 ~ "Up",
+      # logFC < -0.5 & adj.P.Val < 0.05 ~ "Down",
+      logFC > 0.5 & adj.P.Val < 0.1 ~ "Up",
+      logFC < -0.5 & adj.P.Val < 0.1 ~ "Down",
        .default = "NonSig"
     )))
   print(paste0("DEGs summary: ")) 
