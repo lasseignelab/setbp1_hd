@@ -15,7 +15,7 @@ singularity exec --cleanenv \
                  --containall \
                  -B "${CAP_PROJECT_PATH}" \
                  "${CAP_CONTAINER_PATH}"/lw_dea_0.1.1.sif \
-                  Rscript --vanilla "${CAP_PROJECT_PATH}"/src/08_dea.R \
+                  Rscript --vanilla "${CAP_PROJECT_PATH}"/src/08_find_degs.R \
                   -r "${CAP_DATA_PATH}/processed/${dataset}_prepped_rse.rds" \
                   -s ${dataset} \
                   -o "${CAP_PROJECT_PATH}/results/dea/${dataset}/"
