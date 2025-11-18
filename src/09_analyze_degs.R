@@ -36,13 +36,10 @@ filepath <- args$output_dir
 filepath <- paste0(args$output_dir, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
-# filepath <- "./results/archive/"
-# sig_degs_comb <- read_csv(file = "./results/dea/shaw/combined_contrasts_sig_degs.csv")
-
 #### Compare Up/Down DEGs Across Conditions ####
 # gene-contrast matrix for upregulated DEGs
 up_gene_contrast_matrix <- sig_degs_comb %>%
-    filter(logFC < 0) %>%
+  filter(logFC < 0) %>%
   select(gene, contrast) %>%
   distinct() %>%
   mutate(value = 1) %>%
@@ -52,7 +49,7 @@ up_gene_contrast_matrix <- sig_degs_comb %>%
 
 # gene-contrast matrix for downregulated DEGs
 down_gene_contrast_matrix <- sig_degs_comb %>%
-    filter(logFC > 0) %>%
+  filter(logFC > 0) %>%
   select(gene, contrast) %>%
   distinct() %>%
   mutate(value = 1) %>%
@@ -62,18 +59,20 @@ down_gene_contrast_matrix <- sig_degs_comb %>%
 
 # DEGs upset plots by direction (up/down)
 upset_up <- upset(
-  up_gene_contrast_matrix, 
-  sets = colnames(up_gene_contrast_matrix), 
+  up_gene_contrast_matrix,
+  sets = colnames(up_gene_contrast_matrix),
   order.by = "degree",
   mainbar.y.label = "Upregulated Intersection Size",
-sets.bar.color = "steelblue")
+  sets.bar.color = "steelblue"
+)
 
 upset_down <- upset(
-  down_gene_contrast_matrix, 
-  sets = colnames(down_gene_contrast_matrix), 
+  down_gene_contrast_matrix,
+  sets = colnames(down_gene_contrast_matrix),
   order.by = "degree",
   mainbar.y.label = "Downregulated Intersection Size",
-sets.bar.color = "firebrick")
+  sets.bar.color = "firebrick"
+)
 
 pdf(paste0(filepath, "upset_plots_across_contrasts.pdf"))
 upset_up
@@ -81,35 +80,44 @@ upset_down
 dev.off()
 print(
   paste0(
-    "Upset plots saved to: ", filepath, "upset_plots_across_contrasts.pdf"))
+    "Upset plots saved to: ", filepath, "upset_plots_across_contrasts.pdf"
+  )
+)
 
 
 #### ORA ####
 # function for ORA plotting
 run_ora_plot <- function(genes, title) {
-  ora_res <- tryCatch({
-    gost(genes, sources = "GO")$result
-  }, error = function(e) {
-    message(paste("ORA failed for", title, ":", e$message))
-    return(NULL)
-  })
+  ora_res <- tryCatch(
+    {
+      gost(genes, sources = "GO")$result
+    },
+    error = function(e) {
+      message(paste("ORA failed for", title, ":", e$message))
+      NULL
+    }
+  )
   # skip plotting for no ORA results
   if (is.null(ora_res) || nrow(ora_res) == 0) {
     message(paste("No ORA results for", title, "-- skipping plot"))
-    return(NULL)
+    NULL
+  } else {
+    # filter and select top terms
+    plot_data <- ora_res %>%
+      filter(term_size < 750) %>%
+      slice_max(recall, n = 30)
+
+    # create plot
+    plot <- plot_data %>%
+      ggplot(aes(
+        x = recall, y = term_name, size = intersection_size, colour = precision # nolint
+      )) +
+      geom_point() +
+      labs(title = title, x = "Recall", y = NULL) +
+      theme_minimal()
+
+    list(result = ora_res, plot = plot)
   }
-  # filter and select top terms
-  plot_data <- ora_res %>%
-    filter(term_size < 750) %>%
-    slice_max(recall, n = 30)
-  
-  # create plot
-  plot <- ggplot(plot_data, aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
-    geom_point() +
-    labs(title = title, x = "Recall", y = NULL) +
-    theme_minimal()
-  
-  return(list(result = ora_res, plot = plot))
 }
 
 # consensus DEGs ORA for each direction (up/down)
@@ -120,28 +128,42 @@ sig_degs_freq <- sig_degs_comb %>%
 consensus_up <- sig_degs_freq %>% filter(logFC > 0)
 consensus_down <- sig_degs_freq %>% filter(logFC < 0)
 
-consensus_up_ora <- run_ora_plot(consensus_up$gene, "Consensus Upregulated")
-consensus_down_ora <- run_ora_plot(consensus_down$gene, "Consensus Downregulated")
+consensus_up_ora <- run_ora_plot(
+  consensus_up$gene, "Consensus Upregulated"
+)
+consensus_down_ora <- run_ora_plot(
+  consensus_down$gene, "Consensus Downregulated"
+)
 
-write_csv(consensus_up_ora$result, paste0(filepath, "consensus_up_degs_ora.csv"))
-write_csv(consensus_down_ora$result, paste0(filepath, "consensus_down_degs_ora.csv"))
+write_csv(
+  consensus_up_ora$result, paste0(filepath, "consensus_up_degs_ora.csv")
+)
+write_csv(
+  consensus_down_ora$result, paste0(filepath, "consensus_down_degs_ora.csv")
+)
 print(
   paste0(
-    "Consensus ORA results saved as: ", "consensus_[up/down]_degs_ora.csv"))
+    "Consensus ORA results saved as: ", "consensus_[up/down]_degs_ora.csv"
+  )
+)
 
 contrasts <- unique(sig_degs_comb$contrast)
 plots <- list(consensus_up_ora$plot, consensus_down_ora$plot)
 
 # run ORA for DEGs from each contrast
- for(contr in seq_along(contrasts)) {
+for (contr in seq_along(contrasts)) {
   print(paste0("Running ORA for ", contrasts[contr]))
   # split by upregulated genes, run ORA
   up_degs <- sig_degs_comb %>%
     filter(contrast == contrasts[contr], logFC > 0)
- 
-  ora_up <- run_ora_plot(up_degs$gene, paste0(contrasts[contr], " Upregulated"))
+
+  ora_up <- run_ora_plot(
+    up_degs$gene, paste0(contrasts[contr], " Upregulated")
+  )
   if (!is.null(ora_up)) {
-    write_csv(ora_up$result, paste0(filepath, contrasts[contr], "_up_degs_ora.csv"))
+    write_csv(
+      ora_up$result, paste0(filepath, contrasts[contr], "_up_degs_ora.csv")
+    )
     plots <- append(plots, list(ora_up$plot))
   }
 
@@ -149,9 +171,15 @@ plots <- list(consensus_up_ora$plot, consensus_down_ora$plot)
   down_degs <- sig_degs_comb %>%
     filter(contrast == contrasts[contr], logFC < 0)
 
-   ora_down <- run_ora_plot(down_degs$gene, paste0(contrasts[contr], " Downregulated"))
+  ora_down <- run_ora_plot(
+    down_degs$gene, paste0(contrasts[contr], " Downregulated")
+  )
   if (!is.null(ora_up)) {
-    write_csv(ora_down$result, paste0(filepath, contrasts[contr], "_down_degs_ora.csv"))
+    write_csv(
+      ora_down$result, paste0(
+        filepath, contrasts[contr], "_down_degs_ora.csv"
+      )
+    )
     plots <- append(plots, list(ora_up$plot))
   }
 }
