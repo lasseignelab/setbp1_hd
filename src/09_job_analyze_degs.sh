@@ -17,4 +17,4 @@ singularity exec --cleanenv \
                  "${CAP_CONTAINER_PATH}"/lw_dea_0.1.1.sif \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/09_analyze_degs.R \
                   -d "${CAP_RESULTS_PATH}/dea/${dataset}/combined_contrasts_sig_degs.csv" \
-                  -o "${CAP_RESULTS_PATH}/results/dea/${dataset}/"
+                  -o "${CAP_RESULTS_PATH}/dea/${dataset}/"
