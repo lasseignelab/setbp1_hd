@@ -229,6 +229,12 @@ intersect(meta_p$gene, setbp1_genes$target)
 ora_sig <- gost(unique(composite_signature$gene), sources = c("GO", "KEGG", "WP"))
 ora_sig$result$term_name
 
+ora_sig_up <- gost(unique(composite_up$gene), sources = c("GO", "KEGG", "WP"))
+ora_sig_up$result$term_name
+
+ora_sig_dn <- gost(unique(composite_down$gene), sources = c("GO", "KEGG", "WP"))
+ora_sig_dn$result$term_name
+
 ora_rank <- gost(unique(rra_results$gene), sources = c("GO", "KEGG", "WP"))
 ora_rank$result$term_name
 
