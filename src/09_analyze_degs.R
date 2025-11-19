@@ -180,7 +180,7 @@ for (contr in seq_along(contrasts)) {
         filepath, contrasts[contr], "_down_degs_ora.csv"
       )
     )
-    plots <- append(plots, list(ora_up$plot))
+    plots <- append(plots, list(ora_down$plot))
   }
 }
 
