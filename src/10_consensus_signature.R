@@ -55,6 +55,9 @@ cardo_degs <- read_csv(paste0(degs, "cardo/combined_contrasts_sig_degs.csv")) %>
   mutate(dataset = "cardo")
 shaw_degs <- read_csv(paste0(degs, "shaw/combined_contrasts_sig_degs.csv")) %>%
   mutate(dataset = "shaw")
+tanaka1_degs <- read_csv(paste0(degs, "tanaka1/combined_contrasts_sig_degs.csv"))
+tanaka2_degs <- read_csv(paste0(degs, "tanaka2/combined_contrasts_sig_degs.csv"))
+tanaka_degs <- bind_rows(tanaka1_degs, tanaka2_degs)
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 
 unique(cardo_degs$contrast)
@@ -218,16 +221,27 @@ composite_up <- composite_signature %>% filter(meta_logFC > 0)
 composite_up
 composite_down <- composite_signature %>% filter(meta_logFC < 0)
 composite_down
+
+# compare to Tanaka et al DEGk
+tanaka_genes <- gorth(query = tanaka_degs$gene, source_organism = "mmusculus", target_organism = "hsapiens")
+
 # compare to SETBP1 targets
 setbp1_genes <- gconvert(query = setbp1_targets$X1)
-intersect(composite_signature$gene, setbp1_genes$target)
-intersect(rra_results$gene, setbp1_genes$target)
-intersect(meta_p$gene, setbp1_genes$target)
-intersect(meta_p$gene, setbp1_genes$target)
-intersect(med_lfc$gene, setbp1_genes$target)
-intersect(mean_lfc$gene, setbp1_genes$target)
-t <- intersect(top_freq_degs$gene, setbp1_genes$target)
-filter(setbp1_genes, target %in% t)
+
+verification_degs <- tanaka_degs %>%
+  inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
+  select(name = ortholog_name, target = ortholog_ensg, logFC, adj.P.Val) %>%
+  distinct() %>%
+  bind_rows(setbp1_genes[,4:5]) %>%
+  mutate(
+    Composite = ifelse(target %in% composite_signature$gene, TRUE, FALSE),
+    RRA = ifelse(target %in% rra_results$gene, TRUE, FALSE),
+    Meta = ifelse(target %in% meta_p$gene, TRUE, FALSE),
+    Freq = ifelse(target %in% top_freq_degs$gene, TRUE, FALSE)
+  ) %>%
+  filter(if_any(Composite:Freq, ~ . == TRUE))
+
+verification_degs
 
 #### ORA of Consensus DEGs ####
 # function for ORA plotting
@@ -266,23 +280,55 @@ run_ora_plot <- function(genes, title) {
     list(result = ora_res, plot = plot)
   }
 }
-ora_sig <- run_ora_plot(unique(composite_signature$gene), "Composite Score Signature")
-
-ora_sig_up <- run_ora_plot(unique(composite_up$gene), "Composite Signature: Up")
-ora_sig_down <- run_ora_plot(unique(composite_down$gene), "Composite Signature: Down")
-
-ora_rank <- run_ora_plot(unique(rra_results$gene), "Robust Rank Aggregation")
-
-ora_meta <- run_ora_plot(unique(meta_p$gene), "Meta Analysis")
-
 # up vs down meta ORA
 meta_up <- meta_p %>% filter(meta_logFC > 0)
 meta_down <- meta_p %>% filter(meta_logFC < 0)
-ora_meta_up <- run_ora_plot(unique(meta_up$gene), "Meta Analysis: Up")
-ora_meta_down <- run_ora_plot(unique(meta_down$gene), "Meta Analysis: Down")
 
+# run ORA for each signature
+sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs)
+ora_list <- lapply(seq_along(sig_list), function(i) {
+  run_ora_plot(sig_list[[i]]$gene, sig_list[[i]]$method)
+})
+# ora_sig <- run_ora_plot(unique(composite_signature$gene), "Composite Score Signature")
+#
+# ora_sig_up <- run_ora_plot(unique(composite_up$gene), "Composite Signature: Up")
+# ora_sig_down <- run_ora_plot(unique(composite_down$gene), "Composite Signature: Down")
+#
+# ora_rank <- run_ora_plot(unique(rra_results$gene), "Robust Rank Aggregation")
+#
+# ora_meta <- run_ora_plot(unique(meta_p$gene), "Meta Analysis")
+#
+# ora_meta_up <- run_ora_plot(unique(meta_up$gene), "Meta Analysis: Up")
+# ora_meta_down <- run_ora_plot(unique(meta_down$gene), "Meta Analysis: Down")
+# ora_list <- NULL
+# ora_res_list <- lapply(ora_list, function(:w
+# ))
+#
+# ora_list <- list(ora_sig, ora_sig_up, ora_sig_down, ora_rank, ora_meta, ora_meta_up, ora_meta_down)
+names(ora_list) <- c("composite", "RRA", "meta", "freq")
+res_list <- lapply(seq_along(ora_list), function(i) {
+                   ora_list[[i]]$result %>%
+                   mutate(method = paste0(names(ora_list)[i]))
+                   })
+str(res_list)
 
-ora_plots <- c(ora_sig$plot, ora_sig_up$plot, ora_sig_down$plot, ora_rank$plot, ora_meta$plot, ora_meta_up$plot, ora_meta_down$plot)
+# simplify results for term names in > 1 sig ORA results
+res_df <- bind_rows(res_list)
+str(res_df)
+
+terms_filtered <- res_df %>%
+  group_by(term_name) %>%
+  mutate(term_count = n_distinct(method)) %>%
+  filter(term_count > 1) %>%
+  ungroup()
+# ora_plots <- c(ora_sig$plot, ora_sig_up$plot, ora_sig_down$plot, ora_rank$plot, ora_meta$plot, ora_meta_up$plot, ora_meta_down$plot)
+# plot
+terms_plot <- terms_filtered %>%
+  # filter(term_count > 2) %>%
+  filter(term_size < 2000) %>%
+  ggplot(aes(y = reorder(term_name, term_size), x = -log10(p_value), size = recall, colour = method)) +
+  geom_point(alpha = 0.6)
+ggsave(paste0(filepath, "ORA_combined_terms.png"), width = 20, height = 28, units = "cm")
 
 # save all plots to one PDF
 pdf(paste0(filepath, "ORA_all_plots.pdf"), width = 10, height = 8)
@@ -290,28 +336,4 @@ for (plot in ora_plots) {
   print(plot)
 }
 dev.off()
-# plot pathways
-ora_sig$result %>%
-  filter(term_size < 750) %>%
-  slice_max(recall, n = 40) %>%
-  ggplot(
-    aes(
-      x = recall, y = reorder(term_name, recall), size = intersection_size, colour = precision)) +
-  geom_point()
 
-ggsave(paste0(filepath, "sig_top_ora.png"), width = 35, height = 25, units = "cm")
-
-# plot pathways
-  ora_rank$result %>%
-      filter(term_size < 750) %>%
-      slice_max(recall, n = 40) %>%
-      ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
-      geom_point()
-  ggsave(paste0(filepath, "rank_top_ora.png"))  
-
-ora_meta$result %>%
-      filter(term_size < 750) %>%
-      slice_max(recall, n = 40) %>%
-      ggplot(aes(x = recall, y = term_name, size = intersection_size, colour = precision)) +
-      geom_point()
-  ggsave(paste0(filepath, "meta_top_ora.png"))
