@@ -157,6 +157,9 @@ top_freq_degs <- freq_degs %>%
 str(top_freq_degs)
 length(unique(top_freq_degs$gene))
 
+# save majority/high freq signature
+write_csv(top_freq_degs, paste0(filepath, "majorityfreq_consensus_signature.csv"))
+
 # opt 3) meta-analysis per gene
 meta_results <- consensus_degs %>%
   add_count(gene) %>%
@@ -187,6 +190,9 @@ meta_p <- meta_stats %>%
   slice_min(meta_pval, n = 200) %>%
   mutate(method = "meta_p")
 
+# save meta analysis signature
+write_csv(meta_p, paste0(filepath, "metaanalysis_consensus_signature.csv"))
+
 # opt 4) robust rang aggregate -- create ranked lists per contrast
 ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
   consensus_degs %>%
@@ -204,6 +210,9 @@ rra_results <- rra %>%
   slice_min(order_by = Score, n = 200) %>%
   mutate(method = "RRA") %>%
   select(gene = Name, method)
+
+# save RRA signature
+write_csv(rra_results, paste0(filepath, "rankaggregate_consensus_signature.csv"))
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 composite_scores <- top_freq_degs %>%
@@ -226,7 +235,7 @@ composite_signature <- composite_scores %>%
 composite_signature
 
 # save composite score signature
-write_csv(composite_signature, paste0(filepath, "consensus_signature.csv"))
+write_csv(composite_signature, paste0(filepath, "compositescore_consensus_signature.csv"))
 
  
 ## compare overlap between options for finding signature ##
