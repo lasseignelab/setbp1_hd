@@ -97,6 +97,53 @@ consensus_wide <- consensus_long %>%
 str(consensus_wide)
 length(unique(consensus_long$gene))
 
+### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
+# compare to Tanaka et al DEGk
+tanaka_genes <- gorth(query = tanaka_degs$gene, source_organism = "mmusculus", target_organism = "hsapiens")
+
+tanaka_targets <- setbp1_targets %>%
+  select(gene_name = X1) %>%
+  mutate(contrast = "SETBP1_target") %>%
+  bind_rows(data.frame(gene_name = tanaka_genes$ortholog_name, contrast = "Tanaka_DEG"))
+
+compare_contrasts <- consensus_long %>%
+  select(gene_name, contrast) %>%
+  bind_rows(tanaka_targets) %>%
+    distinct() %>%
+    mutate(value = 1) %>%
+    pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
+  column_to_rownames(var = "gene_name")
+
+str(compare_contrasts)
+
+# set colors for upset plot
+contrast_dataset_map <- consensus_long %>%
+  distinct(contrast, dataset) %>%
+  bind_rows(
+    data.frame(
+      dataset = c("SETBP1", "Tanaka"), contrast = c("SETBP1_target", "Tanaka_DEG")))
+
+dataset_colors <- c("cardo" = "orange",
+"shaw" = "steelblue",
+"SETBP1" = "gray60",
+"Tanaka" = "gray90")
+
+# contrast_colors <- ifelse(
+#   contrasts$dataset == "cardo", "#1f77b4", ifelse(
+#     contrasts$dataset == "shaw", "#ff7f0e", "black"))
+
+png(paste0(filepath, "upset_plot_compare_shaw_cardo.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(compare_contrasts, 
+  set.metadata = list(data = contrast_dataset_map, plots = list(
+    list(type = "matrix_rows", column = "dataset", assign = 10, colors = dataset_colors)
+  )))
+dev.off()
+
+png(paste0(filepath, "upset_plot_compare_contrasts.png"), width = 30, height = 20, units = "cm", res = 300)
+upset(compare_contrasts, sets = colnames(compare_contrasts), order.by = "freq")
+dev.off()
+
+
 ### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
 # opt 1) high frequency DEGs
 freq_degs <- consensus_long %>%
@@ -106,25 +153,9 @@ freq_degs <- consensus_long %>%
 
 top_freq_degs <- freq_degs %>%
   mutate(method = "majority") %>%
-  filter(n > 3)
+  filter(n > 4)
 str(top_freq_degs)
-
-# opt 2) top DEGs by logFC
-lfc_degs <- consensus_long %>%
-  filter(metric == "logFC") %>%
-  group_by(gene) %>%
-  summarise(median_lfc = median(abs(value)), mean_lfc = mean(abs(value)))
-str(lfc_degs)
-
-# by median
-med_lfc <- lfc_degs %>%
-  mutate(method = "median_lfc") %>%
-  slice_max(median_lfc, n = 200)
-
-# by mean
-mean_lfc <- lfc_degs %>%
-  mutate(method = "mean_lfc") %>%
-  slice_max(mean_lfc, n = 200)
+length(unique(top_freq_degs$gene))
 
 # opt 3) meta-analysis per gene
 meta_results <- consensus_degs %>%
@@ -201,7 +232,7 @@ write_csv(composite_signature, paste0(filepath, "consensus_signature.csv"))
 ## compare overlap between options for finding signature ##
 compare_sigs_up <- top_freq_degs %>%
   bind_rows(
-    rra_results, med_lfc, mean_lfc, meta_lfc, meta_p, rra_results, composite_signature
+    rra_results, meta_p, rra_results, composite_signature
   ) %>%
   select(gene, method) %>%
   mutate(method = ifelse(is.na(method), "Composite", method)) %>%
@@ -222,9 +253,9 @@ composite_up
 composite_down <- composite_signature %>% filter(meta_logFC < 0)
 composite_down
 
-# compare to Tanaka et al DEGk
-tanaka_genes <- gorth(query = tanaka_degs$gene, source_organism = "mmusculus", target_organism = "hsapiens")
-
+# # compare to Tanaka et al DEGk
+# tanaka_genes <- gorth(query = tanaka_degs$gene, source_organism = "mmusculus", target_organism = "hsapiens")
+#
 # compare to SETBP1 targets
 setbp1_genes <- gconvert(query = setbp1_targets$X1)
 
@@ -289,21 +320,7 @@ sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs)
 ora_list <- lapply(seq_along(sig_list), function(i) {
   run_ora_plot(sig_list[[i]]$gene, sig_list[[i]]$method)
 })
-# ora_sig <- run_ora_plot(unique(composite_signature$gene), "Composite Score Signature")
-#
-# ora_sig_up <- run_ora_plot(unique(composite_up$gene), "Composite Signature: Up")
-# ora_sig_down <- run_ora_plot(unique(composite_down$gene), "Composite Signature: Down")
-#
-# ora_rank <- run_ora_plot(unique(rra_results$gene), "Robust Rank Aggregation")
-#
-# ora_meta <- run_ora_plot(unique(meta_p$gene), "Meta Analysis")
-#
-# ora_meta_up <- run_ora_plot(unique(meta_up$gene), "Meta Analysis: Up")
-# ora_meta_down <- run_ora_plot(unique(meta_down$gene), "Meta Analysis: Down")
-# ora_list <- NULL
-# ora_res_list <- lapply(ora_list, function(:w
-# ))
-#
+
 # ora_list <- list(ora_sig, ora_sig_up, ora_sig_down, ora_rank, ora_meta, ora_meta_up, ora_meta_down)
 names(ora_list) <- c("composite", "RRA", "meta", "freq")
 res_list <- lapply(seq_along(ora_list), function(i) {
@@ -325,12 +342,15 @@ terms_filtered <- res_df %>%
 # plot
 terms_plot <- terms_filtered %>%
   # filter(term_count > 2) %>%
-  filter(term_size < 2000) %>%
+  filter(term_size < 1750) %>%
   ggplot(aes(y = reorder(term_name, term_size), x = -log10(p_value), size = recall, colour = method)) +
   geom_point(alpha = 0.6)
 ggsave(paste0(filepath, "ORA_combined_terms.png"), width = 20, height = 28, units = "cm")
 
-# save all plots to one PDF
+ora_plots <- lapply(seq_along(ora_list), function(i) {
+                   ora_list[[i]]$plot
+})
+s# save all plots to one PDF
 pdf(paste0(filepath, "ORA_all_plots.pdf"), width = 10, height = 8)
 for (plot in ora_plots) {
   print(plot)
