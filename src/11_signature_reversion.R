@@ -46,9 +46,17 @@ degs <- read_csv(args$rse)
 # create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
+if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
 # save labeled and sig-filtered results
 # degs_comb <- read_csv(, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
-filepath <- "./results/dea/consensus_signature/"
+cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
+filepath <- "./results/dea/signature_reversion/"
+
+# # avoid lock file issues
+# Sys.setenv(BIOCFILECACHE_NOLOCK = "TRUE")
+# h5disableFileLocking()
+# Sys.setenv(HDF5_USE_FILE_LOCKING = "FALSE")
+#
 # save majority/high freq signature
 top_freq_degs <- read_csv(paste0(filepath, "majorityfreq_consensus_signature.csv"))
 # save meta analysis signature
@@ -56,34 +64,107 @@ meta_p <- read_csv(paste0(filepath, "metaanalysis_consensus_signature.csv"))
 # save scores across methods for DEGs + composite scores
 composite_scores <- read_csv(paste0(filepath, "full_scored_degs.csv"))
 # save composite score signature
-composite_signature <- read_csv(paste0(filepath, "consensus_signature.csv"))
+# composite_signature <- read_csv(paste0(filepath, "consensus_signature.csv"))
 
-# ENTREZ gene conversion
-gene_conv <- gconvert(composite_signature$gene, target = "ENTREZGENE_ACC")
-composite_conv <- composite_signature %>% inner_join(gene_conv, by = c("gene" = "input"))
 # up vs down DEGs in signature
-composite_up <- composite_conv %>% filter(meta_logFC > 0)
+composite_signature <- composite_scores %>%
+  mutate(entrez = as.character(entrez))# %>%
+  # slice_max(composite_score, n = 200)
+composite_up <- composite_signature %>% filter(meta_logFC > 0)
 composite_up
-composite_down <- composite_conv %>% filter(meta_logFC < 0)
+composite_down <- composite_signature %>% filter(meta_logFC < 0)
 composite_down
 
-eh <- ExperimentHub()
+# explore sigsearch data
+setExperimentHubOption("ASK", FALSE)
+setExperimentHubOption("CACHE", cachedir)
+
+message("Using cache directory: ", cachedir)
+
+# getExperimentHubOption("CACHE")
+# removeCache(eh, ask = FALSE)
+eh <- ExperimentHub(localHub = FALSE)
+ssdata <- query(eh, c("signatureSearchData"))
+ssdata
+ssdata$title
+as.list(ssdata[4])
+
+# lincs 2020 filepath and db exploration
 lincs2 <- eh[["EH7297"]]
+rhdf5::h5ls(lincs2)
+# lincs_db <- rhdf5::h5read(lincs2, "assay")
+# rowdata <- rhdf5::h5read(lincs2, "rownames")
+# coldata <- rhdf5::h5read(lincs2, "colData")
+# str(coldata)
+# dim(lincs_db)
+#
+data(lincs_pert_info2)
 
 # 83/114 up and 44/81 down genes shared in ref db!!
-qsig_lincs <- qSig(query = list(upset = composite_up$target, downset = composite_down$target), gess_method = "LINCS", refdb = lincs2)
+# when pre-filtering for ENTREz genes... 70/105 up, 41/95 down???
+# w/o top 200 selection... 111/187 up, 79/180 down
+qsig_lincs <- qSig(query = list(upset = composite_up$entrez, downset = composite_down$entrez), gess_method = "LINCS", refdb = lincs2)
 
-lincs <- gess_lincs(qsig_lincs, sortby="NCS", tau=FALSE, workers=1)
+lincs <- gess_lincs(qsig_lincs, sortby="WTCS", tau=FALSE, workers=1)
 str(lincs)
 unique(lincs@result$cell)
+write_rds(lincs, paste0(filepath, "gess_lincs_results.rds"))
+# lincs <- read_rds(paste0(filepath, "gess_lincs_results.rds"))
+
+# filter for brain/CNS-derived/relevant cells (HEK cells often used in neuroscience)
+brain_cells <- c("NEU", "SHSY5Y", "NPC", "HEK293", "HEK293T")
 lincs_brain <- lincs@result %>%
-  filter(cell %in% c("NEU", "NPC")) %>%
+  filter(cell %in% brain_cells) %>%
   filter(WTCS < 0) %>%
   arrange(WTCS)
 head(lincs_brain)
 
-# rm BRD compounds
-brd_comps <- grep("BRD-", lincs_brain$pert, value = TRUE)
-filtered_brain <- lincs_brain %>%
-  filter(!pert %in% brd_comps)
-filtered_brain
+# annotate drugs
+lincs_brain_drugs <- lincs_brain %>%
+  left_join(lincs_pert_info2, by = c("pert" = "pert_id"))
+head(lincs_brain_drugs)
+unique(lincs_brain_drugs$mergeMOA)
+table(lincs_brain_drugs$max_phase)
+
+approved_drugs <- lincs_brain_drugs %>%
+  # filter for approved drugs
+  filter(max_phase == 4)
+sort(table(approved_drugs$pref_name))
+write_csv(approved_drugs, paste0(filepath, "approved_drugs_braincell_res.csv"))
+
+approved_drugs %>%
+  # max WTCS to help with plot ordering
+  group_by(pref_name) %>%
+  mutate(drug_max_WTCS = max(abs(WTCS))) %>%
+  ggplot(aes(
+    x = -WTCS, y = reorder(pref_name, drug_max_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
+    )) +
+  geom_point()
+ggsave(paste0(filepath, "approved_drugs_braincells_full.png"), width = 16, height = 25, units = "cm")
+
+approved_drugs %>%
+  slice_min(WTCS, n = 30) %>%
+  ggplot(aes(
+    x = -WTCS, y = reorder(pref_name, -WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
+    )) +
+  geom_point()
+ggsave(paste0(filepath, "approved_drugs_braincells_topWTCS.png"), width = 16, height = 25, units = "cm")
+
+# look into MOA of approved drugs
+approved_moa <- data.frame(approved_drugs) %>%
+  dplyr::select(pert, pref_name, WTCS, WTCS_Pval, cell, mergeMOA) %>%
+  separate_longer_delim(cols = mergeMOA, delim = "; ") %>%
+  mutate(MOA = stringr::str_to_upper(mergeMOA)) %>%
+  add_count(MOA)
+str(approved_moa)
+sort(table(approved_moa$MOA))
+length(unique(approved_moa$mergeMOA))
+
+approved_moa %>%
+  filter(n > 1) %>%
+  ggplot(aes(
+    y = MOA, fill = cell
+  )) +
+  geom_bar(position = "fill")
+ggsave(paste0(filepath, "approved_drugs_top_moa.png"), width = 16, height = 25, units = "cm")
+
