@@ -82,16 +82,22 @@ intersect(consensus_degs$gene_name, setbp1_targets$X1)
 # save consensus DEGs
 write_csv(consensus_degs, paste0(filepath, "consensus_degs_unfiltered.csv"))
 
+# convert DEGs to ENTREZ -- required for signaturesearch downstream
+entrez_degs <- gconvert(
+  query = consensus_degs$gene, target = "ENTREZGENE_ACC") %>%
+  select(gene = input, entrez = target)
 # long format for plotting
 consensus_long <- consensus_degs %>%
   select(gene, gene_name, contrast, dataset, logFC, adj.P.Val, se_logFC) %>%
   pivot_longer(cols = c(logFC, adj.P.Val, se_logFC),
                names_to = "metric",
-               values_to = "value") 
+               values_to = "value") %>%
+  left_join(entrez_degs, by = "gene")
 str(consensus_long)
-table(consensus_long$contrast)
 
 consensus_wide <- consensus_long %>%
+  select(!entrez) %>%
+  distinct() %>%
   unite("contrast_dataset_metric", contrast, dataset, metric) %>%
   pivot_wider(names_from = contrast_dataset_metric, values_from = value)
 str(consensus_wide)
@@ -143,7 +149,6 @@ png(paste0(filepath, "upset_plot_compare_contrasts.png"), width = 30, height = 2
 upset(compare_contrasts, sets = colnames(compare_contrasts), order.by = "freq")
 dev.off()
 
-
 ### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
 # opt 1) high frequency DEGs
 freq_degs <- consensus_long %>%
@@ -178,15 +183,13 @@ meta_results <- consensus_degs %>%
   ) %>%
   select(-data)
 
-meta_stats <- as.data.frame(meta_results[,-2])
+meta_stats <- as.data.frame(meta_results[,-2]) %>%
+  left_join(entrez_degs, by = "gene")
 str(meta_stats)
 summary(meta_stats$meta_pval)
 
-meta_lfc <- meta_stats %>%
-  slice_max(abs(meta_logFC), n = 200) %>%
-  mutate(method = "meta_lfc")
-
 meta_p <- meta_stats %>%
+  filter(!is.na(entrez)) %>%
   slice_min(meta_pval, n = 200) %>%
   mutate(method = "meta_p")
 
@@ -207,16 +210,19 @@ str(rra)
 summary(rra)
 
 rra_results <- rra %>%
+  left_join(entrez_degs, by = c("Name" = "gene")) %>%
+  filter(!is.na(entrez)) %>%
   slice_min(order_by = Score, n = 200) %>%
   mutate(method = "RRA") %>%
-  select(gene = Name, method)
+  select(gene = Name, entrez, method)
 
-# save RRA signature
+# save RRA & signature
+write_csv(rra, paste0(filepath, "rankaggregate_degs.csv"))
 write_csv(rra_results, paste0(filepath, "rankaggregate_consensus_signature.csv"))
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 composite_scores <- top_freq_degs %>%
-  select(gene, gene_name, n) %>%
+  select(gene, entrez, gene_name, n) %>%
   distinct() %>%
   inner_join(meta_stats, by = "gene") %>%
   inner_join(rra, by = c("gene" = "Name")) %>%
@@ -231,6 +237,7 @@ write_csv(composite_scores, paste0(filepath, "full_scored_degs.csv"))
 
 # top 200 by composite score
 composite_signature <- composite_scores %>%
+  filter(!is.na(entrez)) %>%
   slice_max(composite_score, n = 200)
 composite_signature
 
@@ -359,7 +366,7 @@ ggsave(paste0(filepath, "ORA_combined_terms.png"), width = 20, height = 28, unit
 ora_plots <- lapply(seq_along(ora_list), function(i) {
                    ora_list[[i]]$plot
 })
-s# save all plots to one PDF
+# save all plots to one PDF
 pdf(paste0(filepath, "ORA_all_plots.pdf"), width = 10, height = 8)
 for (plot in ora_plots) {
   print(plot)
