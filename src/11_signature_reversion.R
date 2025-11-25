@@ -9,59 +9,53 @@ suppressPackageStartupMessages({
   library(ExperimentHub)
   library(rhdf5)
 })
+#
+# # create parser object
+# parser <- ArgumentParser()
+#
+# parser$add_argument("-d", "--degs",
+#   type = "character",
+#   metavar = "PATH",
+#   help = "RSE file (rds format) for EDA from recount3 data (00_data_download or 01_data_preprocessing)" # nolint
+# )
+# parser$add_argument("-s", "--sra",
+#   type = "character",
+#   metavar = "PATH",
+#   help = "SRA or dataset for naming purposes" # nolint
+# )
+# parser$add_argument("-o", "--output_dir",
+#   type = "character",
+#   metavar = "PATH",
+#   help = "Path to the directory to create and write EDA results"
+# )
+#
+# # get command line options, if help option encountered print help and exit
+# args <- parser$parse_args()
+#
+# # source functions file if supplied
+# if (!is.null(args$functions)) source(args$functions)
+#
+# # start timer
+# ptm <- proc.time()
+#
+# #### Set variables for dataset ####
+# print(paste0("Reading in RSE from: ", args$rse))
+#
+# degs <- read_csv(args$rse)
 
-# create parser object
-parser <- ArgumentParser()
-
-parser$add_argument("-d", "--degs",
-  type = "character",
-  metavar = "PATH",
-  help = "RSE file (rds format) for EDA from recount3 data (00_data_download or 01_data_preprocessing)" # nolint
-)
-parser$add_argument("-s", "--sra",
-  type = "character",
-  metavar = "PATH",
-  help = "SRA or dataset for naming purposes" # nolint
-)
-parser$add_argument("-o", "--output_dir",
-  type = "character",
-  metavar = "PATH",
-  help = "Path to the directory to create and write EDA results"
-)
-
-# get command line options, if help option encountered print help and exit
-args <- parser$parse_args()
-
-# source functions file if supplied
-if (!is.null(args$functions)) source(args$functions)
-
-# start timer
-ptm <- proc.time()
-
-#### Set variables for dataset ####
-print(paste0("Reading in RSE from: ", args$rse))
-
-degs <- read_csv(args$rse)
-
-# create output dir if needed
-# filepath <- paste0(args$output_dir, sra, "/")
-if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
-if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
-# save labeled and sig-filtered results
-# degs_comb <- read_csv(, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
 cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
 filepath <- "./results/dea/signature_reversion/"
 
-# # avoid lock file issues
-# Sys.setenv(BIOCFILECACHE_NOLOCK = "TRUE")
-# h5disableFileLocking()
-# Sys.setenv(HDF5_USE_FILE_LOCKING = "FALSE")
-#
-# save majority/high freq signature
+# create dirs if needed
+# filepath <- paste0(args$output_dir, sra, "/")
+if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
+if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
+
+# majority/high freq signature
 top_freq_degs <- read_csv(paste0(filepath, "majorityfreq_consensus_signature.csv"))
-# save meta analysis signature
+# meta analysis signature
 meta_p <- read_csv(paste0(filepath, "metaanalysis_consensus_signature.csv"))
-# save scores across methods for DEGs + composite scores
+# scores across methods for DEGs + composite scores
 composite_scores <- read_csv(paste0(filepath, "full_scored_degs.csv"))
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 # save composite score signature
@@ -92,13 +86,7 @@ as.list(ssdata[4])
 
 # lincs 2020 filepath and db exploration
 lincs2 <- eh[["EH7297"]]
-rhdf5::h5ls(lincs2)
-# lincs_db <- rhdf5::h5read(lincs2, "assay")
-# rowdata <- rhdf5::h5read(lincs2, "rownames")
-# coldata <- rhdf5::h5read(lincs2, "colData")
-# str(coldata)
-# dim(lincs_db)
-#
+
 data(lincs_pert_info2)
 
 # 83/114 up and 44/81 down genes shared in ref db!!
