@@ -44,7 +44,7 @@ print(paste0("Reading in RSE from: ", args$rse))
 degs <- read_csv(args$rse)
 
 # create output dir if needed
-filepath <- paste0(args$output_dir, sra, "/")
+# filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
 # save labeled and sig-filtered results
@@ -63,6 +63,7 @@ top_freq_degs <- read_csv(paste0(filepath, "majorityfreq_consensus_signature.csv
 meta_p <- read_csv(paste0(filepath, "metaanalysis_consensus_signature.csv"))
 # save scores across methods for DEGs + composite scores
 composite_scores <- read_csv(paste0(filepath, "full_scored_degs.csv"))
+setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 # save composite score signature
 # composite_signature <- read_csv(paste0(filepath, "consensus_signature.csv"))
 
@@ -126,6 +127,47 @@ head(lincs_brain_drugs)
 unique(lincs_brain_drugs$mergeMOA)
 table(lincs_brain_drugs$max_phase)
 
+write_rds(lincs_brain_drugs, paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+
+#### TARGET ANALYSIS ####
+# separate targets by rows to compare drug targets
+brain_drug_targets <- lincs_brain_drugs %>%
+  dplyr::select(
+    pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway) %>%
+  separate_longer_delim(mergeTargets, delim = "; ")
+brain_drug_targets
+
+# find SETBP1 targets that are also drug targets
+brain_drug_targets_setbp1 <- brain_drug_targets %>%
+  filter(mergeTargets %in% setbp1_targets$X1)
+
+brain_drug_targets_setbp1 
+write_csv(brain_drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv"))
+
+brain_drug_targets_setbp1 %>%
+  ggplot(aes(
+    x = -WTCS, y = max_phase, colour = mergeTargets, shape = cell, size = -log(WTCS_Pval)
+  )) +
+  geom_point()
+
+ggsave(paste0(filepath, "setbp1_drug_shared_targets_trialphase.png"), width = 19, height = 19, units = "cm")
+
+# target set enrichment analysis
+brain_drugs_filt <- filter(lincs_brain, !is.na(t_gn_sym))
+tsea_go <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "GO", ont = "MF", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
+result(tsea_go)
+
+tsea_kegg <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "KEGG", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
+result(tsea_kegg)
+
+# drug set enrichment analysis
+dsea_go <- dsea_hyperG(drugs = unique(lincs_brain$pert), type = "GO", ont = "MF")
+result(dsea_go)
+
+dsea_kegg <- dsea_hyperG(drugs = unique(lincs_brain$pert), type = "KEGG")
+result(dsea_kegg)
+
+#### APPROVED/POST-MARKET DRUGS ####
 approved_drugs <- lincs_brain_drugs %>%
   # filter for approved drugs
   filter(max_phase == 4)
@@ -150,7 +192,7 @@ approved_drugs %>%
   geom_point()
 ggsave(paste0(filepath, "approved_drugs_braincells_topWTCS.png"), width = 16, height = 25, units = "cm")
 
-# look into MOA of approved drugs
+### MOA ###
 approved_moa <- data.frame(approved_drugs) %>%
   dplyr::select(pert, pref_name, WTCS, WTCS_Pval, cell, mergeMOA) %>%
   separate_longer_delim(cols = mergeMOA, delim = "; ") %>%
