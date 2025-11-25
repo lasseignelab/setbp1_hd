@@ -44,7 +44,7 @@ suppressPackageStartupMessages({
 # degs <- read_csv(args$rse)
 
 cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
-filepath <- "./results/dea/signature_reversion/composite_"
+filepath <- "./results/dea/signature_reversion/metap_"
 
 # create dirs if needed
 # filepath <- paste0(args$output_dir, sra, "/")
@@ -54,10 +54,12 @@ if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
 # majority/high freq signature
 datapath <- "./results/dea/consensus_signature/"
 top_freq_degs <- read_csv(paste0(datapath, "majorityfreq_consensus_signature.csv"))
+# RRA signature
+rra_degs <- read_csv(paste0(datapath, "rankaggregate_consensus_signature.csv"))
 # meta analysis signature
 meta_p <- read_csv(paste0(datapath, "metaanalysis_consensus_signature.csv"))
 # scores across methods for DEGs + composite scores
-composite_scores <- read_csv(paste0(datapath, "full_scored_degs.csv"))
+full_scores <- read_csv(paste0(datapath, "compositescore_full_table_degs.csv"))
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 # save composite score signature
 composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signature.csv"))
@@ -68,6 +70,7 @@ composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signa
 #   mutate(entrez = as.character(entrez))# %>%
   # slice_max(composite_score, n = 200)
 composite_signature <- meta_p
+# composite_signature <- full_scores %>% filter(gene %in% rra_degs$gene)
 composite_up <- composite_signature %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC > 0)
@@ -97,6 +100,7 @@ lincs2 <- eh[["EH7297"]]
 data(lincs_pert_info2)
 
 # composite: 112/151 up, 103/149 down meta-p: 95/145 up, 88/155 down
+# rra: 94/121 up, 77/106 down
 qsig_lincs <- qSig(query = list(upset = composite_up$entrez, downset = composite_down$entrez), gess_method = "LINCS", refdb = lincs2)
 
 lincs <- gess_lincs(qsig_lincs, sortby="WTCS", tau=FALSE, workers=1)
