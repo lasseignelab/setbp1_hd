@@ -67,6 +67,7 @@ composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signa
 # composite_signature <- composite_scores %>%
 #   mutate(entrez = as.character(entrez))# %>%
   # slice_max(composite_score, n = 200)
+composite_signature <- meta_p
 composite_up <- composite_signature %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC > 0)
@@ -95,7 +96,7 @@ lincs2 <- eh[["EH7297"]]
 
 data(lincs_pert_info2)
 
-# composite: 112/151 up, 103/149 down
+# composite: 112/151 up, 103/149 down meta-p: 95/145 up, 88/155 down
 qsig_lincs <- qSig(query = list(upset = composite_up$entrez, downset = composite_down$entrez), gess_method = "LINCS", refdb = lincs2)
 
 lincs <- gess_lincs(qsig_lincs, sortby="WTCS", tau=FALSE, workers=1)
