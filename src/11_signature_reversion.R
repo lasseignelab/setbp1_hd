@@ -44,7 +44,7 @@ suppressPackageStartupMessages({
 # degs <- read_csv(args$rse)
 
 cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
-filepath <- "./results/dea/signature_reversion/topfreq_"
+filepath <- "./results/dea/signature_reversion/composite_"
 
 # create dirs if needed
 # filepath <- paste0(args$output_dir, sra, "/")
@@ -60,16 +60,20 @@ meta_p <- read_csv(paste0(datapath, "metaanalysis_consensus_signature.csv"))
 composite_scores <- read_csv(paste0(datapath, "full_scored_degs.csv"))
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 # save composite score signature
-# composite_signature <- read_csv(paste0(filepath, "consensus_signature.csv"))
+composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signature.csv"))
 
 # up vs down DEGs in signature
-length(unique(composite_scores$gene))
-composite_signature <- composite_scores %>%
-  mutate(entrez = as.character(entrez))# %>%
+# length(unique(composite_scores$gene))
+# composite_signature <- composite_scores %>%
+#   mutate(entrez = as.character(entrez))# %>%
   # slice_max(composite_score, n = 200)
-composite_up <- composite_signature %>% filter(meta_logFC > 0)
+composite_up <- composite_signature %>%
+  mutate(entrez = as.character(entrez)) %>%
+  filter(meta_logFC > 0)
 composite_up
-composite_down <- composite_signature %>% filter(meta_logFC < 0)
+composite_down <- composite_signature %>% 
+  mutate(entrez = as.character(entrez)) %>%
+  filter(meta_logFC < 0)
 composite_down
 
 # explore sigsearch data
@@ -91,14 +95,11 @@ lincs2 <- eh[["EH7297"]]
 
 data(lincs_pert_info2)
 
-# 83/114 up and 44/81 down genes shared in ref db!!
-# when pre-filtering for ENTREz genes... 70/105 up, 41/95 down???
-# w/o top 200 selection... 111/187 up, 79/180 down
+# composite: 112/151 up, 103/149 down
 qsig_lincs <- qSig(query = list(upset = composite_up$entrez, downset = composite_down$entrez), gess_method = "LINCS", refdb = lincs2)
 
 lincs <- gess_lincs(qsig_lincs, sortby="WTCS", tau=FALSE, workers=1)
 str(lincs)
-unique(lincs@result$cell)
 write_rds(lincs, paste0(filepath, "gess_lincs_results.rds"))
 # lincs <- read_rds(paste0(filepath, "gess_lincs_results.rds"))
 
@@ -125,7 +126,6 @@ brain_drug_targets <- lincs_brain_drugs %>%
   dplyr::select(
     pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway) %>%
   separate_longer_delim(mergeTargets, delim = "; ")
-brain_drug_targets
 
 # find SETBP1 targets that are also drug targets
 brain_drug_targets_setbp1 <- brain_drug_targets %>%
@@ -161,7 +161,7 @@ result(dsea_kegg)
 approved_drugs <- lincs_brain_drugs %>%
   # filter for approved drugs
   filter(max_phase == 4)
-sort(table(approved_drugs$pref_name))
+unique(approved_drugs$pref_name)
 write_csv(approved_drugs, paste0(filepath, "approved_drugs_braincell_res.csv"))
 
 approved_drugs %>%
@@ -195,8 +195,8 @@ length(unique(approved_moa$mergeMOA))
 approved_moa %>%
   filter(n > 1) %>%
   ggplot(aes(
-    y = MOA, fill = cell
+    y = reorder(MOA, n), fill = cell
   )) +
-  geom_bar(position = "fill")
-ggsave(paste0(filepath, "approved_drugs_top_moa.png"), width = 16, height = 25, units = "cm")
+  geom_bar(position = "stack")
+ggsave(paste0(filepath, "approved_drugs_top_moa.png"), width = 20, height = 20, units = "cm")
 
