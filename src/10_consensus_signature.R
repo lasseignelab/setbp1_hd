@@ -91,12 +91,10 @@ consensus_long <- consensus_degs %>%
   select(gene, gene_name, contrast, dataset, logFC, adj.P.Val, se_logFC) %>%
   pivot_longer(cols = c(logFC, adj.P.Val, se_logFC),
                names_to = "metric",
-               values_to = "value") %>%
-  left_join(entrez_degs, by = "gene")
+               values_to = "value")
 str(consensus_long)
 
 consensus_wide <- consensus_long %>%
-  select(!entrez) %>%
   distinct() %>%
   unite("contrast_dataset_metric", contrast, dataset, metric) %>%
   pivot_wider(names_from = contrast_dataset_metric, values_from = value)
@@ -154,11 +152,13 @@ dev.off()
 freq_degs <- consensus_long %>%
   select(!c(metric, value)) %>%
   distinct() %>%
-  add_count(gene)
+  add_count(gene) %>%
+  left_join(entrez_degs, by = "gene")
 
 top_freq_degs <- freq_degs %>%
   mutate(method = "majority") %>%
-  filter(n > 4)
+  filter(!is.na(entrez)) %>%
+  filter(n > 3)
 str(top_freq_degs)
 length(unique(top_freq_degs$gene))
 
@@ -184,13 +184,14 @@ meta_results <- consensus_degs %>%
   select(-data)
 
 meta_stats <- as.data.frame(meta_results[,-2]) %>%
-  left_join(entrez_degs, by = "gene")
+  left_join(entrez_degs, by = "gene") %>%
+  distinct()
 str(meta_stats)
 summary(meta_stats$meta_pval)
 
 meta_p <- meta_stats %>%
   filter(!is.na(entrez)) %>%
-  slice_min(meta_pval, n = 200) %>%
+  slice_min(meta_pval, n = 300) %>%
   mutate(method = "meta_p")
 
 # save meta analysis signature
@@ -211,8 +212,9 @@ summary(rra)
 
 rra_results <- rra %>%
   left_join(entrez_degs, by = c("Name" = "gene")) %>%
+  distinct() %>%
   filter(!is.na(entrez)) %>%
-  slice_min(order_by = Score, n = 200) %>%
+  slice_min(order_by = Score, n = 300) %>%
   mutate(method = "RRA") %>%
   select(gene = Name, entrez, method)
 
@@ -222,7 +224,7 @@ write_csv(rra_results, paste0(filepath, "rankaggregate_consensus_signature.csv")
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 composite_scores <- top_freq_degs %>%
-  select(gene, entrez, gene_name, n) %>%
+  select(gene, gene_name, n) %>%
   distinct() %>%
   inner_join(meta_stats, by = "gene") %>%
   inner_join(rra, by = c("gene" = "Name")) %>%
@@ -231,14 +233,15 @@ composite_scores <- top_freq_degs %>%
   rank_pval = Score,
   composite_score = -log10(meta_pval) + -log10(rank_pval) + freq_weight)
 str(composite_scores)
+length(unique(composite_scores$gene))
 
 # save scores across methods for DEGs + composite scores
-write_csv(composite_scores, paste0(filepath, "full_scored_degs.csv"))
+write_csv(composite_scores, paste0(filepath, "compositescore_full_table_degs.csv"))
 
 # top 200 by composite score
 composite_signature <- composite_scores %>%
   filter(!is.na(entrez)) %>%
-  slice_max(composite_score, n = 200)
+  slice_max(composite_score, n = 300)
 composite_signature
 
 # save composite score signature
@@ -269,9 +272,6 @@ composite_up
 composite_down <- composite_signature %>% filter(meta_logFC < 0)
 composite_down
 
-# # compare to Tanaka et al DEGk
-# tanaka_genes <- gorth(query = tanaka_degs$gene, source_organism = "mmusculus", target_organism = "hsapiens")
-#
 # compare to SETBP1 targets
 setbp1_genes <- gconvert(query = setbp1_targets$X1)
 
@@ -343,7 +343,6 @@ res_list <- lapply(seq_along(ora_list), function(i) {
                    ora_list[[i]]$result %>%
                    mutate(method = paste0(names(ora_list)[i]))
                    })
-str(res_list)
 
 # simplify results for term names in > 1 sig ORA results
 res_df <- bind_rows(res_list)
