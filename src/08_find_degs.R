@@ -1,3 +1,6 @@
+# script for finding DEGs via limma voom
+set.seed(42)
+
 suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
