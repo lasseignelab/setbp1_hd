@@ -47,24 +47,31 @@ degs <- read_csv(args$rse)
 # create output dir if needed
 filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
-# save labeled and sig-filtered results
-# degs_comb <- read_csv(, file = paste0(filepath, "combined_contrasts_labeled_degs.csv"))
+
 degs <- "./results/dea/"
 filepath <- "./results/dea/consensus_signature/"
-cardo_degs <- read_csv(paste0(degs, "cardo/combined_contrasts_sig_degs.csv")) %>%
+cardo_degs <- read_csv(
+  paste0(degs, "cardo/combined_contrasts_sig_degs.csv")) %>%
   mutate(dataset = "cardo")
-shaw_degs <- read_csv(paste0(degs, "shaw/combined_contrasts_sig_degs.csv")) %>%
+shaw_degs <- read_csv(
+  paste0(degs, "shaw/combined_contrasts_sig_degs.csv")) %>%
   mutate(dataset = "shaw")
-tanaka1_degs <- read_csv(paste0(degs, "tanaka1/combined_contrasts_sig_degs.csv"))
-tanaka2_degs <- read_csv(paste0(degs, "tanaka2/combined_contrasts_sig_degs.csv"))
-tanaka_degs <- bind_rows(tanaka1_degs, tanaka2_degs)
-setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
+tanaka1_degs <- read_csv(
+  paste0(degs, "tanaka1/combined_contrasts_sig_degs.csv"))
+tanaka2_degs <- read_csv(paste0(
+  degs, "tanaka2/combined_contrasts_sig_degs.csv"))
+tanaka_degs <- bind_rows(
+  tanaka1_degs, tanaka2_degs)
+setbp1_targets <- read_csv(
+  "./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 
 unique(cardo_degs$contrast)
 unique(shaw_degs$contrast)
 
 # contrasts to keep
-contrasts_keep <- c("KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT", "PATH3vsWT")
+contrasts_keep <- c(
+  "KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT", "PATH3vsWT"
+)
 
 # combine data sets
 combined_degs <- bind_rows(cardo_degs, shaw_degs)
@@ -84,14 +91,17 @@ write_csv(consensus_degs, paste0(filepath, "consensus_degs_unfiltered.csv"))
 
 # convert DEGs to ENTREZ -- required for signaturesearch downstream
 entrez_degs <- gconvert(
-  query = consensus_degs$gene, target = "ENTREZGENE_ACC") %>%
+  query = consensus_degs$gene, target = "ENTREZGENE_ACC"
+) %>%
   select(gene = input, entrez = target)
 # long format for plotting
 consensus_long <- consensus_degs %>%
   select(gene, gene_name, contrast, dataset, logFC, adj.P.Val, se_logFC) %>%
-  pivot_longer(cols = c(logFC, adj.P.Val, se_logFC),
-               names_to = "metric",
-               values_to = "value")
+  pivot_longer(
+    cols = c(logFC, adj.P.Val, se_logFC),
+    names_to = "metric",
+    values_to = "value"
+  )
 str(consensus_long)
 
 consensus_wide <- consensus_long %>%
@@ -103,19 +113,29 @@ length(unique(consensus_long$gene))
 
 ### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
 # compare to Tanaka et al DEGk
-tanaka_genes <- gorth(query = tanaka_degs$gene, source_organism = "mmusculus", target_organism = "hsapiens")
+tanaka_genes <- gorth(
+  query = tanaka_degs$gene,
+  source_organism = "mmusculus",
+  target_organism = "hsapiens"
+)
 
 tanaka_targets <- setbp1_targets %>%
   select(gene_name = X1) %>%
   mutate(contrast = "SETBP1_target") %>%
-  bind_rows(data.frame(gene_name = tanaka_genes$ortholog_name, contrast = "Tanaka_DEG"))
+  bind_rows(
+    data.frame(
+      gene_name = tanaka_genes$ortholog_name, contrast = "Tanaka_DEG"
+    )
+  )
 
 compare_contrasts <- consensus_long %>%
   select(gene_name, contrast) %>%
   bind_rows(tanaka_targets) %>%
-    distinct() %>%
-    mutate(value = 1) %>%
-    pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
+  distinct() %>%
+  mutate(value = 1) %>%
+  pivot_wider(
+    names_from = contrast, values_from = value, values_fill = 0
+  ) %>%
   column_to_rownames(var = "gene_name")
 
 str(compare_contrasts)
@@ -125,25 +145,42 @@ contrast_dataset_map <- consensus_long %>%
   distinct(contrast, dataset) %>%
   bind_rows(
     data.frame(
-      dataset = c("SETBP1", "Tanaka"), contrast = c("SETBP1_target", "Tanaka_DEG")))
+      dataset = c("SETBP1", "Tanaka"),
+      contrast = c("SETBP1_target", "Tanaka_DEG")
+    )
+  )
 
-dataset_colors <- c("cardo" = "orange",
-"shaw" = "steelblue",
-"SETBP1" = "gray60",
-"Tanaka" = "gray90")
+dataset_colors <- c(
+  "cardo" = "orange",
+  "shaw" = "steelblue",
+  "SETBP1" = "gray60",
+  "Tanaka" = "gray90"
+)
 
-# contrast_colors <- ifelse(
-#   contrasts$dataset == "cardo", "#1f77b4", ifelse(
-#     contrasts$dataset == "shaw", "#ff7f0e", "black"))
-
-png(paste0(filepath, "upset_plot_compare_shaw_cardo.png"), width = 30, height = 20, units = "cm", res = 300)
-upset(compare_contrasts, 
+png(
+  paste0(
+    filepath, "upset_plot_compare_shaw_cardo.png"
+  ),
+  width = 30, height = 20, units = "cm", res = 300
+)
+upset(compare_contrasts,
   set.metadata = list(data = contrast_dataset_map, plots = list(
-    list(type = "matrix_rows", column = "dataset", assign = 10, colors = dataset_colors)
-  )))
+    list(
+      type = "matrix_rows",
+      column = "dataset",
+      assign = 10,
+      colors = dataset_colors
+    )
+  ))
+)
 dev.off()
 
-png(paste0(filepath, "upset_plot_compare_contrasts.png"), width = 30, height = 20, units = "cm", res = 300)
+png(
+  paste0(
+    filepath, "upset_plot_compare_contrasts.png"
+  ),
+  width = 30, height = 20, units = "cm", res = 300
+)
 upset(compare_contrasts, sets = colnames(compare_contrasts), order.by = "freq")
 dev.off()
 
@@ -163,7 +200,9 @@ str(top_freq_degs)
 length(unique(top_freq_degs$gene))
 
 # save majority/high freq signature
-write_csv(top_freq_degs, paste0(filepath, "majorityfreq_consensus_signature.csv"))
+write_csv(
+  top_freq_degs, paste0(filepath, "majorityfreq_consensus_signature.csv")
+)
 
 # opt 3) meta-analysis per gene
 meta_results <- consensus_degs %>%
@@ -176,14 +215,22 @@ meta_results <- consensus_degs %>%
     error = function(e) NULL
   ))) %>%
   mutate(
-    meta_logFC = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$b) else NA_real_),
-    meta_pval   = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$pval) else NA_real_),
-    meta_ci_lb  = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$ci.lb) else NA_real_),
-    meta_ci_ub  = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$ci.ub) else NA_real_)
+    meta_logFC = map_dbl(
+      meta, ~ if (!is.null(.x)) as.numeric(.x$b) else NA_real_
+    ),
+    meta_pval = map_dbl(
+      meta, ~ if (!is.null(.x)) as.numeric(.x$pval) else NA_real_
+    ),
+    meta_ci_lb = map_dbl(
+      meta, ~ if (!is.null(.x)) as.numeric(.x$ci.lb) else NA_real_
+    ),
+    meta_ci_ub = map_dbl(
+      meta, ~ if (!is.null(.x)) as.numeric(.x$ci.ub) else NA_real_
+    )
   ) %>%
   select(-data)
 
-meta_stats <- as.data.frame(meta_results[,-2]) %>%
+meta_stats <- as.data.frame(meta_results[, -2]) %>%
   left_join(entrez_degs, by = "gene") %>%
   distinct()
 str(meta_stats)
@@ -200,9 +247,9 @@ write_csv(meta_p, paste0(filepath, "metaanalysis_consensus_signature.csv"))
 # opt 4) robust rang aggregate -- create ranked lists per contrast
 ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
   consensus_degs %>%
-                          filter(contrast == c) %>%
-                          arrange(abs(adj.P.Val)) %>%
-                          pull(gene)
+    filter(contrast == c) %>%
+    arrange(abs(adj.P.Val)) %>%
+    pull(gene)
 })
 head(ranked_lists)
 # run RRA
@@ -220,7 +267,9 @@ rra_results <- rra %>%
 
 # save RRA & signature
 write_csv(rra, paste0(filepath, "rankaggregate_degs.csv"))
-write_csv(rra_results, paste0(filepath, "rankaggregate_consensus_signature.csv"))
+write_csv(
+  rra_results, paste0(filepath, "rankaggregate_consensus_signature.csv")
+)
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 composite_scores <- top_freq_degs %>%
@@ -229,14 +278,17 @@ composite_scores <- top_freq_degs %>%
   inner_join(meta_stats, by = "gene") %>%
   inner_join(rra, by = c("gene" = "Name")) %>%
   mutate(
-  freq_weight = log2(n),
-  rank_pval = Score,
-  composite_score = -log10(meta_pval) + -log10(rank_pval) + freq_weight)
+    freq_weight = log2(n),
+    rank_pval = Score,
+    composite_score = -log10(meta_pval) + -log10(rank_pval) + freq_weight
+  )
 str(composite_scores)
 length(unique(composite_scores$gene))
 
 # save scores across methods for DEGs + composite scores
-write_csv(composite_scores, paste0(filepath, "compositescore_full_table_degs.csv"))
+write_csv(
+  composite_scores, paste0(filepath, "compositescore_full_table_degs.csv")
+)
 
 # top 200 by composite score
 composite_signature <- composite_scores %>%
@@ -245,9 +297,13 @@ composite_signature <- composite_scores %>%
 composite_signature
 
 # save composite score signature
-write_csv(composite_signature, paste0(filepath, "compositescore_consensus_signature.csv"))
+write_csv(
+  composite_signature, paste0(
+    filepath, "compositescore_consensus_signature.csv"
+  )
+)
 
- 
+
 ## compare overlap between options for finding signature ##
 compare_sigs_up <- top_freq_degs %>%
   bind_rows(
@@ -255,14 +311,19 @@ compare_sigs_up <- top_freq_degs %>%
   ) %>%
   select(gene, method) %>%
   mutate(method = ifelse(is.na(method), "Composite", method)) %>%
-    distinct() %>%
-    mutate(value = 1) %>%
-    pivot_wider(names_from = method, values_from = value, values_fill = 0) %>%
+  distinct() %>%
+  mutate(value = 1) %>%
+  pivot_wider(names_from = method, values_from = value, values_fill = 0) %>%
   column_to_rownames(var = "gene")
 
 str(compare_sigs_up)
 
-png(paste0(filepath, "upset_plot_compare_sigs.png"), width = 30, height = 20, units = "cm", res = 300)
+png(
+  paste0(
+    filepath, "upset_plot_compare_sigs.png"
+  ),
+  width = 30, height = 20, units = "cm", res = 300
+)
 upset(compare_sigs_up, sets = colnames(compare_sigs_up), order.by = "freq")
 dev.off()
 
@@ -279,7 +340,7 @@ verification_degs <- tanaka_degs %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
   select(name = ortholog_name, target = ortholog_ensg, logFC, adj.P.Val) %>%
   distinct() %>%
-  bind_rows(setbp1_genes[,4:5]) %>%
+  bind_rows(setbp1_genes[, 4:5]) %>%
   mutate(
     Composite = ifelse(target %in% composite_signature$gene, TRUE, FALSE),
     RRA = ifelse(target %in% rra_results$gene, TRUE, FALSE),
@@ -317,9 +378,10 @@ run_ora_plot <- function(genes, title) {
 
     # create plot
     plot <- plot_data %>%
-      ggplot(aes(
-        x = recall, y = term_name, size = intersection_size, colour = precision # nolint
-      )) +
+      ggplot(
+        aes(x = recall, y = term_name,
+        size = intersection_size, colour = precision)
+      ) +
       geom_point() +
       labs(title = title, x = "Recall", y = NULL) +
       theme_minimal()
@@ -337,12 +399,11 @@ ora_list <- lapply(seq_along(sig_list), function(i) {
   run_ora_plot(sig_list[[i]]$gene, sig_list[[i]]$method)
 })
 
-# ora_list <- list(ora_sig, ora_sig_up, ora_sig_down, ora_rank, ora_meta, ora_meta_up, ora_meta_down)
 names(ora_list) <- c("composite", "RRA", "meta", "freq")
 res_list <- lapply(seq_along(ora_list), function(i) {
-                   ora_list[[i]]$result %>%
-                   mutate(method = paste0(names(ora_list)[i]))
-                   })
+  ora_list[[i]]$result %>%
+    mutate(method = paste0(names(ora_list)[i]))
+})
 
 # simplify results for term names in > 1 sig ORA results
 res_df <- bind_rows(res_list)
@@ -353,18 +414,25 @@ terms_filtered <- res_df %>%
   mutate(term_count = n_distinct(method)) %>%
   filter(term_count > 1) %>%
   ungroup()
-# ora_plots <- c(ora_sig$plot, ora_sig_up$plot, ora_sig_down$plot, ora_rank$plot, ora_meta$plot, ora_meta_up$plot, ora_meta_down$plot)
+
 # plot
 terms_plot <- terms_filtered %>%
-  # filter(term_count > 2) %>%
   filter(term_size < 1750) %>%
-  ggplot(aes(y = reorder(term_name, term_size), x = -log10(p_value), size = recall, colour = method)) +
+  ggplot(
+    aes(
+      y = reorder(term_name, term_size), x = -log10(p_value),
+      size = recall, colour = method
+    )
+  ) +
   geom_point(alpha = 0.6)
-ggsave(paste0(filepath, "ORA_combined_terms.png"), width = 20, height = 28, units = "cm")
+ggsave(
+  paste0(
+    filepath, "ORA_combined_terms.png"), width = 20, height = 28, units = "cm")
 
 ora_plots <- lapply(seq_along(ora_list), function(i) {
-                   ora_list[[i]]$plot
+  ora_list[[i]]$plot
 })
+
 # save all plots to one PDF
 pdf(paste0(filepath, "ORA_all_plots.pdf"), width = 10, height = 8)
 for (plot in ora_plots) {
@@ -372,3 +440,6 @@ for (plot in ora_plots) {
 }
 dev.off()
 
+
+styler::style_file("./src/10_consensus_signature.R")
+lintr::lint("./src/10_consensus_signature.R")
