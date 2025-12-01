@@ -335,7 +335,6 @@ run_ora_plot <- function(genes, title) {
     message(paste("No ORA results for", title, "-- skipping plot"))
     NULL
   } else {
-
     # filter and select top terms
     plot_data <- ora_res %>%
       filter(term_size < 750) %>%
@@ -344,8 +343,10 @@ run_ora_plot <- function(genes, title) {
     # create plot
     plot <- plot_data %>%
       ggplot(
-        aes(x = recall, y = term_name,
-        size = intersection_size, colour = precision)
+        aes(
+          x = recall, y = term_name,
+          size = intersection_size, colour = precision
+        )
       ) +
       geom_point() +
       labs(title = title, x = "Recall", y = NULL) +
@@ -389,7 +390,9 @@ terms_plot <- terms_filtered %>%
 ggsave(
   paste0(
     args$outdir, "ORA_combined_terms.png"
-  ), width = 20, height = 28, units = "cm")
+  ),
+  width = 20, height = 28, units = "cm"
+)
 
 ora_plots <- lapply(seq_along(ora_list), function(ora) {
   ora_list[[ora]]$plot
