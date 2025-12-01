@@ -109,8 +109,6 @@ compare_contrasts <- consensus_long %>%
   ) %>%
   column_to_rownames(var = "gene_name")
 
-str(compare_contrasts)
-
 # set colors for upset plot
 contrast_dataset_map <- consensus_long %>%
   distinct(contrast, dataset) %>%
@@ -167,8 +165,7 @@ top_freq_degs <- freq_degs %>%
   mutate(method = "majority") %>%
   filter(!is.na(entrez)) %>%
   filter(n > 3)
-str(top_freq_degs)
-length(unique(top_freq_degs$gene))
+print(paste0(length(unique(top_freq_degs$gene)), " DEGs with freq > 3"))
 
 # save majority/high freq signature
 write_csv(
@@ -205,8 +202,6 @@ meta_results <- consensus_degs %>%
 meta_stats <- as.data.frame(meta_results[, -2]) %>%
   left_join(entrez_degs, by = "gene") %>%
   distinct()
-str(meta_stats)
-summary(meta_stats$meta_pval)
 
 meta_p <- meta_stats %>%
   filter(!is.na(entrez)) %>%
@@ -225,11 +220,8 @@ ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
     arrange(abs(adj.P.Val)) %>%
     pull(gene)
 })
-head(ranked_lists)
 # run RRA
 rra <- aggregateRanks(ranked_lists, exact = TRUE)
-str(rra)
-summary(rra)
 
 rra_results <- rra %>%
   left_join(entrez_degs, by = c("Name" = "gene")) %>%
@@ -261,8 +253,6 @@ composite_scores <- top_freq_degs %>%
     rank_pval = Score,
     composite_score = -log10(meta_pval) + -log10(rank_pval) + freq_weight
   )
-str(composite_scores)
-length(unique(composite_scores$gene))
 
 # save scores across methods for DEGs + composite scores
 write_csv(
@@ -272,6 +262,7 @@ write_csv(
 # top 200 by composite score
 composite_signature <- composite_scores %>%
   filter(!is.na(entrez)) %>%
+  mutate(method = "CompositeScore") %>%
   slice_max(composite_score, n = 300)
 composite_signature
 
@@ -293,8 +284,6 @@ compare_sigs_up <- top_freq_degs %>%
   mutate(value = 1) %>%
   pivot_wider(names_from = method, values_from = value, values_fill = 0) %>%
   column_to_rownames(var = "gene")
-
-str(compare_sigs_up)
 
 png(
   paste0(
@@ -362,9 +351,6 @@ run_ora_plot <- function(genes, title) {
     list(result = ora_res, plot = plot)
   }
 }
-# up vs down meta ORA
-meta_up <- meta_p %>% filter(meta_logFC > 0)
-meta_down <- meta_p %>% filter(meta_logFC < 0)
 
 # run ORA for each signature
 sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs)
@@ -380,7 +366,6 @@ res_list <- lapply(seq_along(ora_list), function(ora) {
 
 # simplify results for term names in > 1 sig ORA results
 res_df <- bind_rows(res_list)
-str(res_df)
 
 terms_filtered <- res_df %>%
   group_by(term_name) %>%
@@ -390,7 +375,7 @@ terms_filtered <- res_df %>%
 
 # plot
 terms_plot <- terms_filtered %>%
-  filter(term_size < 1750) %>%
+  filter(term_size < 1250) %>%
   ggplot(
     aes(
       y = reorder(term_name, term_size), x = -log10(p_value),

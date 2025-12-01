@@ -9,12 +9,12 @@
 dataset_names=("cardo" "shaw")
 dataset=${dataset_names[$SLURM_ARRAY_TASK_ID]}
 
-cap_container -c singularity "lizzy/lw_dea:0.1.1"
+cap_container -c singularity "lizzy/lw_dea:0.3.1"
 
 singularity exec --cleanenv \
                  --containall \
                  -B "${CAP_PROJECT_PATH}" \
-                 "${CAP_CONTAINER_PATH}"/lw_dea_0.1.1.sif \
+                 "${CAP_CONTAINER_PATH}"/lw_dea_0.3.1.sif \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/09_analyze_degs.R \
-                  -d "${CAP_RESULTS_PATH}/dea/${dataset}/combined_contrasts_sig_degs.csv" \
-                  -o "${CAP_RESULTS_PATH}/dea/${dataset}/"
+                  -d "${CAP_RESULTS_PATH}"/dea/"${dataset}"/significant_degs.csv \
+                  -o "${CAP_RESULTS_PATH}"/dea/"${dataset}"/

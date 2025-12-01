@@ -18,7 +18,7 @@ parser$add_argument("-d", "--degs",
 parser$add_argument("-o", "--output_dir",
   type = "character",
   metavar = "PATH",
-  help = "Path to the directory to create and write EDA results"
+  help = "Path to the directory to write DEA analysis results"
 )
 
 # get command line options, if help option encountered print help and exit
