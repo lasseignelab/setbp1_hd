@@ -1,3 +1,4 @@
+# lintr: disable object_usage_linter
 # script used to find consensus human signature from cardo and shaw data sets
 set.seed(42)
 

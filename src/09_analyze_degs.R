@@ -1,3 +1,4 @@
+# lintr: disable object_usage_linter
 # script for analyzing DEGs combined across contrasts
 set.seed(42)
 
@@ -9,16 +10,6 @@ suppressPackageStartupMessages({
   library(circlize)
   library(gprofiler2)
 })
-# explicitly import to avoid lintr errors
-#' @importFrom dplyr select mutate bind_rows pivot_wider distinct slice_max mutate
-#' @importFrom magrittr %>%
-#' @importFrom tidyr pivot_longer pivot_wider unite
-#' @importFrom readr read_csv write_csv
-#' @importFrom tibble column_to_rownames
-#' @importFrom ggplot2 ggplot aes geom_point labs theme_minimal
-
-# add global variables
-utils::globalVariables(c("gene", "contrast", "value", "term_size", "recall"))
 
 # create parser object
 parser <- ArgumentParser()
@@ -52,7 +43,7 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 #### Compare Up/Down DEGs Across Conditions ####
 # helper function to create contrast matrix for upset plots
 prep_matrix <- function(degs) {
-    contrast_mat <- degs %>%
+    degs %>%
     select(gene, contrast) %>%
     distinct() %>%
     mutate(value = 1) %>%
