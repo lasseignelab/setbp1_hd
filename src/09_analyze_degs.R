@@ -43,7 +43,7 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 #### Compare Up/Down DEGs Across Conditions ####
 # helper function to create contrast matrix for upset plots
 prep_matrix <- function(degs) {
-    degs %>%
+  degs %>%
     select(gene, contrast) %>%
     distinct() %>%
     mutate(value = 1) %>%
