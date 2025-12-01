@@ -304,7 +304,7 @@ for (i in seq_along(model_types)) {
       )
       print(paste0(
         "PCAs colored by most-important-features saved: ",
-        filepath, model_types[i], "_feature_importance.pdf"
+        filepath, "feature_importance_", model_types[i], ".pdf"
       ))
     },
     error = function(e) {
