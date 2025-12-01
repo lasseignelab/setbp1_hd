@@ -44,7 +44,7 @@ suppressPackageStartupMessages({
 # degs <- read_csv(args$rse)
 
 cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
-filepath <- "./results/dea/signature_reversion/metap_"
+filepath <- "./results/dea/signature_reversion/composite_"
 
 # create dirs if needed
 # filepath <- paste0(args$output_dir, sra, "/")
@@ -59,25 +59,30 @@ rra_degs <- read_csv(paste0(datapath, "rankaggregate_consensus_signature.csv"))
 # meta analysis signature
 meta_p <- read_csv(paste0(datapath, "metaanalysis_consensus_signature.csv"))
 # scores across methods for DEGs + composite scores
-full_scores <- read_csv(paste0(datapath, "compositescore_full_table_degs.csv"))
+full_scores <- read_csv(paste0(datapath, "rra/compositescore_full_table_degs.csv"))
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 # save composite score signature
-composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signature.csv"))
+# TODO: FIX FILEPATH...
+composite_signature <- read_csv(paste0(datapath, "rra/compositescore_consensus_signature.csv"))
 
 # up vs down DEGs in signature
 # length(unique(composite_scores$gene))
 # composite_signature <- composite_scores %>%
 #   mutate(entrez = as.character(entrez))# %>%
   # slice_max(composite_score, n = 200)
-composite_signature <- meta_p
+# composite_signature <- meta_p
 # composite_signature <- full_scores %>% filter(gene %in% rra_degs$gene)
 composite_up <- composite_signature %>%
   mutate(entrez = as.character(entrez)) %>%
-  filter(meta_logFC > 0)
+  filter(entrez %in% db_genes) %>%
+  slice_max(meta_logFC, n = 100)
+    # meta_logFC > 0)
 composite_up
 composite_down <- composite_signature %>% 
   mutate(entrez = as.character(entrez)) %>%
-  filter(meta_logFC < 0)
+  filter(entrez %in% db_genes) %>%
+  slice_min(meta_logFC, n = 100)
+  # filter(meta_logFC < 0)
 composite_down
 
 # explore sigsearch data
@@ -99,6 +104,8 @@ lincs2 <- eh[["EH7297"]]
 
 data(lincs_pert_info2)
 
+db_genes <- h5read(lincs2, "rownames", drop = TRUE)
+length(intersect(composite_down$entrez, db_genes))
 # composite: 112/151 up, 103/149 down meta-p: 95/145 up, 88/155 down
 # rra: 94/121 up, 77/106 down
 qsig_lincs <- qSig(query = list(upset = composite_up$entrez, downset = composite_down$entrez), gess_method = "LINCS", refdb = lincs2)
@@ -124,6 +131,7 @@ unique(lincs_brain_drugs$mergeMOA)
 table(lincs_brain_drugs$max_phase)
 
 write_rds(lincs_brain_drugs, paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+# lincs_brain_drugs <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
 
 #### TARGET ANALYSIS ####
 # separate targets by rows to compare drug targets
@@ -153,14 +161,13 @@ tsea_go <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "GO", o
 result(tsea_go)
 
 tsea_kegg <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "KEGG", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
-result(tsea_kegg)
 
 # drug set enrichment analysis
 dsea_go <- dsea_hyperG(drugs = unique(lincs_brain$pert), type = "GO", ont = "MF")
 result(dsea_go)
 
-dsea_kegg <- dsea_hyperG(drugs = unique(lincs_brain$pert), type = "KEGG")
-result(dsea_kegg)
+# dsea_kegg <- dsea_hyperG(drugs = unique(lincs_brain$pert), type = "KEGG")
+# result(dsea_kegg)
 
 #### APPROVED/POST-MARKET DRUGS ####
 approved_drugs <- lincs_brain_drugs %>%
@@ -205,3 +212,22 @@ approved_moa %>%
   geom_bar(position = "stack")
 ggsave(paste0(filepath, "approved_drugs_top_moa.png"), width = 20, height = 20, units = "cm")
 
+# # compare sig results across methods
+# cs <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+# rra <- read_rds(paste0(filepath, "rra_gess_lincs_anno_braincell_results.rds"))
+# ma <- read_rds(paste0(filepath, "metap_gess_lincs_anno_braincell_results.rds"))
+# length(unique(cs$pert)) # 870
+# length(unique(rra$pert)) # 885
+# length(unique(ma$pert)) # 1063
+# length(intersect(cs$pert, rra$pert)) # 381 # now 542
+# length(intersect(cs$pert, ma$pert)) # 288 # now 339
+# length(intersect(rra$pert, ma$pert)) # 299
+# # drugs in all methods
+# consistent_drugs <- cs %>%
+#   filter(pert %in% rra$pert) %>%
+#   filter(pert %in% ma$pert)
+# unique(consistent_drugs$pref_name)
+# write_csv(consistent_drugs, paste0(filepath, "intersect_drugs_composite_rra_ma251201.csv"))
+# prev_consis <- read_csv(paste0(filepath, "intersect_drugs_composite_rra_ma.csv"))
+# unique(prev_consis$pref_name)
+# setdiff(prev_consis$pref_name, consistent_drugs$pref_name)
