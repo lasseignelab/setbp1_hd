@@ -37,25 +37,25 @@ filepath <- paste0(args$output_dir, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Compare Up/Down DEGs Across Conditions ####
-# gene-contrast matrix for upregulated DEGs
-up_gene_contrast_matrix <- sig_degs_comb %>%
-  filter(logFC < 0) %>%
+# helper function to create contrast matrix for upset plots
+prep_matrix <- function(degs) {
+  contrast_mat <- degs %>%
   select(gene, contrast) %>%
   distinct() %>%
   mutate(value = 1) %>%
   pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
   as.data.frame() %>%
   column_to_rownames(var = "gene")
+}
+# gene-contrast matrix for upregulated DEGs
+sig_degs_up <- sig_degs_comb %>%
+  filter(logFC < 0)
+up_gene_contrast_matrix <- prep_matrix(sig_degs_up)
 
 # gene-contrast matrix for downregulated DEGs
-down_gene_contrast_matrix <- sig_degs_comb %>%
-  filter(logFC > 0) %>%
-  select(gene, contrast) %>%
-  distinct() %>%
-  mutate(value = 1) %>%
-  pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
-  as.data.frame() %>%
-  column_to_rownames(var = "gene")
+sig_degs_down <- sig_degs_comb %>%
+  filter(logFC > 0)
+down_gene_contrast_matrix <- prep_matrix(sig_degs_down)
 
 # DEGs upset plots by direction (up/down)
 upset_up <- upset(
