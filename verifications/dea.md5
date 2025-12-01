@@ -22,8 +22,8 @@ f985f153bacfe7132175f22e26c0aeef  ./results/dea/shaw/consensus_up_degs_ora.csv
 24f9790a88443da111589ac89834756b  ./results/dea/shaw/PATH2vsWT_up_degs_ora.csv
 f93ca1076596327eef4b923f7b39831c  ./results/dea/shaw/PATH_vs_PATH_down_degs_ora.csv
 1df87815c8fb5777d52a63c9f13cffdf  ./results/dea/shaw/PATH_vs_PATH_up_degs_ora.csv
-2f3ee564e736dfee21369cd4a59ced13  ./results/dea/shaw/significant_degs.csv
-5bd1026aa4aa37948d77119284ba4fa0  ./results/dea/shaw/unfiltered_degs.csv
+45d9a2f2cc40a7b763f97bf2b5e74a69  ./results/dea/shaw/significant_degs.csv
+10dbaebcc886523417dd805d54195f47  ./results/dea/shaw/unfiltered_degs.csv
 d04213e47486bbf525bdc2b2559c6d1d  ./results/dea/shaw/VUSvsWT_down_degs_ora.csv
 28a26e34c67263532b41fe8ad254da19  ./results/dea/shaw/VUSvsWT_up_degs_ora.csv
 713eae281fd7cfc2d721db84aa03bb4f  ./results/dea/tanaka1/significant_degs.csv
@@ -32,6 +32,6 @@ d04213e47486bbf525bdc2b2559c6d1d  ./results/dea/shaw/VUSvsWT_down_degs_ora.csv
 0c63819448cd0c3b4e1b5a776b99cc7b  ./results/dea/tanaka2/unfiltered_degs.csv
 
 Combined MD5 checksum:
-1be7aa6a0961c6a1c543b771aaf18da1
+efba3a4428b34214c22c8b9eccfea113
 
 Ran from: /data/user/lizzyr/setbp1_hd

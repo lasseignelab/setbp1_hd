@@ -1,3 +1,6 @@
+# script for analyzing DEGs combined across contrasts
+set.seed(42)
+
 suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)

@@ -1,3 +1,6 @@
+# script used to find consensus human signature from cardo and shaw data sets
+set.seed(42)
+
 suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
