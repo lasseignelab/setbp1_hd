@@ -9,12 +9,12 @@
 dataset_names=("cardo" "shaw" "tanaka1" "tanaka2")
 dataset=${dataset_names[$SLURM_ARRAY_TASK_ID]}
 
-cap_container -c singularity "lizzy/lw_dea:0.1.1"
+cap_container -c singularity "lizzy/lw_dea:0.3.1"
 
 singularity exec --cleanenv \
                  --containall \
                  -B "${CAP_PROJECT_PATH}" \
-                 "${CAP_CONTAINER_PATH}"/lw_dea_0.1.1.sif \
+                 "${CAP_CONTAINER_PATH}"/lw_dea_0.3.1.sif \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/08_find_degs.R \
                   -r "${CAP_DATA_PATH}"/processed/"${dataset}"_prepped_rse.rds \
                   -s "${dataset}" \
