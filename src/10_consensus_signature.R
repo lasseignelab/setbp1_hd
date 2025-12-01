@@ -32,7 +32,7 @@ if (!dir.exists(args$outdir)) dir.create(args$outdir, recursive = TRUE)
 
 # helper function to read in DEGs
 read_deg <- function(dataset_name) {
-  file <- file.path(args$degs, dataset_name, "combined_contrasts_sig_degs.csv")
+  file <- file.path(args$degs, dataset_name, "significant_degs.csv")
   if (!file.exists(file)) stop("Missing file: ", file)
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
