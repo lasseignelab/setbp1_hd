@@ -1,0 +1,15 @@
+
+Files included:
+d50feb53a556dcfd455c5d6023254c82  ./results/consensus_signature/compositescore_consensus_signature.csv
+b3d612ce795d56a8e61004d8fe3b6975  ./results/consensus_signature/compositescore_full_table_degs.csv
+dc75cbf4a2817cfd6e90b172611c7d8a  ./results/consensus_signature/consensus_degs_unfiltered.csv
+86bc5885e955693ba3dad6f402ba9f38  ./results/consensus_signature/majorityfreq_consensus_signature.csv
+797409aa949fecd191f5c21b81a1c942  ./results/consensus_signature/metaanalysis_consensus_signature.csv
+b5e9c1bb82e86b55880a5656d2f1596e  ./results/consensus_signature/metaanalysis_degs.csv
+cf402f57d3c25bfbab27484a695461dd  ./results/consensus_signature/rankaggregate_consensus_signature.csv
+6480d97e4ec2623a03ded87d9ca91417  ./results/consensus_signature/rankaggregate_degs.csv
+
+Combined MD5 checksum:
+7536a07f4cf91e3d63199bdf7aa76ad5
+
+Ran from: /data/user/lizzyr/setbp1_hd
