@@ -1,3 +1,7 @@
+# lintr: disable object_usage_linter
+# script for analyzing DEGs combined across contrasts
+set.seed(42)
+
 suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
@@ -18,7 +22,7 @@ parser$add_argument("-d", "--degs",
 parser$add_argument("-o", "--output_dir",
   type = "character",
   metavar = "PATH",
-  help = "Path to the directory to create and write EDA results"
+  help = "Path to the directory to write DEA analysis results"
 )
 
 # get command line options, if help option encountered print help and exit
@@ -37,25 +41,25 @@ filepath <- paste0(args$output_dir, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
 #### Compare Up/Down DEGs Across Conditions ####
+# helper function to create contrast matrix for upset plots
+prep_matrix <- function(degs) {
+  degs %>%
+    select(gene, contrast) %>%
+    distinct() %>%
+    mutate(value = 1) %>%
+    pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
+    as.data.frame() %>%
+    column_to_rownames(var = "gene")
+}
 # gene-contrast matrix for upregulated DEGs
-up_gene_contrast_matrix <- sig_degs_comb %>%
-  filter(logFC < 0) %>%
-  select(gene, contrast) %>%
-  distinct() %>%
-  mutate(value = 1) %>%
-  pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
-  as.data.frame() %>%
-  column_to_rownames(var = "gene")
+sig_degs_up <- sig_degs_comb %>%
+  filter(logFC < 0)
+up_gene_contrast_matrix <- prep_matrix(sig_degs_up)
 
 # gene-contrast matrix for downregulated DEGs
-down_gene_contrast_matrix <- sig_degs_comb %>%
-  filter(logFC > 0) %>%
-  select(gene, contrast) %>%
-  distinct() %>%
-  mutate(value = 1) %>%
-  pivot_wider(names_from = contrast, values_from = value, values_fill = 0) %>%
-  as.data.frame() %>%
-  column_to_rownames(var = "gene")
+sig_degs_down <- sig_degs_comb %>%
+  filter(logFC > 0)
+down_gene_contrast_matrix <- prep_matrix(sig_degs_down)
 
 # DEGs upset plots by direction (up/down)
 upset_up <- upset(

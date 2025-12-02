@@ -1,3 +1,6 @@
+# script for finding DEGs via limma voom
+set.seed(42)
+
 suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
@@ -16,7 +19,7 @@ parser <- ArgumentParser()
 parser$add_argument("-r", "--rse",
   type = "character",
   metavar = "PATH",
-  help = "RSE file (rds format) for EDA from recount3 data (00_data_download or 01_data_preprocessing)" # nolint
+  help = "RSE file (rds format) prepared for DEA" # nolint
 )
 parser$add_argument("-s", "--sra",
   type = "character",
@@ -26,7 +29,7 @@ parser$add_argument("-s", "--sra",
 parser$add_argument("-o", "--output_dir",
   type = "character",
   metavar = "PATH",
-  help = "Path to the directory to create and write EDA results"
+  help = "Path to the directory to write DEA results"
 )
 
 # get command line options, if help option encountered print help and exit
@@ -133,9 +136,9 @@ deg_list <- vector("list", length = ncol(contr))
 names(deg_list) <- colnames(contr)
 
 # compute DEGs, plot, and save for each contrast
-for (i in seq_along(colnames(contr))) {
-  print(paste0(colnames(contr)[i]))
-  contrast <- colnames(contr)[i]
+for (con in seq_along(colnames(contr))) {
+  print(paste0(colnames(contr)[con]))
+  contrast <- colnames(contr)[con]
 
   res <- topTable(efit, coef = contrast, number = Inf, adjust = "BH")
 
@@ -154,10 +157,7 @@ for (i in seq_along(colnames(contr))) {
   print(table(degs$significance))
 
   # add degs to list
-  deg_list[[i]] <- degs
-
-  # save results
-  write_csv(res, file = paste0(filepath, contrast, "_unfiltered_degs.csv"))
+  deg_list[[con]] <- degs
 }
 
 # combine degs across contrasts
@@ -166,14 +166,14 @@ sig_degs_comb <- degs_comb %>%
   filter(significance != "NonSig") %>%
   mutate(se_logFC = abs(logFC / t))
 
-# save labeled and sig-filtered results
+# save results
 write_csv(
   degs_comb,
-  file = paste0(filepath, "combined_contrasts_labeled_degs.csv")
+  file = paste0(filepath, "unfiltered_degs.csv")
 )
 write_csv(
   sig_degs_comb,
-  file = paste0(filepath, "combined_contrasts_sig_degs.csv")
+  file = paste0(filepath, "significant_degs.csv")
 )
 
 # volcano plots across contrasts
@@ -237,8 +237,6 @@ Heatmap(top_mat,
 )
 
 dev.off()
-
-
 
 # end timer
 fptm <- proc.time()
