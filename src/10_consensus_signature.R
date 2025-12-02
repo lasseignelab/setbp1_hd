@@ -369,9 +369,10 @@ res_list <- lapply(seq_along(ora_list), function(ora) {
     mutate(method = paste0(names(ora_list)[ora]))
 })
 
-# simplify results for term names in > 1 sig ORA results
 res_df <- bind_rows(res_list)
+write_csv(res_df, paste0(args$outdir, "ORA_all_sig_results.csv"))
 
+# simplify results for term names in > 1 sig ORA results
 terms_filtered <- res_df %>%
   group_by(term_name) %>%
   mutate(term_count = n_distinct(method)) %>%
@@ -380,7 +381,7 @@ terms_filtered <- res_df %>%
 
 # plot
 terms_plot <- terms_filtered %>%
-  filter(term_size < 1250) %>%
+  filter(term_size < 500) %>%
   ggplot(
     aes(
       y = reorder(term_name, term_size), x = -log10(p_value),
@@ -392,7 +393,7 @@ ggsave(
   paste0(
     args$outdir, "ORA_combined_terms.png"
   ),
-  width = 20, height = 28, units = "cm"
+  width = 22, height = 28, units = "cm"
 )
 
 ora_plots <- lapply(seq_along(ora_list), function(ora) {
