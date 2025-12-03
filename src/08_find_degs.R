@@ -162,7 +162,7 @@ for (con in seq_along(colnames(contr))) {
 
 # combine degs across contrasts
 degs_comb <- bind_rows(deg_list) %>%
-  mutate(across(where(is.numeric), ~ round(.x, 12)))
+  mutate(across(where(is.numeric), ~ round(.x, 9)))
 
 sig_degs_comb <- degs_comb %>%
   filter(significance != "NonSig") %>%

@@ -12,8 +12,8 @@ e2cc91efd17d5645dc87245e4b8d9d5e  ./results/dea/cardo/KOvsWT_34_down_degs_ora.cs
 2033251913febb606fb6e7f48f6febb9  ./results/dea/cardo/KOvsWT_all_up_degs_ora.csv
 c69c56e93e963d40a9bda010f790c9af  ./results/dea/cardo/KOvsWT_NPC_down_degs_ora.csv
 06799425d60a3d2a485cb8e1e4d96066  ./results/dea/cardo/KOvsWT_NPC_up_degs_ora.csv
-6013ceb482a889c0032ce4ddd07180e8  ./results/dea/cardo/significant_degs.csv
-0e94771172857c54a35855a11fcc82e1  ./results/dea/cardo/unfiltered_degs.csv
+be377a7ca140c5030431ec7696cd08b5  ./results/dea/cardo/significant_degs.csv
+6ebeb3e78d75d5f7e833bb85946f95f6  ./results/dea/cardo/unfiltered_degs.csv
 8fe9ccf19b42a64cfdfd0d18a5ca2e72  ./results/dea/shaw/consensus_down_degs_ora.csv
 f985f153bacfe7132175f22e26c0aeef  ./results/dea/shaw/consensus_up_degs_ora.csv
 6ae1e288ad139af7811259e81f3a837e  ./results/dea/shaw/NPC_HD_down_degs_ora.csv
@@ -22,16 +22,16 @@ f985f153bacfe7132175f22e26c0aeef  ./results/dea/shaw/consensus_up_degs_ora.csv
 24f9790a88443da111589ac89834756b  ./results/dea/shaw/PATH2vsWT_up_degs_ora.csv
 f93ca1076596327eef4b923f7b39831c  ./results/dea/shaw/PATH_vs_PATH_down_degs_ora.csv
 1df87815c8fb5777d52a63c9f13cffdf  ./results/dea/shaw/PATH_vs_PATH_up_degs_ora.csv
-0d889e820bb2925edbf21e702f5ceea2  ./results/dea/shaw/significant_degs.csv
-a0786d90f332ae424ed47f054355dbc7  ./results/dea/shaw/unfiltered_degs.csv
+d7f517497fb7eeb605d584f3d9bbf266  ./results/dea/shaw/significant_degs.csv
+b9fa9db02faa4dd1254d2545e3d3295e  ./results/dea/shaw/unfiltered_degs.csv
 d04213e47486bbf525bdc2b2559c6d1d  ./results/dea/shaw/VUSvsWT_down_degs_ora.csv
 28a26e34c67263532b41fe8ad254da19  ./results/dea/shaw/VUSvsWT_up_degs_ora.csv
-5220c1d19b8228155d30de32a89b7dc6  ./results/dea/tanaka1/significant_degs.csv
-8c1817aefde750269a3f6259e007913c  ./results/dea/tanaka1/unfiltered_degs.csv
-fa4b776dfb0a06d6affe7e29d733e5ef  ./results/dea/tanaka2/significant_degs.csv
-754a911ec0e224c3748c89f1e6ff3929  ./results/dea/tanaka2/unfiltered_degs.csv
+dede98b42af5c1463a332e404203d298  ./results/dea/tanaka1/significant_degs.csv
+87be1a6e1e36c38c52a887afcac10653  ./results/dea/tanaka1/unfiltered_degs.csv
+7e307e091529e169464f511088ca4a4a  ./results/dea/tanaka2/significant_degs.csv
+cbe3c984d8b3274c44ee5cc9aa0ba4b4  ./results/dea/tanaka2/unfiltered_degs.csv
 
 Combined MD5 checksum:
-a4d9f19e71553240c41863cf093e6cb3
+7ab90f75dd6ef15a91a881a56b697a2b
 
 Ran from: /data/user/lizzyr/setbp1_hd
