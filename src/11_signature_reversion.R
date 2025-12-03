@@ -44,7 +44,7 @@ suppressPackageStartupMessages({
 # degs <- read_csv(args$rse)
 
 cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
-filepath <- "./results/dea/signature_reversion/composite_"
+filepath <- "./results/signature_reversion/composite_"
 
 # create dirs if needed
 # filepath <- paste0(args$output_dir, sra, "/")
@@ -52,7 +52,7 @@ if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
 
 # majority/high freq signature
-datapath <- "./results/dea/consensus_signature/"
+datapath <- "./results/consensus_signature/"
 top_freq_degs <- read_csv(paste0(datapath, "majorityfreq_consensus_signature.csv"))
 # RRA signature
 rra_degs <- read_csv(paste0(datapath, "rankaggregate_consensus_signature.csv"))
@@ -63,27 +63,7 @@ full_scores <- read_csv(paste0(datapath, "rra/compositescore_full_table_degs.csv
 setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
 # save composite score signature
 # TODO: FIX FILEPATH...
-composite_signature <- read_csv(paste0(datapath, "rra/compositescore_consensus_signature.csv"))
-
-# up vs down DEGs in signature
-# length(unique(composite_scores$gene))
-# composite_signature <- composite_scores %>%
-#   mutate(entrez = as.character(entrez))# %>%
-  # slice_max(composite_score, n = 200)
-# composite_signature <- meta_p
-# composite_signature <- full_scores %>% filter(gene %in% rra_degs$gene)
-composite_up <- composite_signature %>%
-  mutate(entrez = as.character(entrez)) %>%
-  filter(entrez %in% db_genes) %>%
-  slice_max(meta_logFC, n = 100)
-    # meta_logFC > 0)
-composite_up
-composite_down <- composite_signature %>% 
-  mutate(entrez = as.character(entrez)) %>%
-  filter(entrez %in% db_genes) %>%
-  slice_min(meta_logFC, n = 100)
-  # filter(meta_logFC < 0)
-composite_down
+composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signature.csv"))
 
 # explore sigsearch data
 setExperimentHubOption("ASK", FALSE)
@@ -105,7 +85,27 @@ lincs2 <- eh[["EH7297"]]
 data(lincs_pert_info2)
 
 db_genes <- h5read(lincs2, "rownames", drop = TRUE)
-length(intersect(composite_down$entrez, db_genes))
+
+# up vs down DEGs in signature
+# length(unique(composite_scores$gene))
+# composite_signature <- composite_scores %>%
+#   mutate(entrez = as.character(entrez))# %>%
+  # slice_max(composite_score, n = 200)
+# composite_signature <- meta_p
+# composite_signature <- full_scores %>% filter(gene %in% rra_degs$gene)
+composite_up <- composite_signature %>%
+  mutate(entrez = as.character(entrez)) %>%
+  filter(entrez %in% db_genes) %>%
+  slice_max(meta_logFC, n = 100)
+    # meta_logFC > 0)
+composite_up
+composite_down <- composite_signature %>% 
+  mutate(entrez = as.character(entrez)) %>%
+  filter(entrez %in% db_genes) %>%
+  slice_min(meta_logFC, n = 100)
+  # filter(meta_logFC < 0)
+composite_down
+
 # composite: 112/151 up, 103/149 down meta-p: 95/145 up, 88/155 down
 # rra: 94/121 up, 77/106 down
 qsig_lincs <- qSig(query = list(upset = composite_up$entrez, downset = composite_down$entrez), gess_method = "LINCS", refdb = lincs2)
@@ -138,16 +138,32 @@ write_rds(lincs_brain_drugs, paste0(filepath, "gess_lincs_anno_braincell_results
 brain_drug_targets <- lincs_brain_drugs %>%
   dplyr::select(
     pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway) %>%
-  separate_longer_delim(mergeTargets, delim = "; ")
+  separate_longer_delim(mergeTargets, delim = "; ") %>%
+  filter(!is.na(mergeTargets)) %>%
+  add_count(mergeTargets) %>%
+  mutate(
+    SETBP1_target = ifelse(mergeTargets %in% setbp1_targets$X1, TRUE, FALSE))
+
+# drug target histogram
+brain_drug_targets %>%
+  distinct(mergeTargets, n, SETBP1_target) %>%
+  # filter(n > 4) %>%
+  # ggplot(aes(y = reorder(mergeTargets, n), x = n)) +
+  ggplot(aes(y = n, fill = SETBP1_target)) +
+  geom_bar()
+  # geom_bar(stat = "identity", aes(fill = SETBP1_target))
+  # geom_histogram(stat = "count")
+ggsave(paste0(filepath, "drug_targets_histogram.png"), width = 19, height = 24, units = "cm")
 
 # find SETBP1 targets that are also drug targets
-brain_drug_targets_setbp1 <- brain_drug_targets %>%
-  filter(mergeTargets %in% setbp1_targets$X1)
+drug_targets_setbp1 <- lincs_brain_drugs %>%
+  semi_join(brain_drug_targets %>% filter(SETBP1_target == TRUE), by = "pert")
+  # filter(pert %in% brain_drug_targets)
 
-brain_drug_targets_setbp1 
-write_csv(brain_drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv"))
+unique(drug_targets_setbp1$pref_name) 
+write_csv(drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv"))
 
-brain_drug_targets_setbp1 %>%
+drug_targets_setbp1 %>%
   ggplot(aes(
     x = -WTCS, y = max_phase, colour = mergeTargets, shape = cell, size = -log(WTCS_Pval)
   )) +
@@ -155,6 +171,11 @@ brain_drug_targets_setbp1 %>%
 
 ggsave(paste0(filepath, "setbp1_drug_shared_targets_trialphase.png"), width = 19, height = 19, units = "cm")
 
+drug_targets_setbp1 %>%
+  ggplot(aes(y = mergeTargets, x = -WTCS, colour = pref_name, size = 4)) +
+  geom_point()
+
+ggsave(paste0(filepath, "setbp1_drugs_shared_targets.png"), width = 19, height = 16, units = "cm")
 # target set enrichment analysis
 brain_drugs_filt <- filter(lincs_brain, !is.na(t_gn_sym))
 tsea_go <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "GO", ont = "MF", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
