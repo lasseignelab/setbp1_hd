@@ -60,7 +60,7 @@ rra_degs <- read_csv(paste0(datapath, "rankaggregate_consensus_signature.csv"))
 meta_p <- read_csv(paste0(datapath, "metaanalysis_consensus_signature.csv"))
 # scores across methods for DEGs + composite scores
 full_scores <- read_csv(paste0(datapath, "rra/compositescore_full_table_degs.csv"))
-setbp1_targets <- read_csv("./data/241203_setbp1_targets_names_only.csv", col_names = FALSE)
+setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")#, col_names = FALSE)
 # save composite score signature
 # TODO: FIX FILEPATH...
 composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signature.csv"))
@@ -142,7 +142,7 @@ brain_drug_targets <- lincs_brain_drugs %>%
   filter(!is.na(mergeTargets)) %>%
   add_count(mergeTargets) %>%
   mutate(
-    SETBP1_target = ifelse(mergeTargets %in% setbp1_targets$X1, TRUE, FALSE))
+    SETBP1_target = ifelse(mergeTargets %in% setbp1_targets$target, TRUE, FALSE))
 
 # drug target histogram
 brain_drug_targets %>%
@@ -156,9 +156,11 @@ brain_drug_targets %>%
 ggsave(paste0(filepath, "drug_targets_histogram.png"), width = 19, height = 24, units = "cm")
 
 # find SETBP1 targets that are also drug targets
-drug_targets_setbp1 <- lincs_brain_drugs %>%
-  semi_join(brain_drug_targets %>% filter(SETBP1_target == TRUE), by = "pert")
-  # filter(pert %in% brain_drug_targets)
+drug_targets_setbp1 <- brain_drug_targets %>%
+  inner_join(setbp1_targets, by = c("mergeTargets" = "target")) %>%
+  # semi_join(brain_drug_targets %>% filter(SETBP1_target == TRUE), by = "pert") %>%
+  # separate_longer_delim(mergeTargets, delim = "; ") %>%
+  distinct()
 
 unique(drug_targets_setbp1$pref_name) 
 write_csv(drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv"))
@@ -172,7 +174,7 @@ drug_targets_setbp1 %>%
 ggsave(paste0(filepath, "setbp1_drug_shared_targets_trialphase.png"), width = 19, height = 19, units = "cm")
 
 drug_targets_setbp1 %>%
-  ggplot(aes(y = mergeTargets, x = -WTCS, colour = pref_name, size = 4)) +
+  ggplot(aes(y = mergeTargets, x = -WTCS, colour = pref_name, size = 4, shape = as.factor(max_phase))) +
   geom_point()
 
 ggsave(paste0(filepath, "setbp1_drugs_shared_targets.png"), width = 19, height = 16, units = "cm")
