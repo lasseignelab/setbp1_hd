@@ -57,6 +57,8 @@ unique(shaw_degs$contrast)
 contrasts_keep <- c(
   "KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT", "PATH3vsWT"
 )
+# exclude redundant contrasts
+contrasts_skip <- c("KOvsWT_NPC", "KOvsWT_all", "NPC_HD", "PATH_vs_PATH")
 
 # combine human data sets and filter
 combined_degs <- bind_rows(cardo_degs, shaw_degs)
@@ -64,6 +66,7 @@ combined_degs <- bind_rows(cardo_degs, shaw_degs)
 consensus_genes <- intersect(cardo_degs$gene, shaw_degs$gene)
 consensus_degs <- combined_degs %>%
   # filter(contrast %in% contrasts_keep) %>%
+  filter(!contrast %in% contrasts_skip) %>%
   filter(gene %in% consensus_genes)
 
 # save consensus DEGs
@@ -424,7 +427,9 @@ composite_signature_wnt <- composite_scores %>%
   # mutate(meta_pval = -log2(meta_pval)) %>%
   distinct() %>%
   column_to_rownames(var = "gene")
-composite_signature_wnt
+length(unique(composite_signature_wnt$gene_name))
+length(intersect(composite_signature$gene_name, composite_signature_wnt$gene_name)) # 13 with excluded contrasts
+
 
 # save
 pdf(paste0(outdir, "composite_signature_wnt_genes.pdf"), width = 10, height = 18)
