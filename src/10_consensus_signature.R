@@ -1,4 +1,3 @@
-# lintr: disable object_usage_linter
 # script used to find consensus human signature from cardo and shaw data sets
 set.seed(42)
 
@@ -30,13 +29,15 @@ parser$add_argument("-o", "--outdir",
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
+outdir <- "./results/consensus_signature/"
+degs <- "./results/dea/"
 
 # create output dir if needed
-if (!dir.exists(args$outdir)) dir.create(args$outdir, recursive = TRUE)
+if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # helper function to read in DEGs
 read_deg <- function(dataset_name) {
-  file <- file.path(args$degs, dataset_name, "significant_degs.csv")
+  file <- file.path(degs, dataset_name, "significant_degs.csv")
   if (!file.exists(file)) stop("Missing file: ", file)
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
@@ -62,11 +63,11 @@ combined_degs <- bind_rows(cardo_degs, shaw_degs)
 
 consensus_genes <- intersect(cardo_degs$gene, shaw_degs$gene)
 consensus_degs <- combined_degs %>%
-  filter(contrast %in% contrasts_keep) %>%
+  # filter(contrast %in% contrasts_keep) %>%
   filter(gene %in% consensus_genes)
 
 # save consensus DEGs
-write_csv(consensus_degs, paste0(args$outdir, "consensus_degs_unfiltered.csv"))
+write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
 
 # convert DEGs to ENTREZ -- required for signaturesearch downstream
 entrez_degs <- gconvert(
@@ -131,7 +132,7 @@ dataset_colors <- c(
 
 png(
   paste0(
-    args$outdir, "upset_plot_compare_shaw_cardo.png"
+    outdir, "upset_plot_compare_shaw_cardo.png"
   ),
   width = 30, height = 20, units = "cm", res = 300
 )
@@ -149,7 +150,7 @@ dev.off()
 
 png(
   paste0(
-    args$outdir, "upset_plot_compare_contrasts.png"
+    outdir, "upset_plot_compare_contrasts.png"
   ),
   width = 30, height = 20, units = "cm", res = 300
 )
@@ -173,7 +174,7 @@ print(paste0(length(unique(top_freq_degs$gene)), " DEGs with freq > 3"))
 
 # save majority/high freq signature
 write_csv(
-  top_freq_degs, paste0(args$outdir, "majorityfreq_consensus_signature.csv")
+  top_freq_degs, paste0(outdir, "majorityfreq_consensus_signature.csv")
 )
 
 # opt 2) meta-analysis per gene
@@ -213,8 +214,8 @@ meta_p <- meta_stats %>%
   mutate(method = "meta_p")
 
 # save meta analysis & signature
-write_csv(meta_stats, paste0(args$outdir, "metaanalysis_degs.csv"))
-write_csv(meta_p, paste0(args$outdir, "metaanalysis_consensus_signature.csv"))
+write_csv(meta_stats, paste0(outdir, "metaanalysis_degs.csv"))
+write_csv(meta_p, paste0(outdir, "metaanalysis_consensus_signature.csv"))
 
 # opt 3) robust rang aggregate -- create ranked lists per contrast
 print(paste0("Finding robust rank aggregate (RRA) DEGs..."))
@@ -236,9 +237,9 @@ rra_results <- rra %>%
   select(gene = Name, entrez, method)
 
 # save RRA & signature
-write_csv(rra, paste0(args$outdir, "rankaggregate_degs.csv"))
+write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
 write_csv(
-  rra_results, paste0(args$outdir, "rankaggregate_consensus_signature.csv")
+  rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv")
 )
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
@@ -260,7 +261,7 @@ composite_scores <- top_freq_degs %>%
 
 # save scores across methods for DEGs + composite scores
 write_csv(
-  composite_scores, paste0(args$outdir, "compositescore_full_table_degs.csv")
+  composite_scores, paste0(outdir, "compositescore_full_table_degs.csv")
 )
 
 # top 200 by composite score
@@ -273,7 +274,7 @@ composite_signature
 # save composite score signature
 write_csv(
   composite_signature, paste0(
-    args$outdir, "compositescore_consensus_signature.csv"
+    outdir, "compositescore_consensus_signature.csv"
   )
 )
 
@@ -291,7 +292,7 @@ compare_sigs_up <- top_freq_degs %>%
 
 png(
   paste0(
-    args$outdir, "upset_plot_compare_sigs.png"
+    outdir, "upset_plot_compare_sigs.png"
   ),
   width = 30, height = 20, units = "cm", res = 300
 )
@@ -324,7 +325,7 @@ verification_degs
 run_ora_plot <- function(genes, title) {
   ora_res <- tryCatch(
     {
-      gost(genes, sources = c("GO", "KEGG", "WP"))$result
+      gost(genes, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)$result
     },
     error = function(e) {
       message(paste("ORA failed for", title, ":", e$message))
@@ -370,7 +371,7 @@ res_list <- lapply(seq_along(ora_list), function(ora) {
 })
 
 res_df <- bind_rows(res_list)
-write_csv(res_df, paste0(args$outdir, "ORA_all_sig_results.csv"))
+write_csv(res_df, paste0(outdir, "ORA_all_sig_results.csv"))
 
 # simplify results for term names in > 1 sig ORA results
 terms_filtered <- res_df %>%
@@ -391,7 +392,7 @@ terms_plot <- terms_filtered %>%
   geom_point(alpha = 0.6)
 ggsave(
   paste0(
-    args$outdir, "ORA_combined_terms.png"
+    outdir, "ORA_combined_terms.png"
   ),
   width = 22, height = 28, units = "cm"
 )
@@ -401,11 +402,35 @@ ora_plots <- lapply(seq_along(ora_list), function(ora) {
 })
 
 # save all plots to one PDF
-pdf(paste0(args$outdir, "ORA_all_plots.pdf"), width = 10, height = 8)
+pdf(paste0(outdir, "ORA_all_plots.pdf"), width = 10, height = 8)
 for (plot in ora_plots) {
   print(plot)
 }
 dev.off()
+
+### Signature Plotting ###
+# select wnt genes
+wnt_terms <- grep("Wnt", res_df$term_name, value = TRUE)
+wnt_terms
+wnt_genes <- res_df %>%
+  filter(term_name %in% wnt_terms) %>%
+  select(term_name, intersection) %>%
+  distinct() %>%
+  separate_longer_delim(intersection, delim = ",")
+
+composite_signature_wnt <- composite_scores %>%
+  filter(gene %in% unique(wnt_genes$intersection)) %>%
+  select(gene, gene_name, meta_logFC, meta_pval) %>%
+  # mutate(meta_pval = -log2(meta_pval)) %>%
+  distinct() %>%
+  column_to_rownames(var = "gene")
+composite_signature_wnt
+
+# save
+pdf(paste0(outdir, "composite_signature_wnt_genes.pdf"), width = 10, height = 18)
+Heatmap(as.matrix(composite_signature_wnt[,2:3]), row_labels = composite_signature_wnt$gene_name)
+dev.off()
+
 
 #### END ####
 
