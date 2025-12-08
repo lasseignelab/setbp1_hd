@@ -46,6 +46,7 @@ read_deg <- function(dataset_name) {
 ptm <- proc.time()
 
 #### Set variables for dataset ####
+setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")
 cardo_degs <- read_deg("cardo")
 shaw_degs <- read_deg("shaw")
 tanaka_degs <- bind_rows(read_deg("tanaka1"), read_deg("tanaka2"))
@@ -55,20 +56,29 @@ unique(shaw_degs$contrast)
 
 # contrasts to keep
 contrasts_keep <- c(
-  "KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT", "PATH3vsWT"
+  "KOvsWT_15", "KOvsWT_21", "KOvsWT_34", "VUSvsWT", "PATH2vsWT")
+# exclude redundant/biased contrasts
+contrasts_skip <- c("KOvsWT_NPC", "KOvsWT_all", "NPC_HD", "PATH_vs_PATH", "PATH3vsWT"
 )
-# exclude redundant contrasts
-contrasts_skip <- c("KOvsWT_NPC", "KOvsWT_all", "NPC_HD", "PATH_vs_PATH")
 
 # combine human data sets and filter
 combined_degs <- bind_rows(cardo_degs, shaw_degs)
 
-consensus_genes <- intersect(cardo_degs$gene, shaw_degs$gene)
+# consensus_genes <- intersect(cardo_degs$gene, shaw_degs$gene)
 consensus_degs <- combined_degs %>%
   # filter(contrast %in% contrasts_keep) %>%
   filter(!contrast %in% contrasts_skip) %>%
-  filter(gene %in% consensus_genes)
+  group_by(gene) %>%
+  add_count(dataset) %>%
+  ungroup() %>%
+  filter(n != 1) %>%
+  select(!n)
+consensus_degs
 
+# specifically highlighted genes in SHD
+core_genes <- c("C-MYC", "CCND1", "AXIN2", "GATA2", "DCX", "ASCL1", "NEUROD1", "HES1", "FGF8", "FOXG1")
+intersect(core_genes, consensus_degs$gene_name)
+intersect(setbp1_targets$target, consensus_degs$gene_name)
 # save consensus DEGs
 write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
 
@@ -115,51 +125,53 @@ compare_contrasts <- consensus_long %>%
   pivot_wider(
     names_from = contrast, values_from = value, values_fill = 0
   ) %>%
+  distinct() %>%
+  #TODO: FIX THIS! NON-UNIQUE GENES NOW
   column_to_rownames(var = "gene_name")
-
-# set colors for upset plot
-contrast_dataset_map <- consensus_long %>%
-  distinct(contrast, dataset) %>%
-  bind_rows(
-    data.frame(
-      dataset = c("Tanaka"),
-      contrast = c("Tanaka_DEG")
-    )
-  )
-
-dataset_colors <- c(
-  "cardo" = "orange",
-  "shaw" = "steelblue",
-  "Tanaka" = "gray90"
-)
-
-png(
-  paste0(
-    outdir, "upset_plot_compare_shaw_cardo.png"
-  ),
-  width = 30, height = 20, units = "cm", res = 300
-)
-upset(compare_contrasts,
-  set.metadata = list(data = contrast_dataset_map, plots = list(
-    list(
-      type = "matrix_rows",
-      column = "dataset",
-      assign = 10,
-      colors = dataset_colors
-    )
-  ))
-)
-dev.off()
-
-png(
-  paste0(
-    outdir, "upset_plot_compare_contrasts.png"
-  ),
-  width = 30, height = 20, units = "cm", res = 300
-)
-upset(compare_contrasts, sets = colnames(compare_contrasts), order.by = "freq")
-dev.off()
-
+#
+# # set colors for upset plot
+# contrast_dataset_map <- consensus_long %>%
+#   distinct(contrast, dataset) %>%
+#   bind_rows(
+#     data.frame(
+#       dataset = c("Tanaka"),
+#       contrast = c("Tanaka_DEG")
+#     )
+#   )
+#
+# dataset_colors <- c(
+#   "cardo" = "orange",
+#   "shaw" = "steelblue",
+#   "Tanaka" = "gray90"
+# )
+#
+# png(
+#   paste0(
+#     outdir, "upset_plot_compare_shaw_cardo.png"
+#   ),
+#   width = 30, height = 20, units = "cm", res = 300
+# )
+# upset(compare_contrasts,
+#   set.metadata = list(data = contrast_dataset_map, plots = list(
+#     list(
+#       type = "matrix_rows",
+#       column = "dataset",
+#       assign = 10,
+#       colors = dataset_colors
+#     )
+#   ))
+# )
+# dev.off()
+#
+# png(
+#   paste0(
+#     outdir, "upset_plot_compare_contrasts.png"
+#   ),
+#   width = 30, height = 20, units = "cm", res = 300
+# )
+# upset(compare_contrasts, sets = colnames(compare_contrasts), order.by = "freq")
+# dev.off()
+#
 ### PRIORTIZE/NARROW DEGS TO MAKE SIGNATURE ###
 # opt 1) high frequency DEGs
 print(paste0("Finding high-frequency ('majority vote') DEGs..."))
@@ -187,8 +199,24 @@ meta_results <- consensus_degs %>%
   filter(n > 1) %>%
   group_by(gene) %>%
   nest() %>%
+    mutate(meta = map(data, ~ {
+    # Check if study_id exists and if there is more than one study before applying multilevel model
+    if (length(unique(.x$dataset)) > 1) {
+      tryCatch(
+        # Use logFC (yi), standard error (sei), and the new grouping factor (study_id)
+        rma(yi = .x$logFC, sei = .x$se_logFC, method = "REML", random = ~ 1 | dataset),
+        error = function(e) NULL
+      )
+    } else {
+      # Fallback to standard RE model if only one study contributes data for this gene
+      tryCatch(
+        rma(yi = .x$logFC, sei = .x$se_logFC, method = "REML"),
+        error = function(e) NULL
+      )
+    }
+  })) %>%
   mutate(meta = map(data, ~ tryCatch(
-    rma(yi = .x$logFC, sei = .x$se_logFC, method = "REML"),
+    rma(yi = .x$logFC, sei = .x$se_logFC, method = "DL"),
     error = function(e) NULL
   ))) %>%
   mutate(
@@ -210,6 +238,7 @@ meta_results <- consensus_degs %>%
 meta_stats <- as.data.frame(meta_results[, -2]) %>%
   left_join(entrez_degs, by = "gene") %>%
   distinct()
+head(meta_stats)
 
 meta_p <- meta_stats %>%
   filter(!is.na(entrez)) %>%
@@ -420,15 +449,19 @@ wnt_genes <- res_df %>%
   select(term_name, intersection) %>%
   distinct() %>%
   separate_longer_delim(intersection, delim = ",")
+wnt_genes
 
 composite_signature_wnt <- composite_scores %>%
-  filter(gene %in% unique(wnt_genes$intersection)) %>%
+  filter(
+    gene %in% unique(wnt_genes$intersection) | gene_name %in% core_genes
+  ) %>%
   select(gene, gene_name, meta_logFC, meta_pval) %>%
   # mutate(meta_pval = -log2(meta_pval)) %>%
   distinct() %>%
   column_to_rownames(var = "gene")
 length(unique(composite_signature_wnt$gene_name))
-length(intersect(composite_signature$gene_name, composite_signature_wnt$gene_name)) # 13 with excluded contrasts
+intersect(composite_signature$gene_name, composite_signature_wnt$gene_name) # 13 with excluded contrasts
+intersect(rownames(composite_signature_wnt), rra_results$gene) # 11 with excluded contrasts
 
 
 # save
