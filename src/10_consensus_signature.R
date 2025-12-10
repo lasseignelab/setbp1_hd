@@ -35,11 +35,12 @@ parser$add_argument("-o", "--outdir",
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
-# outdir <- "./results/consensus_signature/"
-# degs <- "./results/dea/"
-indir <- args$indir
-degs <- args$degs
-outdir <- args$outdir
+indir <- "./data/"
+outdir <- "./results/consensus_signature/"
+degs <- "./results/dea/"
+# indir <- args$indir
+# degs <- args$degs
+# outdir <- args$outdir
 
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
@@ -202,7 +203,7 @@ freq_degs <- consensus_long %>%
 top_freq_degs <- freq_degs %>%
   mutate(method = "majority") %>%
   # filter(!is.na(entrez)) %>%
-  filter(n > 3)
+  filter(n > 4)
 print(paste0(length(unique(top_freq_degs$gene)), " DEGs with freq > 3"))
 
 # save majority/high freq signature
@@ -341,12 +342,6 @@ png(
 upset(compare_sigs_up, sets = colnames(compare_sigs_up), order.by = "freq")
 dev.off()
 
-# up vs down DEGs in signature
-composite_up <- composite_signature %>% filter(meta_logFC > 0)
-composite_down <- composite_signature %>% filter(meta_logFC < 0)
-print(paste0(length(unique(composite_up$gene)), " UP composite DEGs"))
-print(paste0(length(unique(composite_down$gene)), " DOWN composite DEGs"))
-
 valid_degs <- tanaka_degs  %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
   select(symbol = ortholog_name, ensemblID = ortholog_ensg, log2FoldChange = logFC, padj = adj.P.Val, contrast, dataset) %>%
@@ -382,37 +377,157 @@ valid_degs_wide <- valid_degs %>%
     across(3:length(.), ~ replace_na(.x, 0)),
     gene_name = ifelse(is.na(gene_name), "", gene_name)
   )
-print(n = 50, valid_degs_wide %>% arrange(gene_name))
-
+print(n = 50, valid_degs_wide %>% select(!gene) %>% arrange(neurons_wong))
 
 # save
-pdf(paste0(outdir, "validation_signature_degs.pdf"), width = 10, height = 22)
+pdf(paste0(outdir, "validation_degs_full.pdf"), width = 10, height = 22)
 Heatmap(as.matrix(valid_degs_wide[,3:length(valid_degs_wide)]), row_labels = valid_degs_wide$gene_name)
 dev.off()
 
+# filter for DEGs that are also in at least one validation set
+valid_degs_min <- valid_degs_wide %>%
+  select(!c(PATH3vsWT_shaw_logFC, IPSC_HD_shaw_logFC, HDvsWT_tanaka1, HDvsWT_tanaka2)) %>%
+  filter(rowSums(select(., 3:4)) != 0)
+# pdf(paste0(outdir, "validation_degs_min.pdf"), width = 10, height = 22)
+# Heatmap(as.matrix(valid_degs_min[,3:length(valid_degs_min)]), row_labels = valid_degs_min$gene_name)
+# dev.off()
+
+# --- 1. Define Annotations and Parameters ---
+colnames(valid_degs_min)
+column_data <- data.frame(
+  Study = c(rep("Wong", 2), rep("Cardo", 3), rep("Shaw", 2), "Consensus") # Adjust based on your columns
+)
+
+ha = HeatmapAnnotation(
+  Dataset = column_data$Study,
+  col = list(Study_Type = c("Cardo" = "#FF7F50", "Shaw" = "#4682B4", 
+                            "Wong" = "#3CB371", "Consensus" = "#6A5ACD")),
+  annotation_name_side = "left"
+)
+
+# Define row annotation based on established pathway function
+# You will need to create a vector (e.g., 'gene_functional_class') for your RRA genes
+# gene_functional_class <- c("WNT/Proliferation", "WNT/Proliferation", "Differentiation/Forebrain", "Transcription Hub", "WNT/Proliferation") # Example categories
+
+# study_ha = rowAnnotation(
+#   Function = gene_functional_class,
+#   col = list(Function = c("WNT/Proliferation" = "red", 
+#                           "Differentiation/Forebrain" = "blue", 
+#                           "Transcription Hub" = "orange")),
+#   width = unit(5, "mm"),
+#   annotation_name_side = "top"
+# )
+
+# Define the color scale for LogFC (centered at zero)
+max_logFC <- max(abs(meta_stats$meta_logFC))
+col_fun = circlize::colorRamp2(c(-max_logFC, 0, max_logFC), c("blue", "white", "red"))
+
+
+# --- 2. Generate the ComplexHeatmap ---
+
+# Use the 'logFC_matrix' containing all your data (rows=genes, columns=contrasts)
+heatmap_obj = Heatmap(
+    as.matrix(valid_degs_min[,3:length(valid_degs_min)]), 
+  name = "Log2(Fold Change)",
+  col = col_fun,
+  # Crucial: Shrink font size to prevent overlap
+  row_labels = valid_degs_min$gene_name,
+  row_names_gp = gpar(fontsize = 6), 
+  # Clustering (improves interpretability by grouping co-regulated genes)
+  cluster_rows = TRUE,
+  cluster_columns = TRUE,
+  top_annotation = ha,
+  border = TRUE,
+  # Title for context
+  column_title = "SETBP1-HD Consensus Signature Across Models and Timepoints"
+)
+
+# Draw the heatmap
+pdf(paste0(outdir, "validation_degs_min.pdf"), width = 10, height = 22)
+draw(heatmap_obj, column_title_gp = gpar(fontsize = 14, fontface = "bold"))
+dev.off()
+
+
 heatmap_by_method <- function(genes, title) {
     # filter and select sig degs
-    plot_data <- valid_degs_wide %>%
+    plot_data <- valid_degs_min %>%
     filter(gene %in% genes)
   print(head(plot_data))
 
     # create plot
   hm <- Heatmap(
     as.matrix(plot_data[,3:length(plot_data)]), 
-    row_labels = plot_data$gene_name#,
-    # column_title = paste0(title)
+    row_labels = plot_data$gene_name,
+    column_title = title
   )
      list(plot = hm)
 }
 
+
 core_sig <- valid_degs_wide %>%
   filter(gene_name %in% core_genes)
 
-# run ORA for each signature
-sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs, core_sig)
+# plot heatmap for each method
+sig_list <- list(
+  Composite = c(composite_signature),
+  RRA = c(rra_results),
+  Meta = c(meta_p),
+  Freq = c(top_freq_degs)
+)
+# sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs, core_sig)
 hm_list <- lapply(seq_along(sig_list), function(sig) {
-  heatmap_by_method(sig_list[[sig]]$gene, sig_list[[sig]]$method)
+  heatmap_by_method(sig_list[[sig]]$gene, names(sig_list)[[sig]])
 })
+
+### RRA and Meta Analysis Volcano Plot ###
+plot_data <- rra %>%
+  inner_join(meta_stats, by = c("Name" = "gene")) %>%
+  mutate(
+    neg_log10_RRA_pval = -log10(Score),
+    Direction = case_when(
+      meta_logFC > 0.25 & neg_log10_RRA_pval > 1 ~ "Upregulated (Consistent)",
+      meta_logFC < -0.25 & neg_log10_RRA_pval > 1 ~ "Downregulated (Consistent)",
+      TRUE ~ "Non-Significant/Inconsistent"
+    )
+  )
+
+# set logFC and p-val thresholds
+logFC_threshold <- 0.25
+pval_threshold <- -log10(0.1)
+
+core_genes_label <- plot_data %>%
+  slice_max(neg_log10_RRA_pval, n = 10)
+  # filter(gene_name %in% core_genes)
+
+volcano_plot <- ggplot(plot_data, aes(x = meta_logFC, y = neg_log10_RRA_pval)) +
+  geom_point(aes(color = Direction), alpha = 0.6, size = 2) +
+  scale_color_manual(values = c("Upregulated (Consistent)" = "firebrick3",
+                                "Downregulated (Consistent)" = "dodgerblue3",
+                                "Non-Significant/Inconsistent" = "gray50")) +
+  # horizontal threshold line (for RRA significance)
+  geom_hline(yintercept = pval_threshold, linetype = "dashed", color = "black") +
+  # vertical threshold lines (for logFC magnitude)
+  geom_vline(xintercept = c(-logFC_threshold, logFC_threshold), linetype = "dashed", color = "black") +
+  labs(
+    title = "Consensus SETBP1-HD Signature: MLMA logFC vs. RRA Consistency",
+    x = "MLMA Aggregate logFC (Magnitude)",
+    y = "-log10(RobustRankAggregate P-value)",
+    color = "Consensus Status"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# add text labels for top genes
+labeled_volcano_plot <- volcano_plot +
+  ggrepel::geom_text_repel(
+    data = core_genes_label,
+    aes(label = gene_name),
+    size = 3.5, # Adjust size as needed
+    box.padding = 0.5,
+    point.padding = 0.5,
+    segment.color = 'grey50'
+  )
+ggsave(paste0(outdir, "RRA_meta_volcano.png"), dpi = 300, height = 30, width = 26, units = "cm")
 
 # save all plots to one PDF
 pdf(paste0(outdir, "heatmap_all_sigs_validation.pdf"), width = 10, height = 18)
@@ -462,57 +577,107 @@ run_ora_plot <- function(genes, title) {
 
 # run ORA for each signature
 # sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs)
-ora_list <- lapply(seq_along(sig_list), function(sig) {
-  run_ora_plot(sig_list[[sig]]$gene, sig_list[[sig]]$method)
-})
-
-names(ora_list) <- c("composite", "RRA", "meta", "freq")
-res_list <- lapply(seq_along(ora_list), function(ora) {
-  ora_list[[ora]]$result %>%
-    mutate(method = paste0(names(ora_list)[ora]))
-})
-
-res_df <- bind_rows(res_list)
-write_csv(res_df, paste0(outdir, "ORA_all_sig_results.csv"))
-
-# simplify results for term names in > 1 sig ORA results
-terms_filtered <- res_df %>%
-  group_by(term_name) %>%
-  mutate(term_count = n_distinct(method)) %>%
-  filter(term_count > 1) %>%
-  ungroup()
-
-# plot
-terms_plot <- terms_filtered %>%
-  filter(term_size < 500) %>%
-  ggplot(
-    aes(
-      y = reorder(term_name, term_size), x = -log10(p_value),
-      size = recall, colour = method
-    )
-  ) +
-  geom_point(alpha = 0.6)
-ggsave(
-  paste0(
-    outdir, "ORA_combined_terms.png"
-  ),
-  width = 22, height = 28, units = "cm"
+# simplified ORA?
+list_sig_genes <- list(
+  Composite = c(composite_signature$gene),
+  RRA = c(rra_results$gene),
+  Meta = c(meta_p$gene),
+  Freq = c(top_freq_degs$gene)
 )
+ora_all <- gost(list_sig_genes, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)
+results_df <- ora_all$result
 
-ora_plots <- lapply(seq_along(ora_list), function(ora) {
-  ora_list[[ora]]$plot
-})
+# Tidy the data for plotting: Select only significant terms and calculate -log10(p_value)
+plot_df <- results_df %>%
+  filter(significant == TRUE) %>%
+  # filter(query != "Freq") %>%
+  filter(term_size < 400) %>%
+  mutate(
+    neg_log10_p = -log10(p_value),
+    # Simplify term names for better readability
+    term_name = gsub("Homo sapiens ", "", term_name)
+  )
 
-# save all plots to one PDF
-pdf(paste0(outdir, "ORA_all_plots.pdf"), width = 10, height = 8)
-for (plot in ora_plots) {
-  print(plot)
-}
-dev.off()
+# Create the comparative dot plot
+ggplot(plot_df, aes(x = query, y = reorder(term_name, neg_log10_p))) +
+  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
+  scale_color_viridis_c(name = "-log10(p-value)") +
+  labs(
+    x = "Query Condition",
+    y = "Enriched Term",
+    size = "Gene Overlap Size"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8)) +
+  facet_grid(source ~ ., scales = "free_y", space = "free_y") # Separate by database
+ggsave(paste0(outdir, "ORA_comparison_dotplot.png"), dpi = 300, height = 30, width = 26, units = "cm")
 
+plot_df %>%
+  group_by(query, source) %>%
+  summarise(
+    n_significant_terms = n(),
+    .groups = 'drop'
+  ) %>%
+  ggplot(aes(x = query, y = n_significant_terms, fill = source)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(
+    x = "Query Condition",
+    y = "Count of Significant Terms",
+    fill = "Data Source"
+  ) +
+  theme_classic()
+ggsave(paste0(outdir, "ORA_term_counts.png"), dpi = 300, height = 22, width = 18, units = "cm")
+# ora_list <- lapply(seq_along(sig_list), function(sig) {
+#   run_ora_plot(sig_list[[sig]]$gene, sig_list[[sig]]$method)
+# })
+#
+# names(ora_list) <- c("composite", "RRA", "meta", "freq")
+# res_list <- lapply(seq_along(ora_list), function(ora) {
+#   ora_list[[ora]]$result %>%
+#     mutate(method = paste0(names(ora_list)[ora]))
+# })
+#
+# res_df <- bind_rows(res_list)
+# write_csv(res_df, paste0(outdir, "ORA_all_sig_results.csv"))
+#
+# # simplify results for term names in > 1 sig ORA results
+# terms_filtered <- res_df %>%
+#   group_by(term_name) %>%
+#   mutate(term_count = n_distinct(method)) %>%
+#   filter(term_count > 1) %>%
+#   ungroup()
+#
+# # plot
+# terms_plot <- terms_filtered %>%
+#   filter(term_size < 500) %>%
+#   ggplot(
+#     aes(
+#       y = reorder(term_name, term_size), x = -log10(p_value),
+#       size = recall, colour = method
+#     )
+#   ) +
+#   geom_point(alpha = 0.6)
+# ggsave(
+#   paste0(
+#     outdir, "ORA_combined_terms.png"
+#   ),
+#   width = 22, height = 28, units = "cm"
+# )
+#
+# ora_plots <- lapply(seq_along(ora_list), function(ora) {
+#   ora_list[[ora]]$plot
+# })
+#
+# # save all plots to one PDF
+# pdf(paste0(outdir, "ORA_all_plots.pdf"), width = 10, height = 8)
+# for (plot in ora_plots) {
+#   print(plot)
+# }
+# dev.off()
+#
 ### Signature Plotting ###
 # select wnt genes
-wnt_terms <- grep("Wnt", res_df$term_name, value = TRUE)
+wnt_terms <- grep("Wnt", results_df$term_name, value = TRUE)
 wnt_terms
 wnt_genes <- res_df %>%
   filter(term_name %in% wnt_terms) %>%
