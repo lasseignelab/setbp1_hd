@@ -3,7 +3,7 @@
 ##########################################################
 
 bin/conda/.conda_env_hashes/
-bin/docker/*.sif
+bin/container/*.sif
 
 data/*
 !data/README
@@ -20,6 +20,8 @@ results/archive
 # Session Data files
 .RData
 .RDataTmp
+bin/*/var*
+bin/*/rstudio_tmp/*
 
 # User-specific files
 .Ruserdata

@@ -47,7 +47,9 @@ List co-authors if known here.
 
 [What is Happening in the Lasseigne Lab?](https://www.lasseigne.org/)
 
-<img src="https://www.lasseigne.org/img/main/lablogo.png" width="75" height="75">
+<!-- markdownlint-disable-next-line MD013 -->
+
+<img src="https://static.wixstatic.com/media/29dcd0_945b269e399141df9792e4ce78f832ff~mv2.png" width="75" height="75">
 
 ## Funding
 
