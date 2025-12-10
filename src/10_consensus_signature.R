@@ -18,6 +18,11 @@ suppressPackageStartupMessages({
 # create parser object
 parser <- ArgumentParser()
 
+parser$add_argument("-i", "--indir",
+  type = "character",
+  metavar = "PATH",
+  help = "Path to the input data directory to access validation data"
+)
 parser$add_argument("-d", "--degs",
   type = "character",
   metavar = "PATH",
@@ -30,8 +35,11 @@ parser$add_argument("-o", "--outdir",
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
-outdir <- "./results/consensus_signature/"
-degs <- "./results/dea/"
+# outdir <- "./results/consensus_signature/"
+# degs <- "./results/dea/"
+indir <- args$indir
+degs <- args$degs
+outdir <- args$outdir
 
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
@@ -47,10 +55,12 @@ read_deg <- function(dataset_name) {
 ptm <- proc.time()
 
 #### Set variables for dataset ####
-wong_fibro <- read_excel("./data/wong/SourceData/SourceData6_forFIg5c_DEG.xlsx", sheet = 3, skip = 1)
-wong_neu <- read_excel("./data/wong/SourceData/SourceData10_forFig7b_DEG.xlsx", sheet = 3, skip = 1) %>%
+wong_fibro <- read_excel(paste0(
+  indir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"), sheet = 3, skip = 1)
+wong_neu <- read_excel(paste0(
+  indir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"), sheet = 3, skip = 1) %>%
   rename(`...1` = "ensemblID")
-setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")
+# setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")
 cardo_degs <- read_deg("cardo")
 shaw_degs <- read_deg("shaw")
 tanaka_degs <- bind_rows(read_deg("tanaka1"), read_deg("tanaka2"))
@@ -87,7 +97,7 @@ core_degs <- consensus_degs %>%
   filter(gene_name %in% core_genes) %>% arrange(gene_name)
 print(n = 31, core_degs %>%
   select(gene_name, logFC, adj.P.Val, contrast))
-intersect(setbp1_targets$target, consensus_degs$gene_name)
+# intersect(setbp1_targets$target, consensus_degs$gene_name)
 # save consensus DEGs
 write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
 
@@ -260,10 +270,12 @@ rra <- aggregateRanks(ranked_lists, exact = TRUE)
 
 rra_results <- rra %>%
   slice_min(order_by = Score, n = 300) %>%
-  left_join(entrez_degs, by = c("Name" = "gene")) %>%
+  # add meta analysis for directionality
+  left_join(meta_stats, by = c("Name" = "gene")) %>%
+  # left_join(entrez_degs, by = c("Name" = "gene")) %>%
   distinct() %>%
   mutate(method = "RRA") %>%
-  select(gene = Name, entrez, method)
+  select(gene = Name, entrez, Score, meta_logFC, method)
 
 # save RRA & signature
 write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
