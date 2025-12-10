@@ -9,7 +9,7 @@
 dataset_names=("cardo" "shaw" "tanaka1" "tanaka2")
 dataset=${dataset_names[$SLURM_ARRAY_TASK_ID]}
 
-cap_container -c singularity "lizzy/lw_dea:0.3.1"
+cap_container -c singularity "lizzyr/lw_dea:0.3.1"
 
 singularity exec --cleanenv \
                  --containall \
