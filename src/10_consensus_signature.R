@@ -461,8 +461,8 @@ dev.off()
 
 ### RRA and Meta Analysis Volcano Plot ###
 # set logFC and p-val thresholds
-logFC_threshold <- 0.25
-pval_threshold <- -log10(0.1)
+logFC_threshold <- 0.1
+pval_threshold <- -log10(0.05)
 
 plot_data <- rra %>%
   inner_join(meta_stats, by = c("Name" = "gene")) %>%
@@ -475,15 +475,19 @@ plot_data <- rra %>%
       TRUE ~ "Non-Significant/Inconsistent"
     )
   )
-
+table(plot_data$Direction)
+# save as meta-analysis labeled RRA signature
+write_csv(
+  plot_data, paste0(outdir, "RRA_meta_consensus_signature.csv")
+)
 core_genes_label <- plot_data %>%
   slice_max(RRA_pval, n = 10)
   # filter(gene_name %in% core_genes)
 
 volcano_plot <- ggplot(plot_data, aes(x = meta_logFC, y = RRA_pval)) +
   geom_point(aes(color = Direction), alpha = 0.6, size = 2) +
-  scale_color_manual(values = c("Upregulated (Consistent)" = "firebrick3",
-                                "Downregulated (Consistent)" = "dodgerblue3",
+  scale_color_manual(values = c("Upregulated" = "firebrick3",
+                                "Downregulated" = "dodgerblue3",
                                 "Non-Significant/Inconsistent" = "gray50")) +
   # horizontal threshold line for RRA significance
   geom_hline(yintercept = pval_threshold, linetype = "dashed", color = "black") +
