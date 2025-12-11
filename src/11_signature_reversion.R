@@ -95,16 +95,19 @@ db_genes <- h5read(lincs2, "rownames", drop = TRUE)
 # composite_signature <- full_scores %>% filter(gene %in% rra_degs$gene)
 composite_up <- rra_degs %>% #composite_signature %>%
   mutate(entrez = as.character(entrez)) %>%
+  filter(meta_logFC > 0.1) %>%
   filter(entrez %in% db_genes) %>%
-  slice_max(meta_logFC, n = 100)
+  slice_min(Score, n = 100)
     # meta_logFC > 0)
-composite_up
+summary(composite_up)
+
 composite_down <- rra_degs %>% #composite_signature %>% 
   mutate(entrez = as.character(entrez)) %>%
+  filter(meta_logFC < -0.1) %>%
   filter(entrez %in% db_genes) %>%
-  slice_min(meta_logFC, n = 100)
+  slice_min(Score, n = 100)
   # filter(meta_logFC < 0)
-composite_down
+summary(composite_down)
 
 # composite: 112/151 up, 103/149 down meta-p: 95/145 up, 88/155 down
 # rra: 94/121 up, 77/106 down
@@ -130,8 +133,10 @@ head(lincs_brain_drugs)
 unique(lincs_brain_drugs$mergeMOA)
 table(lincs_brain_drugs$max_phase)
 
-write_rds(lincs_brain_drugs, paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
-# lincs_brain_drugs <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+write_rds(lincs_brain_drugs, paste0(filepath, "gess_lincs_anno_braincell_results2.rds"))
+# lincs_brain_drugs_prev <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+# setdiff(lincs_brain_drugs$pref_name, lincs_brain_drugs_prev$pref_name)
+# setdiff(lincs_brain_drugs_prev$pref_name, lincs_brain_drugs$pref_name)
 
 #### TARGET ANALYSIS ####
 # separate targets by rows to compare drug targets
@@ -163,6 +168,7 @@ drug_targets_setbp1 <- brain_drug_targets %>%
   distinct()
 
 unique(drug_targets_setbp1$pref_name) 
+unique(drug_targets_setbp1$mergeTargets) 
 write_csv(drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv"))
 
 drug_targets_setbp1 %>%
@@ -234,23 +240,3 @@ approved_moa %>%
   )) +
   geom_bar(position = "stack")
 ggsave(paste0(filepath, "approved_drugs_top_moa.png"), width = 20, height = 20, units = "cm")
-
-# # compare sig results across methods
-# cs <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
-# rra <- read_rds(paste0(filepath, "rra_gess_lincs_anno_braincell_results.rds"))
-# ma <- read_rds(paste0(filepath, "metap_gess_lincs_anno_braincell_results.rds"))
-# length(unique(cs$pert)) # 870
-# length(unique(rra$pert)) # 885
-# length(unique(ma$pert)) # 1063
-# length(intersect(cs$pert, rra$pert)) # 381 # now 542
-# length(intersect(cs$pert, ma$pert)) # 288 # now 339
-# length(intersect(rra$pert, ma$pert)) # 299
-# # drugs in all methods
-# consistent_drugs <- cs %>%
-#   filter(pert %in% rra$pert) %>%
-#   filter(pert %in% ma$pert)
-# unique(consistent_drugs$pref_name)
-# write_csv(consistent_drugs, paste0(filepath, "intersect_drugs_composite_rra_ma251201.csv"))
-# prev_consis <- read_csv(paste0(filepath, "intersect_drugs_composite_rra_ma.csv"))
-# unique(prev_consis$pref_name)
-# setdiff(prev_consis$pref_name, consistent_drugs$pref_name)
