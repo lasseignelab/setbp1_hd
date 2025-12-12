@@ -59,7 +59,7 @@ rra_degs <- read_csv(paste0(datapath, "rankaggregate_consensus_signature.csv"))
 # meta analysis signature
 meta_p <- read_csv(paste0(datapath, "metaanalysis_consensus_signature.csv"))
 # scores across methods for DEGs + composite scores
-# full_scores <- read_csv(paste0(datapath, "rra/compositescore_full_table_degs.csv"))
+full_scores <- read_csv(paste0(datapath, "compositescore_full_table_degs.csv"))
 setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")#, col_names = FALSE)
 # save composite score signature
 # TODO: FIX FILEPATH...
@@ -93,6 +93,9 @@ db_genes <- h5read(lincs2, "rownames", drop = TRUE)
   # slice_max(composite_score, n = 200)
 # composite_signature <- meta_p
 # composite_signature <- full_scores %>% filter(gene %in% rra_degs$gene)
+# TODO: ADD ENTREZ BEFORE SAVING RRA SIG...
+rra_degs <- rra_degs %>%
+  left_join(full_scores[,c(1,4)], by = "gene")
 composite_up <- rra_degs %>% #composite_signature %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC > 0.1) %>%
