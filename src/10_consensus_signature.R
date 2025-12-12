@@ -2,9 +2,7 @@
 set.seed(42)
 
 suppressPackageStartupMessages({
-  library()
   library(argparse)
-  library(tidyverse)
   library(recount3)
   library(ggplot2)
   library(UpSetR)
@@ -13,6 +11,8 @@ suppressPackageStartupMessages({
   library(gprofiler2)
   library(RobustRankAggreg)
   library(metafor)
+  library(circlize)
+  library(tidyverse)
   library(readxl)
 })
 ###### SET UP ######
@@ -71,7 +71,8 @@ pathway_df <- gconvert(query = target_ids, organism = "hsapiens", target = "HGNC
 
 pathways <- pathway_df %>%
   dplyr::select(input, target) %>%
-  rename(input = "STANDARD_NAME", target = "GeneSymbol") %>%
+  # rename(input = "STANDARD_NAME", target = "GeneSymbol") %>%
+  rename("STANDARD_NAME" = input , "GeneSymbol" = target ) %>%
   filter(!is.na(GeneSymbol))
 str(pathways)
 # forebrain_dev <- pathways %>%
@@ -110,9 +111,11 @@ shaw_degs <- read_deg("shaw")
 tanaka_degs <- bind_rows(read_deg("tanaka1"), read_deg("tanaka2"))
 wong_fibro <- read_excel(paste0(
   indir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"), sheet = 3, skip = 1)
+
 wong_neu <- read_excel(paste0(
   indir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"), sheet = 3, skip = 1) %>%
-  rename(`...1` = "ensemblID")
+  rename("ensemblID" = `...1`)
+  # rename(`...1` = "ensemblID")
 
 # list all pathway tsv files to read in
 # file_list <- list.files(path = "./doc/MSigDB_v2024.1.Hs", pattern = "*.tsv", full.names = TRUE)
@@ -249,14 +252,99 @@ rra_results <- rra %>%
   left_join(meta_stats, by = c("Name" = "gene")) %>%
   distinct() %>%
   mutate(method = "RRA") %>%
-  select(gene = Name, Score, meta_logFC, method)
+  select(gene = Name, gene_name, Score, meta_logFC, method)
 
 # save RRA & signature
 write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
-write_csv(
-  rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv")
-)
+write_csv(rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv"))
+# rra_results <- read_csv(paste0(outdir, "rankaggregate_consensus_signature.csv"))
 
+# Function to generate directional ranked lists for RRA
+prepare_directional_ranks <- function(consensus_degs, direction = "UP") {
+    
+    # Define the logFC filter based on direction
+    if (direction == "UP") {
+        # Filter for logFC > 0
+        filter_expr <- quo(logFC > 0)
+    } else if (direction == "DOWN") {
+        # Filter for logFC < 0
+        filter_expr <- quo(logFC < 0)
+    } else {
+        stop("Direction must be 'UP' or 'DOWN'.")
+    }
+    
+    # Generate a list of ranked gene vectors for each unique contrast
+    ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
+        consensus_degs %>%
+            filter(contrast == c) %>%
+            # Apply directional filter
+            filter(!!filter_expr) %>%
+            # Rank by smallest adjusted p-value (most significant)
+            arrange(adj.P.Val) %>%
+            # Pull the gene names
+            pull(gene)
+    })
+    
+    # Remove empty lists (contrasts with no genes in the specified direction)
+    ranked_lists <- ranked_lists[sapply(ranked_lists, length) > 0]
+    
+    return(ranked_lists)
+}
+
+# Generate UP and DOWN ranked lists
+up_ranked_lists <- prepare_directional_ranks(consensus_degs, direction = "UP")
+down_ranked_lists <- prepare_directional_ranks(consensus_degs, direction = "DOWN")
+
+
+# ----------------------------------------------------------------------
+# 2. Run RRA Independently
+# ----------------------------------------------------------------------
+
+# Run RRA on the UP-regulated lists
+if (length(up_ranked_lists) > 1) {
+    rra_up <- aggregateRanks(up_ranked_lists, exact = TRUE) %>%
+        mutate(Direction = "UP")
+} else {
+    message("Not enough UP-regulated lists to run RRA.")
+    rra_up <- data.frame(Name = character(), Score = numeric(), Direction = character())
+}
+
+# Run RRA on the DOWN-regulated lists
+if (length(down_ranked_lists) > 1) {
+    rra_down <- aggregateRanks(down_ranked_lists, exact = TRUE) %>%
+        mutate(Direction = "DOWN")
+} else {
+    message("Not enough DOWN-regulated lists to run RRA.")
+    rra_down <- data.frame(Name = character(), Score = numeric(), Direction = character())
+}
+
+# Combine RRA results
+rra_combined <- bind_rows(rra_up, rra_down) %>%
+  left_join(meta_stats, by = c("Name" = "gene")) %>%
+  distinct()
+
+# The full RRA results table (optional save)
+write_csv(rra_combined, paste0(outdir, "rankaggregate_degs_directional.csv"))
+# rra_combined <- read_csv(paste0(outdir, "rankaggregate_degs_directional.csv"))
+
+rra_results_directional <- rra_combined %>%
+  slice_min(order_by = Score, n = 300) %>%
+    # Add meta analysis for final directionality check and logFC
+    # left_join(meta_stats, by = c("Name" = "gene")) %>%
+    # distinct() %>%
+    mutate(method = "RRA") %>%
+    select(gene = Name, Score, meta_logFC, Direction, method)
+
+length(intersect(rra_results_directional$gene, rra_results$gene))
+# TODO: cleanup RRA analyses
+rra <- rra_combined
+rra_results <- rra_results_directional
+
+# Save the final directional consensus signature
+write_csv(
+    rra_results_directional, 
+    paste0(outdir, "rankaggregate_consensus_signature_directional.csv")
+)
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 print(
   paste0(
@@ -274,8 +362,9 @@ composite_scores <- freq_degs %>%
   select(gene, gene_name, n) %>%
   left_join(entrez_degs, by = "gene") %>%
   distinct() %>%
-  inner_join(meta_stats, by = "gene") %>%
+  # inner_join(meta_stats, by = "gene") %>%
   inner_join(rra, by = c("gene" = "Name")) %>%
+  # inner_join(rra, by = "gene") %>%
   mutate(
     freq_weight = log2(n),
     rank_pval = Score,
@@ -431,16 +520,17 @@ if(length(missing_cols) > 0) {
 
 # 3. Join with DEGs and use case_when for clean prioritization
 pathways_wide <- valid_degs_wide %>%
-    rename(gene_name = "GeneSymbol") %>% # Assuming valid_degs_min has gene_name as the symbol
+    # rename(gene_name = "GeneSymbol") %>% # Assuming valid_degs_min has gene_name as the symbol
+    rename("GeneSymbol" = gene_name) %>% # Assuming valid_degs_min has gene_name as the symbol
     left_join(pathways_pivoted, by = "GeneSymbol") %>%
     mutate(across(everything(), ~replace_na(., 0))) %>%
     # Assign a single, prioritized pathway using case_when
     mutate(
         Pathway = case_when(
             # Highest Priority
+            `KEGG:04310` == 1 ~ "Wnt",
             `GO:0030900` == 1 ~ "Forebrain_Dev",
             # `GO:0021537` == 1 ~ "Telencephalon_Dev", # all genes in forebrain dev
-            `KEGG:04310` == 1 ~ "Wnt",
             `REAC:R-HSA-5653656` == 1 ~ "PI3K_AKT",
             # `REAC:R-HSA-5653656` == 1 ~ "Reactome_PI3K_AKT",
             # `KEGG:04392` == 1 ~ "Hippo", # no genes annotated
@@ -458,27 +548,24 @@ pathways_wide <- valid_degs_wide %>%
     select(GeneSymbol, Pathway, all_of(target_pathway_ids))
 str(pathways_wide)
 
-library(circlize) # For colorRamp2
 
-# 1. Define the correct binary column names (The GO/KEGG/REAC IDs)
+# define the correct binary column names
 binary_col_names <- unlist(names(pathway_map)) # Use the IDs as column names
 
-# 2. Define Colors
-unique_pathways <- unique(annotation_df$Pathway)
+# set colors
+unique_pathways <- unique(pathways_wide$Pathway)
 pathway_colors <- setNames(
     colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(unique_pathways)),
     unique_pathways
 )
 
 binary_colors <- c("0" = "white", "1" = "gray70")
-# Create a list where every item is the 'binary_colors' vector
 binary_color_list <- rep(list(binary_colors), length(binary_col_names))
-
-# Name each element of the list with the corresponding column name (the ID)
 names(binary_color_list) <- binary_col_names
-# 3. Create the Row Annotation Object
+
+# creat gene row annotation
 gene_ha = rowAnnotation(
-    df = annotation_df %>% select(all_of(binary_col_names)),
+    df = pathways_wide %>% filter(row.names(.) %in% valid_degs_min$gene),#%>% select(all_of(binary_col_names)),
     col = binary_color_list, #list(
     width = unit(7, "cm"),
     annotation_name_side = "top"#,
@@ -500,7 +587,7 @@ heatmap_obj = Heatmap(
   top_annotation = ha,
   right_annotation = gene_ha,
   border = TRUE,
-  column_title = "SETBP1-HD Consensus Signature Across Models and Timepoints"
+  column_title = "Significant SETBP1-HD DEGs Across Studies"
 )
 
 # save
@@ -512,28 +599,36 @@ heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
     # filter and select sig degs
     plot_data <- full_deg_df %>%
     filter(gene %in% genes) %>%
-    column_to_rownames("gene") %>%
-    select(!gene_name)
+    column_to_rownames("gene")# %>%
+    # select(!gene_name) %>%
+    # as.matrix()
   print(head(plot_data))
 
   annotation_df <- gene_data %>%
   filter(row.names(.) %in% genes) %>%
-    select(Pathway, all_of(names(target_pathway_ids)))
+    select(all_of(names(target_pathway_ids)))
+
+gene_ha = rowAnnotation(
+    df = annotation_df %>% select(all_of(binary_col_names)),
+    col = binary_color_list, #list(
+    width = unit(7, "cm"),
+    annotation_name_side = "top"#,
+  )
 
 
     # create plot
   hm <- Heatmap(
-    as.matrix(valid_degs_min[,3:length(valid_degs_min)]), 
+    as.matrix(plot_data[,2:length(plot_data)]), 
   name = "Log2(Fold Change)",
   col = col_fun,
-  row_labels = valid_degs_min$gene_name,
+  row_labels = plot_data$gene_name,
   row_names_gp = gpar(fontsize = 6), 
   cluster_rows = TRUE,
   cluster_columns = TRUE,
-  top_annotation = ha,
+  # top_annotation = ha,
   right_annotation = gene_ha,
   border = TRUE,
-  column_title = "SETBP1-HD Consensus Signature Across Models and Timepoints"
+  column_title = paste0(title, "-Based SETBP1-HD Consensus Signature")
     # as.matrix(plot_data[,3:length(plot_data)]), 
     # row_labels = plot_data$gene_name,
     # column_title = title
@@ -543,18 +638,18 @@ heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
 
 # plot heatmap for each method
 sig_list <- list(
-  Composite = c(composite_signature),
-  RRA = c(rra_results),
-  Meta = c(meta_p),
-  Freq = c(top_freq_degs)
+  Composite = c(composite_signature)$gene,
+  RRA = c(rra_results)$gene,
+  Meta = c(meta_p)$gene,
+  Freq = c(top_freq_degs)$gene
 )
 # sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs, core_sig)
 hm_list <- lapply(seq_along(sig_list), function(sig) {
   heatmap_by_method(
     full_deg_df = valid_degs_wide,
-    genes = sig_list[[sig]]$gene, 
+    genes = sig_list[[sig]], 
     gene_data = pathways_wide,
-    names(sig_list)[[sig]])
+    title = names(sig_list)[[sig]])
 })
 
 # save all plots to one PDF
@@ -625,7 +720,7 @@ logFC_threshold <- 0.1
 pval_threshold <- -log10(0.05)
 
 plot_data <- rra %>%
-  inner_join(meta_stats, by = c("Name" = "gene")) %>%
+  # inner_join(meta_stats, by = c("Name" = "gene")) %>%
   mutate(
     # calculate -log10(p-value RRA)
     RRA_pval = -log10(Score),
@@ -654,8 +749,8 @@ volcano_plot <- ggplot(plot_data, aes(x = meta_logFC, y = RRA_pval)) +
   # vertical threshold lines for logFC magnitude
   geom_vline(xintercept = c(-logFC_threshold, logFC_threshold), linetype = "dashed", color = "black") +
   labs(
-    title = "Consensus SETBP1-HD Signature: MLMA logFC vs. RRA Consistency",
-    x = "MLMA Aggregate logFC (Magnitude)",
+    title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
+    x = "MA Aggregate logFC (Magnitude)",
     y = "-log10(RobustRankAggregate P-value)",
     color = "Consensus Status"
   ) +
