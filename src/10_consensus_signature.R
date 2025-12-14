@@ -53,52 +53,6 @@ read_deg <- function(dataset_name) {
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
 
-# helper function to read in MSigDB tsv files
-target_ids <- c(
-  "GO:0030900", # forebrain dev
-  "GO:0021537", # telencephalon dev
-  "REAC:R-HSA-5653656", # Reactome: PI3K/AKT Signaling
-  "KEGG:04392", # Hippo signaling
-  "KEGG:04064", # NF-kappa B signaling
-  "KEGG:03320", # PPAR signaling
-  "KEGG:04010", # MAPK signaling
-  "KEGG:04151", # PI3K-Akt signaling
-  "KEGG:04340", # SHH signaling
-  "KEGG:04310"          # KEGG: Wnt signaling pathway
-  )
-
-pathway_df <- gconvert(query = target_ids, organism = "hsapiens", target = "HGNC", mthreshold = Inf, filter_na = TRUE)
-
-pathways <- pathway_df %>%
-  dplyr::select(input, target) %>%
-  # rename(input = "STANDARD_NAME", target = "GeneSymbol") %>%
-  rename("STANDARD_NAME" = input , "GeneSymbol" = target ) %>%
-  filter(!is.na(GeneSymbol))
-str(pathways)
-# forebrain_dev <- pathways %>%
-  # filter(STANDARD_NAME == "GO:0030900")
-
-# read_msigdb <- function(file_path) {
-#   lines <- readLines(file_path)
-#
-#   # filter for pathway name and pathway genes
-#   std_name_line <- str_subset(lines, "^STANDARD_NAME")
-#   gene_symbols_line <- str_subset(lines, "^GENE_SYMBOLS")
-#
-#   # 3. Extract the values by removing the key and the tab delimiter
-#   # The '?' makes the removal non-greedy, though not strictly necessary here.
-#   std_name <- str_remove(std_name_line, "^STANDARD_NAME\t")
-#   gene_symbols <- str_remove(gene_symbols_line, "^GENE_SYMBOLS\t")
-#
-#   # 4. Create a single-row data frame
-#   data.frame(
-#     STANDARD_NAME = std_name,
-#     GENE_SYMBOLS = gene_symbols,
-#     stringsAsFactors = FALSE
-#   )
-# }
-#
-
 # start timer
 ptm <- proc.time()
 
@@ -110,18 +64,13 @@ shaw_degs <- read_deg("shaw")
 # validation data
 tanaka_degs <- bind_rows(read_deg("tanaka1"), read_deg("tanaka2"))
 wong_fibro <- read_excel(paste0(
-  indir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"), sheet = 3, skip = 1)
+  indir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"
+), sheet = 3, skip = 1)
 
 wong_neu <- read_excel(paste0(
-  indir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"), sheet = 3, skip = 1) %>%
+  indir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"
+), sheet = 3, skip = 1) %>%
   rename("ensemblID" = `...1`)
-  # rename(`...1` = "ensemblID")
-
-# list all pathway tsv files to read in
-# file_list <- list.files(path = "./doc/MSigDB_v2024.1.Hs", pattern = "*.tsv", full.names = TRUE)
-# # read in pathway standard names and gene symbols
-# pathways_df <- bind_rows(lapply(file_list, read_msigdb)) %>%
-#   pivot_wider(names_from = STANDARD_NAME, values_from = GENE_SYMBOLS)
 
 ###### FIND CONSENSUS DEGS ######
 unique(cardo_degs$contrast)
@@ -145,7 +94,9 @@ table(consensus_degs$contrast)
 
 # specifically highlighted genes in SHD
 wnt_genes <- grep("WNT", consensus_degs$gene_name, value = TRUE)
-core_genes <- c("MYC", "CCND1", "AXIN2", "GATA2", "DCX", "ASCL1", "NEUROD1", "HES1", "FGF8", "FOXG1", wnt_genes)
+core_genes <- c(
+  "MYC", "CCND1", "AXIN2", "GATA2", "DCX", "ASCL1", 
+  "NEUROD1", "HES1", "FGF8", "FOXG1", wnt_genes)
 core_degs <- consensus_degs %>%
   filter(gene_name %in% core_genes) %>% arrange(gene_name)
 print(n = 31, core_degs %>%
@@ -257,7 +208,6 @@ rra_results <- rra %>%
 # save RRA & signature
 write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
 write_csv(rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv"))
-# rra_results <- read_csv(paste0(outdir, "rankaggregate_consensus_signature.csv"))
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 print(
@@ -278,7 +228,6 @@ composite_scores <- freq_degs %>%
   distinct() %>%
   inner_join(meta_stats, by = "gene") %>%
   inner_join(rra, by = c("gene" = "Name")) %>%
-  # inner_join(rra, by = "gene") %>%
   mutate(
     freq_weight = log2(n),
     rank_pval = Score,
@@ -337,7 +286,12 @@ tanaka_anno <- tanaka_genes %>%
 
 valid_degs <- tanaka_degs  %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
-  select(symbol = ortholog_name, ensemblID = ortholog_ensg, log2FoldChange = logFC, padj = adj.P.Val, contrast, dataset) %>%
+  select(
+    symbol = ortholog_name, 
+    ensemblID = ortholog_ensg, 
+    log2FoldChange = logFC, 
+    padj = adj.P.Val, contrast, dataset
+  ) %>%
   distinct() %>%
   bind_rows(wong_fibro) %>%
   mutate(
@@ -361,7 +315,12 @@ dataset_sig_degs <- consensus_wide %>%
 dataset_sig_degs
 
 valid_degs_wide <- valid_degs %>%
-  select(gene = ensemblID, gene_name = symbol, logFC = log2FoldChange, contrast, dataset) %>%
+  select(
+    gene = ensemblID, 
+    gene_name = symbol, 
+    logFC = log2FoldChange, 
+    contrast, dataset
+  ) %>%
   unite("contrast_dataset", contrast, dataset) %>%
   distinct() %>%
   pivot_wider(
@@ -372,16 +331,26 @@ valid_degs_wide <- valid_degs %>%
     gene_name = ifelse(is.na(gene_name), "", gene_name)
   )
 print(n = 50, valid_degs_wide %>% select(!gene) %>% arrange(neurons_wong))
-write_csv(valid_degs_wide, paste0(outdir, "validation_datasets_consensus_DEGs.csv"))
+write_csv(
+  valid_degs_wide, paste0(outdir, "validation_datasets_consensus_DEGs.csv")
+)
 
 # save
 pdf(paste0(outdir, "validation_degs_full.pdf"), width = 10, height = 22)
-Heatmap(as.matrix(valid_degs_wide[,3:length(valid_degs_wide)]), row_labels = valid_degs_wide$gene_name)
+Heatmap(
+  as.matrix(
+    valid_degs_wide[,3:length(valid_degs_wide)]), 
+  row_labels = valid_degs_wide$gene_name)
 dev.off()
 
 # filter for DEGs that are also in at least one validation set
 valid_degs_min <- valid_degs_wide %>%
-  select(!c(PATH3vsWT_shaw_logFC, IPSC_HD_shaw_logFC, HDvsWT_tanaka1, HDvsWT_tanaka2)) %>%
+  select(
+    !c(PATH3vsWT_shaw_logFC, 
+      IPSC_HD_shaw_logFC, 
+      HDvsWT_tanaka1, 
+      HDvsWT_tanaka2)
+  ) %>%
   filter(rowSums(select(., 3:4)) != 0) %>%
   filter(gene_name %in% pathways$GeneSymbol)
 
@@ -399,18 +368,38 @@ ha = HeatmapAnnotation(
   annotation_name_side = "left"
 )
 
+### gene functional pathway annotations ###
+target_ids <- c(
+  "GO:0030900", # forebrain dev
+  "REAC:R-HSA-5653656", # Reactome: PI3K/AKT Signaling
+  "KEGG:04064", # NF-kappa B signaling
+  "KEGG:03320", # PPAR signaling
+  "KEGG:04010", # MAPK signaling
+  "KEGG:04310"          # KEGG: Wnt signaling pathway
+  )
+
+pathway_df <- gconvert(
+  query = target_ids, 
+  organism = "hsapiens", 
+  target = "HGNC", 
+  mthreshold = Inf, 
+  filter_na = TRUE
+)
+
+pathways <- pathway_df %>%
+  dplyr::select(input, target) %>%
+  rename("STANDARD_NAME" = input , "GeneSymbol" = target ) %>%
+  filter(!is.na(GeneSymbol))
+str(pathways)
+
+
 # define row annotation based on established pathways
-# 1. Define the Pathway IDs and their Desired Labels
 pathway_map <- list(
     "Forebrain_Dev" = "GO:0030900",       # forebrain dev
-    # "Telencephalon_Dev" = "GO:0021537",   # telencephalon dev
     "PI3K_AKT" = "REAC:R-HSA-5653656", # Reactome: PI3K/AKT Signaling
-    # "Hippo" = "KEGG:04392",               # Hippo signaling
     "NF-kappa_B" = "KEGG:04064",          # NF-kappa B signaling
     "PPAR" = "KEGG:03320",                # PPAR signaling
     "MAPK" = "KEGG:04010",                # MAPK signaling
-    # "KEGG_PI3K_Akt" = "KEGG:04151",       # PI3K-Akt signaling
-    # "SHH" = "KEGG:04340",                 # SHH signaling
     "Wnt" = "KEGG:04310"                  # KEGG: Wnt signaling pathway
 )
 
@@ -418,13 +407,13 @@ target_pathway_ids <- unlist(pathway_map)
 
 pathways_pivoted <- pathways %>%
     distinct() %>%
-    filter(STANDARD_NAME %in% target_pathway_ids) %>% # Optional: Filter only relevant pathways
+    filter(STANDARD_NAME %in% target_pathway_ids) %>%
     mutate(value = 1) %>%
     pivot_wider(
         names_from = STANDARD_NAME, values_from = value, values_fill = 0
     )
 
-# Identify missing target columns and add them filled with 0
+# identify missing target columns and add them filled with 0
 missing_cols <- setdiff(target_pathway_ids, names(pathways_pivoted))
 if(length(missing_cols) > 0) {
     for (col in missing_cols) {
@@ -432,36 +421,28 @@ if(length(missing_cols) > 0) {
     }
 }
 
-# 3. Join with DEGs and use case_when for clean prioritization
+# join with DEGs and add pathway names
 pathways_wide <- valid_degs_wide %>%
-    # rename(gene_name = "GeneSymbol") %>% # Assuming valid_degs_min has gene_name as the symbol
-    rename("GeneSymbol" = gene_name) %>% # Assuming valid_degs_min has gene_name as the symbol
+    rename("GeneSymbol" = gene_name) %>%
     left_join(pathways_pivoted, by = "GeneSymbol") %>%
     mutate(across(everything(), ~replace_na(., 0))) %>%
-    # Assign a single, prioritized pathway using case_when
+    # assign a single, prioritized pathway using case_when
     mutate(
         Pathway = case_when(
             # Highest Priority
             `KEGG:04310` == 1 ~ "Wnt",
             `GO:0030900` == 1 ~ "Forebrain_Dev",
-            # `GO:0021537` == 1 ~ "Telencephalon_Dev", # all genes in forebrain dev
             `REAC:R-HSA-5653656` == 1 ~ "PI3K_AKT",
-            # `REAC:R-HSA-5653656` == 1 ~ "Reactome_PI3K_AKT",
-            # `KEGG:04392` == 1 ~ "Hippo", # no genes annotated
             `KEGG:04064` == 1 ~ "NF-kappa_B",
             `KEGG:04010` == 1 ~ "MAPK",
-            # `KEGG:04340` == 1 ~ "SHH", # no genes annotated
             `KEGG:03320` == 1 ~ "PPAR",
-            # Lowest Priority / Default: if none of the above are 1
             TRUE ~ "Other"
         )
     ) %>%
-    # Prepare for ComplexHeatmap annotation
+    # prepare for ComplexHeatmap annotation
     column_to_rownames(var = "gene") %>%
-    # Select only the columns needed for the annotation dataframe (GeneSymbol, Pathway, and the binary indicators)
     select(GeneSymbol, Pathway, all_of(target_pathway_ids))
 str(pathways_wide)
-
 
 # define the correct binary column names
 binary_col_names <- unlist(names(pathway_map)) # Use the IDs as column names
@@ -469,7 +450,8 @@ binary_col_names <- unlist(names(pathway_map)) # Use the IDs as column names
 # set colors
 unique_pathways <- unique(pathways_wide$Pathway)
 pathway_colors <- setNames(
-    colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(unique_pathways)),
+    colorRampPalette(
+    RColorBrewer::brewer.pal(12, "Set3"))(length(unique_pathways)),
     unique_pathways
 )
 
@@ -479,15 +461,16 @@ names(binary_color_list) <- binary_col_names
 
 # creat gene row annotation
 gene_ha = rowAnnotation(
-    df = pathways_wide %>% filter(row.names(.) %in% valid_degs_min$gene),#%>% select(all_of(binary_col_names)),
-    col = binary_color_list, #list(
+    df = pathways_wide %>% filter(row.names(.) %in% valid_degs_min$gene),
+    col = binary_color_list,
     width = unit(7, "cm"),
-    annotation_name_side = "top"#,
+    annotation_name_side = "top"
   )
 
 # color scale for logFC
 max_logFC <- max(abs(meta_stats$meta_logFC))
-col_fun = circlize::colorRamp2(c(-max_logFC, 0, max_logFC), c("blue", "white", "red"))
+col_fun = circlize::colorRamp2(
+  c(-max_logFC, 0, max_logFC), c("blue", "white", "red"))
 
 ### plot heatmap ###
 heatmap_obj = Heatmap(
@@ -514,8 +497,6 @@ heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
     plot_data <- full_deg_df %>%
     filter(gene %in% genes) %>%
     column_to_rownames("gene")# %>%
-    # select(!gene_name) %>%
-    # as.matrix()
   print(head(plot_data))
 
   annotation_df <- gene_data %>%
@@ -539,13 +520,9 @@ gene_ha = rowAnnotation(
   row_names_gp = gpar(fontsize = 6), 
   cluster_rows = TRUE,
   cluster_columns = TRUE,
-  # top_annotation = ha,
   right_annotation = gene_ha,
   border = TRUE,
   column_title = paste0(title, "-Based SETBP1-HD Consensus Signature")
-    # as.matrix(plot_data[,3:length(plot_data)]), 
-    # row_labels = plot_data$gene_name,
-    # column_title = title
   )
      list(plot = hm)
 }
@@ -557,7 +534,6 @@ sig_list <- list(
   Meta = c(meta_p)$gene,
   Freq = c(top_freq_degs)$gene
 )
-# sig_list <- list(composite_signature, rra_results, meta_p, top_freq_degs, core_sig)
 hm_list <- lapply(seq_along(sig_list), function(sig) {
   heatmap_by_method(
     full_deg_df = valid_degs_wide,
@@ -567,7 +543,8 @@ hm_list <- lapply(seq_along(sig_list), function(sig) {
 })
 
 # save all plots to one PDF
-pdf(paste0(outdir, "heatmap_all_sigs_validation.pdf"), width = 10, height = 18)
+pdf(
+  paste0(outdir, "heatmap_all_sigs_validation.pdf"), width = 10, height = 18)
 for (plot in hm_list) {
   print(plot)
 }
@@ -684,51 +661,8 @@ labeled_volcano_plot <- volcano_plot +
 ggsave(paste0(outdir, "RRA_meta_volcano.png"), dpi = 300, height = 30, width = 26, units = "cm")
 
 ###### ORA OF CONSENSUS SIGNATURES ######
-# function for ORA plotting
-run_ora_plot <- function(genes, title) {
-  ora_res <- tryCatch(
-    {
-      gost(genes, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)$result
-    },
-    error = function(e) {
-      message(paste("ORA failed for", title, ":", e$message))
-      NULL
-    }
-  )
-  # skip plotting for no ORA results
-  if (is.null(ora_res) || nrow(ora_res) == 0) {
-    message(paste("No ORA results for", title, "-- skipping plot"))
-    NULL
-  } else {
-    # filter and select top terms
-    plot_data <- ora_res %>%
-      filter(term_size < 750) %>%
-      slice_max(recall, n = 40)
-
-    # create plot
-    plot <- plot_data %>%
-      ggplot(
-        aes(
-          x = recall, y = term_name,
-          size = intersection_size, colour = precision
-        )
-      ) +
-      geom_point() +
-      labs(title = title, x = "Recall", y = NULL) +
-      theme_minimal()
-
-    list(result = ora_res, plot = plot)
-  }
-}
-
 # run ORA for each signature
-list_sig_genes <- list(
-  Composite = c(composite_signature$gene),
-  RRA = c(rra_results$gene),
-  Meta = c(meta_p$gene),
-  Freq = c(top_freq_degs$gene)
-)
-ora_all <- gost(list_sig_genes, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)
+ora_all <- gost(sig_list, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)
 results_df <- ora_all$result
 
 # Tidy the data for plotting: Select only significant terms and calculate -log10(p_value)
@@ -771,49 +705,6 @@ plot_df %>%
   ) +
   theme_classic()
 ggsave(paste0(outdir, "ORA_term_counts.png"), dpi = 300, height = 22, width = 18, units = "cm")
-
-### Signature Plotting ###
-# select wnt genes
-wnt_terms <- grep("Wnt", results_df$term_name, value = TRUE)
-wnt_terms
-wnt_genes <- results_df %>%
-  filter(term_name %in% wnt_terms) %>%
-  select(term_name, intersection) %>%
-  distinct() %>%
-  separate_longer_delim(intersection, delim = ",")
-wnt_genes
-
-composite_signature_wnt <- composite_scores %>%
-  filter(
-    gene %in% unique(wnt_genes$intersection) | gene_name.x %in% core_genes
-  ) %>%
-  select(gene, gene_name = gene_name.x, meta_logFC, meta_pval) %>%
-  distinct() %>%
-  column_to_rownames(var = "gene")
-length(unique(composite_signature_wnt$gene_name))
-intersect(composite_signature$gene_name.x, composite_signature_wnt$gene_name)
-intersect(rownames(composite_signature_wnt), rra_results$gene)
-
-
-# save
-pdf(paste0(outdir, "composite_signature_wnt_genes.pdf"), width = 10, height = 18)
-Heatmap(as.matrix(composite_signature_wnt[,2:3]), row_labels = composite_signature_wnt$gene_name)
-dev.off()
-
-# plot DEGs of signature
-wnt_degs <- composite_signature_wnt %>%
-  inner_join(consensus_wide[,-1], by = "gene_name") %>%
-  select(gene_name, contains("_logFC")) %>%
-  select(!c(contains("_se_logFC")))
-head(wnt_degs)
-
-wnt_degs[is.na(wnt_degs)] <- 0
-# save
-pdf(paste0(outdir, "composite_wnt_degs.pdf"), width = 10, height = 18)
-Heatmap(as.matrix(wnt_degs[,2:length(wnt_degs)]), row_labels = wnt_degs$gene_name)
-dev.off()
-write_csv(wnt_degs, paste0(outdir, "composite_wnt_degs.csv"))
-
 
 #### END ####
 
