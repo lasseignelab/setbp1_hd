@@ -259,92 +259,6 @@ write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
 write_csv(rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv"))
 # rra_results <- read_csv(paste0(outdir, "rankaggregate_consensus_signature.csv"))
 
-# Function to generate directional ranked lists for RRA
-prepare_directional_ranks <- function(consensus_degs, direction = "UP") {
-    
-    # Define the logFC filter based on direction
-    if (direction == "UP") {
-        # Filter for logFC > 0
-        filter_expr <- quo(logFC > 0)
-    } else if (direction == "DOWN") {
-        # Filter for logFC < 0
-        filter_expr <- quo(logFC < 0)
-    } else {
-        stop("Direction must be 'UP' or 'DOWN'.")
-    }
-    
-    # Generate a list of ranked gene vectors for each unique contrast
-    ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
-        consensus_degs %>%
-            filter(contrast == c) %>%
-            # Apply directional filter
-            filter(!!filter_expr) %>%
-            # Rank by smallest adjusted p-value (most significant)
-            arrange(adj.P.Val) %>%
-            # Pull the gene names
-            pull(gene)
-    })
-    
-    # Remove empty lists (contrasts with no genes in the specified direction)
-    ranked_lists <- ranked_lists[sapply(ranked_lists, length) > 0]
-    
-    return(ranked_lists)
-}
-
-# Generate UP and DOWN ranked lists
-up_ranked_lists <- prepare_directional_ranks(consensus_degs, direction = "UP")
-down_ranked_lists <- prepare_directional_ranks(consensus_degs, direction = "DOWN")
-
-
-# ----------------------------------------------------------------------
-# 2. Run RRA Independently
-# ----------------------------------------------------------------------
-
-# Run RRA on the UP-regulated lists
-if (length(up_ranked_lists) > 1) {
-    rra_up <- aggregateRanks(up_ranked_lists, exact = TRUE) %>%
-        mutate(Direction = "UP")
-} else {
-    message("Not enough UP-regulated lists to run RRA.")
-    rra_up <- data.frame(Name = character(), Score = numeric(), Direction = character())
-}
-
-# Run RRA on the DOWN-regulated lists
-if (length(down_ranked_lists) > 1) {
-    rra_down <- aggregateRanks(down_ranked_lists, exact = TRUE) %>%
-        mutate(Direction = "DOWN")
-} else {
-    message("Not enough DOWN-regulated lists to run RRA.")
-    rra_down <- data.frame(Name = character(), Score = numeric(), Direction = character())
-}
-
-# Combine RRA results
-rra_combined <- bind_rows(rra_up, rra_down) %>%
-  left_join(meta_stats, by = c("Name" = "gene")) %>%
-  distinct()
-
-# The full RRA results table (optional save)
-write_csv(rra_combined, paste0(outdir, "rankaggregate_degs_directional.csv"))
-# rra_combined <- read_csv(paste0(outdir, "rankaggregate_degs_directional.csv"))
-
-rra_results_directional <- rra_combined %>%
-  slice_min(order_by = Score, n = 300) %>%
-    # Add meta analysis for final directionality check and logFC
-    # left_join(meta_stats, by = c("Name" = "gene")) %>%
-    # distinct() %>%
-    mutate(method = "RRA") %>%
-    select(gene = Name, Score, meta_logFC, Direction, method)
-
-length(intersect(rra_results_directional$gene, rra_results$gene))
-# TODO: cleanup RRA analyses
-rra <- rra_combined
-rra_results <- rra_results_directional
-
-# Save the final directional consensus signature
-write_csv(
-    rra_results_directional, 
-    paste0(outdir, "rankaggregate_consensus_signature_directional.csv")
-)
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 print(
   paste0(
@@ -362,7 +276,7 @@ composite_scores <- freq_degs %>%
   select(gene, gene_name, n) %>%
   left_join(entrez_degs, by = "gene") %>%
   distinct() %>%
-  # inner_join(meta_stats, by = "gene") %>%
+  inner_join(meta_stats, by = "gene") %>%
   inner_join(rra, by = c("gene" = "Name")) %>%
   # inner_join(rra, by = "gene") %>%
   mutate(
@@ -720,7 +634,7 @@ logFC_threshold <- 0.1
 pval_threshold <- -log10(0.05)
 
 plot_data <- rra %>%
-  # inner_join(meta_stats, by = c("Name" = "gene")) %>%
+  inner_join(meta_stats, by = c("Name" = "gene")) %>%
   mutate(
     # calculate -log10(p-value RRA)
     RRA_pval = -log10(Score),
