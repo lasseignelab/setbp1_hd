@@ -53,17 +53,9 @@ if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
 
 # majority/high freq signature
 datapath <- "./results/consensus_signature/"
-top_freq_degs <- read_csv(paste0(datapath, "majorityfreq_consensus_signature.csv"))
 # RRA signature
 rra_degs <- read_csv(paste0(datapath, "rankaggregate_consensus_signature.csv"))
-# meta analysis signature
-meta_p <- read_csv(paste0(datapath, "metaanalysis_consensus_signature.csv"))
-# scores across methods for DEGs + composite scores
-full_scores <- read_csv(paste0(datapath, "compositescore_full_table_degs.csv"))
-setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")#, col_names = FALSE)
-# save composite score signature
-# TODO: FIX FILEPATH...
-composite_signature <- read_csv(paste0(datapath, "compositescore_consensus_signature.csv"))
+setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")
 
 # explore sigsearch data
 setExperimentHubOption("ASK", FALSE)
@@ -87,21 +79,11 @@ data(lincs_pert_info2)
 db_genes <- h5read(lincs2, "rownames", drop = TRUE)
 
 # up vs down DEGs in signature
-# length(unique(composite_scores$gene))
-# composite_signature <- composite_scores %>%
-#   mutate(entrez = as.character(entrez))# %>%
-  # slice_max(composite_score, n = 200)
-# composite_signature <- meta_p
-# composite_signature <- full_scores %>% filter(gene %in% rra_degs$gene)
-# TODO: ADD ENTREZ BEFORE SAVING RRA SIG...
-rra_degs <- rra_degs %>%
-  left_join(full_scores[,c(1,4)], by = "gene")
 composite_up <- rra_degs %>% #composite_signature %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC > 0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
-    # meta_logFC > 0)
 summary(composite_up)
 
 composite_down <- rra_degs %>% #composite_signature %>% 
@@ -109,13 +91,15 @@ composite_down <- rra_degs %>% #composite_signature %>%
   filter(meta_logFC < -0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
-  # filter(meta_logFC < 0)
 summary(composite_down)
 
-# composite: 112/151 up, 103/149 down meta-p: 95/145 up, 88/155 down
-# rra: 94/121 up, 77/106 down
-qsig_lincs <- qSig(query = list(upset = composite_up$entrez, downset = composite_down$entrez), gess_method = "LINCS", refdb = lincs2)
+# query LINCS signatures
+qsig_lincs <- qSig(
+  query = list(upset = composite_up$entrez, downset = composite_down$entrez), 
+  gess_method = "LINCS", 
+  refdb = lincs2)
 
+# calculate signature reversion metrics of query vs LINCS DB
 lincs <- gess_lincs(qsig_lincs, sortby="WTCS", tau=FALSE, workers=1)
 str(lincs)
 write_rds(lincs, paste0(filepath, "gess_lincs_results.rds"))
@@ -193,6 +177,7 @@ tsea_go <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "GO", o
 result(tsea_go)
 
 tsea_kegg <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "KEGG", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
+result(tsea_kegg)
 
 # drug set enrichment analysis
 dsea_go <- dsea_hyperG(drugs = unique(lincs_brain$pert), type = "GO", ont = "MF")
