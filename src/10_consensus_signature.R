@@ -21,23 +21,25 @@ parser <- ArgumentParser()
 
 parser$add_argument("-i", "--indir",
   type = "character",
-  metavar = "PATH",
   help = "Path to the input data directory to access validation data"
 )
 parser$add_argument("-d", "--degs",
   type = "character",
-  metavar = "PATH",
   help = "Parent directory containing each dataset's DEG CSV files"
+)
+parser$add_argument("-n", "--numsig",
+  type = "integer",
+  help = "Number of top DEGs by method used to retain for signature"
 )
 parser$add_argument("-o", "--outdir",
   type = "character",
-  metavar = "PATH",
   help = "Path to the directory to write consensus signature results"
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
 indir <- args$indir
 degs <- args$degs
+numsig <- args$numsig
 outdir <- args$outdir
 
 # create output dir if needed
@@ -206,7 +208,7 @@ write_csv(
 top_freq <- composite_scores %>%
   select(gene, gene_name, entrez, n) %>%
   mutate(method = "majority") %>%
-  slice_max(n = 300, order_by = n)
+  slice_max(n = numsig, order_by = n)
 print(
   paste0(
     length(
@@ -221,7 +223,7 @@ write_csv(top_freq, paste0(outdir, "majorityfreq_consensus_signature.csv"))
 meta_a <- composite_scores %>%
   select(gene, gene_name, entrez, meta_pval, meta_logFC) %>%
   distinct() %>%
-  slice_min(meta_pval, n = 300) %>%
+  slice_min(meta_pval, n = numsig) %>%
   mutate(method = "meta_a")
 
 write_csv(meta_a, paste0(outdir, "metaanalysis_consensus_signature.csv"))
@@ -229,7 +231,7 @@ write_csv(meta_a, paste0(outdir, "metaanalysis_consensus_signature.csv"))
 # save RRA signature
 rra_results <- composite_scores %>%
   distinct() %>%
-  slice_min(order_by = Score, n = 300) %>%
+  slice_min(order_by = Score, n = numsig) %>%
   mutate(method = "RRA") %>%
   select(gene, gene_name, entrez, Score, meta_logFC, method)
 
@@ -238,7 +240,7 @@ write_csv(rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv"))
 # save composite score signature
 composite_signature <- composite_scores %>%
   mutate(method = "CompositeScore") %>%
-  slice_max(composite_score, n = 300)
+  slice_max(composite_score, n = numsig)
 
 write_csv(
   composite_signature, paste0(
