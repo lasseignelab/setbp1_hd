@@ -13,4 +13,5 @@ singularity exec --cleanenv \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/10_consensus_signature.R \
                   -i "${CAP_DATA_PATH}"/ \
                   -d "${CAP_RESULTS_PATH}"/dea/ \
+                  -n 300 \
                   -o "${CAP_RESULTS_PATH}"/consensus_signature/
