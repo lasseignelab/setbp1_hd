@@ -585,7 +585,7 @@ upset(compare_contrasts,
 dev.off()
 
 ### RRA and Meta Analysis Volcano Plot ###
-logFC_th <- 0.1 # logFC threshold
+lfc_th <- 0.1 # logFC threshold
 pval_th <- -log10(0.05) # p-value threshold
 
 plot_data <- rra %>%
@@ -593,8 +593,8 @@ plot_data <- rra %>%
   mutate(
     RRA_pval = -log10(Score),
     Direction = case_when(
-      meta_logFC > logFC_th & RRA_pval > pval_th ~ "Upregulated",
-      meta_logFC < -logFC_th & RRA_pval > pval_th ~ "Downregulated",
+      meta_logFC > lfc_th & RRA_pval > pval_th ~ "Upregulated",
+      meta_logFC < -lfc_th & RRA_pval > pval_th ~ "Downregulated",
       TRUE ~ "Non-Significant/Inconsistent"
     )
   )
@@ -619,7 +619,7 @@ volcano_plot <- ggplot(plot_data, aes(x = meta_logFC, y = RRA_pval)) +
   ) +
   # vertical threshold lines for logFC magnitude
   geom_vline(
-    xintercept = c(-logFC_th, logFC_th),
+    xintercept = c(-lfc_th, lfc_th),
     linetype = "dashed",
     color = "black"
   ) +
