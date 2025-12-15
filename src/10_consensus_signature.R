@@ -27,7 +27,7 @@ parser$add_argument("-i", "--indir",
 parser$add_argument("-d", "--degs",
   type = "character",
   metavar = "PATH",
-  help = "Parent directory containing each dataset's DEG CSV files" # nolint
+  help = "Parent directory containing each dataset's DEG CSV files"
 )
 parser$add_argument("-o", "--outdir",
   type = "character",
@@ -39,9 +39,6 @@ args <- parser$parse_args()
 indir <- args$indir
 degs <- args$degs
 outdir <- args$outdir
-# indir <- "./data/"
-# outdir <- "./results/consensus_signature/"
-# degs <- "./results/dea/"
 
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
@@ -169,10 +166,9 @@ ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
     arrange(abs(adj.P.Val)) %>%
     pull(gene)
 })
-# run RRA
+# run and save RRA
 rra <- aggregateRanks(ranked_lists, exact = TRUE)
 
-# save RRA
 write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
@@ -204,7 +200,7 @@ composite_scores <- freq_degs %>%
 write_csv(
   composite_scores, paste0(outdir, "composite_aggregate_all_scores_degs.csv")
 )
-#### FILTER AND SAVE SIGNATURES ####
+###### FILTER AND SAVE SIGNATURES ######
 
 # save majority/high freq signature
 top_freq <- composite_scores %>%
@@ -382,20 +378,6 @@ valid_degs_min <- valid_degs_wide %>%
   filter(gene_name %in% pathways$GeneSymbol)
 
 ### prepare Heatmap parameters ###
-colnames(valid_degs_min)
-# TODO: FIX -- NOT SHOWING UP RIGHT IN HEATMAP
-column_data <- data.frame(
-  Study = c(rep("Wong", 2), rep("Cardo", 3), rep("Shaw", 2), "Consensus")
-)
-
-ha <- HeatmapAnnotation(
-  Dataset = column_data$Study,
-  col = list(Study_Type = c(
-    "Cardo" = "#FF7F50", "Shaw" = "#4682B4",
-    "Wong" = "#3CB371", "Consensus" = "#6A5ACD"
-  )),
-  annotation_name_side = "left"
-)
 
 # define row annotation based on established pathways
 pathway_map <- list(
@@ -487,7 +469,6 @@ heatmap_obj <- Heatmap(
   row_names_gp = gpar(fontsize = 6),
   cluster_rows = TRUE,
   cluster_columns = TRUE,
-  top_annotation = ha,
   right_annotation = gene_ha,
   border = TRUE,
   column_title = "Significant SETBP1-HD DEGs Across Studies"
@@ -561,7 +542,6 @@ dev.off()
 ### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
 compare_contrasts <- consensus_long %>%
   select(gene_name, contrast) %>%
-  # bind_rows(tanaka_anno) %>%
   distinct() %>%
   mutate(value = 1) %>%
   pivot_wider(
@@ -588,7 +568,7 @@ dataset_colors <- c(
 
 png(
   paste0(
-    outdir, "upset_plot_compare_shaw_cardo.png"
+    outdir, "upset_plot_compare_datasets.png"
   ),
   width = 30, height = 20, units = "cm", res = 300
 )
@@ -604,20 +584,9 @@ upset(compare_contrasts,
 )
 dev.off()
 
-png(
-  paste0(
-    outdir, "upset_plot_compare_contrasts.png"
-  ),
-  width = 30, height = 20, units = "cm", res = 300
-)
-upset(compare_contrasts, sets = colnames(compare_contrasts), order.by = "freq")
-dev.off()
-
 ### RRA and Meta Analysis Volcano Plot ###
-
-# set logFC and p-val thresholds
-logFC_th <- 0.1
-pval_th <- -log10(0.05)
+logFC_th <- 0.1 # logFC threshold
+pval_th <- -log10(0.05) # p-value threshold
 
 plot_data <- rra %>%
   inner_join(meta_stats, by = c("Name" = "gene")) %>%
@@ -734,5 +703,3 @@ fptm <- proc.time()
 
 #  session info
 print(sessionInfo())
-# styler::style_file("./src/10_consensus_signature.R")
-# lintr::lint("./src/10_consensus_signature.R")
