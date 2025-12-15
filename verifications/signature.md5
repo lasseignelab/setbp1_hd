@@ -1,16 +1,18 @@
 
 Files included:
-1fa949bdda9338542bd81dbe1559b634  ./results/consensus_signature/compositescore_consensus_signature.csv
-b28e33b884f548b635a503973490c59a  ./results/consensus_signature/compositescore_full_table_degs.csv
-5bf15e01da4b43a89463afcb54a735f2  ./results/consensus_signature/consensus_degs_unfiltered.csv
-86bc5885e955693ba3dad6f402ba9f38  ./results/consensus_signature/majorityfreq_consensus_signature.csv
-f055825d2d0a55d6e2a3991ccbb79429  ./results/consensus_signature/metaanalysis_consensus_signature.csv
-7e44717bb35099ae62142c4a4c457fcb  ./results/consensus_signature/metaanalysis_degs.csv
-10dfbac95822fa391d190662ea230fd2  ./results/consensus_signature/ORA_all_sig_results.csv
-cf402f57d3c25bfbab27484a695461dd  ./results/consensus_signature/rankaggregate_consensus_signature.csv
-6480d97e4ec2623a03ded87d9ca91417  ./results/consensus_signature/rankaggregate_degs.csv
+44d481b638af0450a6744b1d2a30c7a5  ./results/consensus_signature/composite_aggregate_all_scores_degs.csv
+5373589711e0056acb0e0a99acaf5a40  ./results/consensus_signature/compositescore_consensus_signature.csv
+da7e4fa46b23b9297833aed14eb30b33  ./results/consensus_signature/consensus_degs_unfiltered.csv
+21b6c88b03dd2c88439a6bc5d91c9639  ./results/consensus_signature/majorityfreq_consensus_signature.csv
+65d13389371834d321828f3dbb0bc429  ./results/consensus_signature/metaanalysis_consensus_signature.csv
+d1b426079d23c4e70c9186d02820935a  ./results/consensus_signature/metaanalysis_degs.csv
+bb0eaaeac66a39f21218aac83891aac8  ./results/consensus_signature/rankaggregate_consensus_signature.csv
+bb6dc76a0866ca4098ae31198e2e2360  ./results/consensus_signature/rankaggregate_degs.csv
+03d5b30efeab31b5c043b7a7f922c358  ./results/consensus_signature/RRA_meta_consensus_signature.csv
+b16560817dc8debc516d35e147e32410  ./results/consensus_signature/validation_datasets_consensus_DEGs.csv
+b3776189da07285cc755c8931e602025  ./results/consensus_signature/validation_datasets_DEGs.csv
 
 Combined MD5 checksum:
-c761a6668506a1d8a00e7d0dc11afc1b
+c76ba04a5f51a7fb80178f9937571d07
 
 Ran from: /data/user/lizzyr/setbp1_hd
