@@ -36,12 +36,12 @@ parser$add_argument("-o", "--outdir",
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
-# indir <- args$indir
-# degs <- args$degs
-# outdir <- args$outdir
-indir <- "./data/"
-outdir <- "./results/consensus_signature/"
-degs <- "./results/dea/"
+indir <- args$indir
+degs <- args$degs
+outdir <- args$outdir
+# indir <- "./data/"
+# outdir <- "./results/consensus_signature/"
+# degs <- "./results/dea/"
 
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
@@ -57,7 +57,6 @@ read_deg <- function(dataset_name) {
 ptm <- proc.time()
 
 ###### READ IN DATA ######
-# setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")
 cardo_degs <- read_deg("cardo")
 shaw_degs <- read_deg("shaw")
 
@@ -92,15 +91,6 @@ consensus_degs <- combined_degs %>%
 consensus_degs
 table(consensus_degs$contrast)
 
-# specifically highlighted genes in SHD
-wnt_genes <- grep("WNT", consensus_degs$gene_name, value = TRUE)
-core_genes <- c(
-  "MYC", "CCND1", "AXIN2", "GATA2", "DCX", "ASCL1", 
-  "NEUROD1", "HES1", "FGF8", "FOXG1", wnt_genes)
-core_degs <- consensus_degs %>%
-  filter(gene_name %in% core_genes) %>% arrange(gene_name)
-print(n = 31, core_degs %>%
-  select(gene_name, logFC, adj.P.Val, contrast))
 # save consensus DEGs
 write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
 
@@ -129,16 +119,6 @@ freq_degs <- consensus_long %>%
   select(!c(metric, value)) %>%
   distinct() %>%
   add_count(gene)
-
-top_freq_degs <- freq_degs %>%
-  mutate(method = "majority") %>%
-  filter(n > 4)
-print(paste0(length(unique(top_freq_degs$gene)), " DEGs with freq > 3"))
-
-# save majority/high freq signature
-write_csv(
-  top_freq_degs, paste0(outdir, "majorityfreq_consensus_signature.csv")
-)
 
 ### opt 2) meta-analysis per gene ###
 print(paste0("Finding effect size meta analysis DEGs..."))
@@ -177,14 +157,8 @@ meta_results <- consensus_degs %>%
   distinct()
 summary(meta_stats)
 
-meta_p <- meta_stats %>%
-  slice_min(meta_pval, n = 300) %>%
-  mutate(method = "meta_p")
-
-# save meta analysis & signature
-# meta_stats <- read_csv(paste0(outdir, "metaanalysis_degs.csv"))
+# save meta analysis
 write_csv(meta_stats, paste0(outdir, "metaanalysis_degs.csv"))
-write_csv(meta_p, paste0(outdir, "metaanalysis_consensus_signature.csv"))
 
 ### opt 3) robust rang aggregate -- create ranked lists per contrast ###
 print(paste0("Finding robust rank aggregate (RRA) DEGs..."))
@@ -197,17 +171,8 @@ ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
 # run RRA
 rra <- aggregateRanks(ranked_lists, exact = TRUE)
 
-rra_results <- rra %>%
-  slice_min(order_by = Score, n = 300) %>%
-  # add meta analysis for directionality
-  left_join(meta_stats, by = c("Name" = "gene")) %>%
-  distinct() %>%
-  mutate(method = "RRA") %>%
-  select(gene = Name, gene_name, Score, meta_logFC, method)
-
-# save RRA & signature
+# save RRA
 write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
-write_csv(rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv"))
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
 print(
@@ -223,11 +188,11 @@ entrez_degs <- gconvert(
   select(gene = input, entrez = target)
 
 composite_scores <- freq_degs %>%
-  select(gene, gene_name, n) %>%
+  select(gene, n) %>%
   left_join(entrez_degs, by = "gene") %>%
   distinct() %>%
-  inner_join(meta_stats, by = "gene") %>%
-  inner_join(rra, by = c("gene" = "Name")) %>%
+  left_join(meta_stats, by = "gene") %>%
+  left_join(rra, by = c("gene" = "Name")) %>%
   mutate(
     freq_weight = log2(n),
     rank_pval = Score,
@@ -236,16 +201,45 @@ composite_scores <- freq_degs %>%
 
 # save scores across methods for DEGs + composite scores
 write_csv(
-  composite_scores, paste0(outdir, "compositescore_full_table_degs.csv")
+  composite_scores, paste0(outdir, "composite_aggregate_all_scores_degs.csv")
 )
+#### FILTER AND SAVE SIGNATURES ####
 
-# top 300 by composite score
+# save majority/high freq signature
+top_freq <- composite_scores %>%
+  select(gene, gene_name, entrez, n) %>%
+  mutate(method = "majority") %>%
+  slice_max(n = 300, order_by = n)
+print(
+  paste0(
+    length(
+      unique(top_freq$gene)), " DEGs with frequencies: ", unique(top_freq$n)))
+
+write_csv(top_freq, paste0(outdir, "majorityfreq_consensus_signature.csv"))
+
+# save meta analysis signature
+meta_a <- composite_scores %>%
+  select(gene, gene_name, entrez, meta_pval, meta_logFC) %>%
+  distinct() %>%
+  slice_min(meta_pval, n = 300) %>%
+  mutate(method = "meta_a")
+
+write_csv(meta_a, paste0(outdir, "metaanalysis_consensus_signature.csv"))
+
+# save RRA signature
+rra_results <- composite_scores %>%
+  distinct() %>%
+  slice_min(order_by = Score, n = 300) %>%
+  mutate(method = "RRA") %>%
+  select(gene, gene_name, entrez, Score, meta_logFC, method)
+
+write_csv(rra_results, paste0(outdir, "rankaggregate_consensus_signature.csv"))
+
+# save composite score signature
 composite_signature <- composite_scores %>%
   mutate(method = "CompositeScore") %>%
   slice_max(composite_score, n = 300)
-composite_signature
 
-# save composite score signature
 write_csv(
   composite_signature, paste0(
     outdir, "compositescore_consensus_signature.csv"
@@ -253,9 +247,9 @@ write_csv(
 )
 ###### VALIDATION ######
 ## compare overlap between options for finding signature ##
-compare_sigs_up <- top_freq_degs %>%
+compare_sigs <- top_freq %>%
   bind_rows(
-    rra_results, meta_p, rra_results, composite_signature
+    rra_results, meta_a, rra_results, composite_signature
   ) %>%
   select(gene, method) %>%
   mutate(method = ifelse(is.na(method), "Composite", method)) %>%
@@ -270,7 +264,7 @@ png(
   ),
   width = 30, height = 20, units = "cm", res = 300
 )
-upset(compare_sigs_up, sets = colnames(compare_sigs_up), order.by = "freq")
+upset(compare_sigs, sets = colnames(compare_sigs), order.by = "freq")
 dev.off()
 
 # compare to Tanaka et al DEG
@@ -330,7 +324,7 @@ valid_degs_wide <- valid_degs %>%
     across(3:length(.), ~ replace_na(.x, 0)),
     gene_name = ifelse(is.na(gene_name), "", gene_name)
   )
-print(n = 50, valid_degs_wide %>% select(!gene) %>% arrange(neurons_wong))
+print(n = 20, valid_degs_wide %>% select(!gene) %>% arrange(neurons_wong))
 write_csv(
   valid_degs_wide, paste0(outdir, "validation_datasets_consensus_DEGs.csv")
 )
@@ -342,31 +336,6 @@ Heatmap(
     valid_degs_wide[,3:length(valid_degs_wide)]), 
   row_labels = valid_degs_wide$gene_name)
 dev.off()
-
-# filter for DEGs that are also in at least one validation set
-valid_degs_min <- valid_degs_wide %>%
-  select(
-    !c(PATH3vsWT_shaw_logFC, 
-      IPSC_HD_shaw_logFC, 
-      HDvsWT_tanaka1, 
-      HDvsWT_tanaka2)
-  ) %>%
-  filter(rowSums(select(., 3:4)) != 0) %>%
-  filter(gene_name %in% pathways$GeneSymbol)
-
-### prepare Heatmap parameters ###
-colnames(valid_degs_min)
-# TODO: FIX -- NOT SHOWING UP RIGHT IN HEATMAP
-column_data <- data.frame(
-  Study = c(rep("Wong", 2), rep("Cardo", 3), rep("Shaw", 2), "Consensus")
-)
-
-ha = HeatmapAnnotation(
-  Dataset = column_data$Study,
-  col = list(Study_Type = c("Cardo" = "#FF7F50", "Shaw" = "#4682B4", 
-                            "Wong" = "#3CB371", "Consensus" = "#6A5ACD")),
-  annotation_name_side = "left"
-)
 
 ### gene functional pathway annotations ###
 target_ids <- c(
@@ -392,6 +361,30 @@ pathways <- pathway_df %>%
   filter(!is.na(GeneSymbol))
 str(pathways)
 
+# filter for DEGs that are also in at least one validation set
+valid_degs_min <- valid_degs_wide %>%
+  select(
+    !c(PATH3vsWT_shaw_logFC, 
+      IPSC_HD_shaw_logFC, 
+      HDvsWT_tanaka1, 
+      HDvsWT_tanaka2)
+  ) %>%
+  filter(rowSums(select(., 3:4)) != 0) %>%
+  filter(gene_name %in% pathways$GeneSymbol)
+
+### prepare Heatmap parameters ###
+colnames(valid_degs_min)
+# TODO: FIX -- NOT SHOWING UP RIGHT IN HEATMAP
+column_data <- data.frame(
+  Study = c(rep("Wong", 2), rep("Cardo", 3), rep("Shaw", 2), "Consensus")
+)
+
+ha = HeatmapAnnotation(
+  Dataset = column_data$Study,
+  col = list(Study_Type = c("Cardo" = "#FF7F50", "Shaw" = "#4682B4", 
+                            "Wong" = "#3CB371", "Consensus" = "#6A5ACD")),
+  annotation_name_side = "left"
+)
 
 # define row annotation based on established pathways
 pathway_map <- list(
@@ -510,7 +503,6 @@ gene_ha = rowAnnotation(
     annotation_name_side = "top"#,
   )
 
-
     # create plot
   hm <- Heatmap(
     as.matrix(plot_data[,2:length(plot_data)]), 
@@ -531,8 +523,8 @@ gene_ha = rowAnnotation(
 sig_list <- list(
   Composite = c(composite_signature)$gene,
   RRA = c(rra_results)$gene,
-  Meta = c(meta_p)$gene,
-  Freq = c(top_freq_degs)$gene
+  Meta = c(meta_a)$gene,
+  Freq = c(top_freq)$gene
 )
 hm_list <- lapply(seq_along(sig_list), function(sig) {
   heatmap_by_method(
@@ -607,8 +599,8 @@ dev.off()
 
 ### RRA and Meta Analysis Volcano Plot ###
 # set logFC and p-val thresholds
-logFC_threshold <- 0.1
-pval_threshold <- -log10(0.05)
+logFC_th <- 0.1
+pval_th <- -log10(0.05)
 
 plot_data <- rra %>%
   inner_join(meta_stats, by = c("Name" = "gene")) %>%
@@ -616,8 +608,8 @@ plot_data <- rra %>%
     # calculate -log10(p-value RRA)
     RRA_pval = -log10(Score),
     Direction = case_when(
-      meta_logFC > logFC_threshold & RRA_pval > pval_threshold ~ "Upregulated",
-      meta_logFC < -logFC_threshold & RRA_pval > pval_threshold ~ "Downregulated",
+      meta_logFC > logFC_th & RRA_pval > pval_th ~ "Upregulated",
+      meta_logFC < -logFC_th & RRA_pval > pval_th ~ "Downregulated",
       TRUE ~ "Non-Significant/Inconsistent"
     )
   )
@@ -636,9 +628,15 @@ volcano_plot <- ggplot(plot_data, aes(x = meta_logFC, y = RRA_pval)) +
                                 "Downregulated" = "dodgerblue3",
                                 "Non-Significant/Inconsistent" = "gray50")) +
   # horizontal threshold line for RRA significance
-  geom_hline(yintercept = pval_threshold, linetype = "dashed", color = "black") +
+  geom_hline(
+    yintercept = pval_th, linetype = "dashed", color = "black"
+  ) +
   # vertical threshold lines for logFC magnitude
-  geom_vline(xintercept = c(-logFC_threshold, logFC_threshold), linetype = "dashed", color = "black") +
+  geom_vline(
+    xintercept = c(-logFC_th, logFC_th), 
+    linetype = "dashed", 
+    color = "black"
+  ) +
   labs(
     title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
     x = "MA Aggregate logFC (Magnitude)",
@@ -658,14 +656,15 @@ labeled_volcano_plot <- volcano_plot +
     point.padding = 0.5,
     segment.color = 'grey50'
   )
-ggsave(paste0(outdir, "RRA_meta_volcano.png"), dpi = 300, height = 30, width = 26, units = "cm")
+ggsave(paste0(outdir, "RRAp_metalogFC_volcano.png"), 
+  dpi = 300, height = 30, width = 26, units = "cm")
 
 ###### ORA OF CONSENSUS SIGNATURES ######
 # run ORA for each signature
 ora_all <- gost(sig_list, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)
 results_df <- ora_all$result
 
-# Tidy the data for plotting: Select only significant terms and calculate -log10(p_value)
+# prep data for plotting
 plot_df <- results_df %>%
   filter(significant == TRUE) %>%
   # filter(query != "Freq") %>%
@@ -687,8 +686,9 @@ ggplot(plot_df, aes(x = query, y = reorder(term_name, neg_log10_p))) +
   ) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 8)) +
-  facet_grid(source ~ ., scales = "free_y", space = "free_y") # Separate by database
-ggsave(paste0(outdir, "ORA_comparison_dotplot.png"), dpi = 300, height = 30, width = 26, units = "cm")
+  facet_grid(source ~ ., scales = "free_y", space = "free_y")
+ggsave(paste0(outdir, "ORA_comparison_dotplot.png"), 
+  dpi = 300, height = 30, width = 26, units = "cm")
 
 plot_df %>%
   group_by(query, source) %>%
@@ -704,7 +704,8 @@ plot_df %>%
     fill = "Data Source"
   ) +
   theme_classic()
-ggsave(paste0(outdir, "ORA_term_counts.png"), dpi = 300, height = 22, width = 18, units = "cm")
+ggsave(paste0(outdir, "ORA_term_counts_barplot.png"), 
+  dpi = 300, height = 22, width = 18, units = "cm")
 
 #### END ####
 
