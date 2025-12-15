@@ -67,7 +67,7 @@ upset_up <- upset(
   sets = colnames(up_gene_contrast_matrix),
   order.by = "degree",
   mainbar.y.label = "Upregulated Intersection Size",
-  sets.bar.color = "steelblue"
+  sets.bar.color = "firebrick"
 )
 
 upset_down <- upset(
@@ -75,7 +75,7 @@ upset_down <- upset(
   sets = colnames(down_gene_contrast_matrix),
   order.by = "degree",
   mainbar.y.label = "Downregulated Intersection Size",
-  sets.bar.color = "firebrick"
+  sets.bar.color = "steelblue"
 )
 
 pdf(paste0(filepath, "upset_plots_across_contrasts.pdf"))

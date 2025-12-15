@@ -161,7 +161,10 @@ for (con in seq_along(colnames(contr))) {
 }
 
 # combine degs across contrasts
-degs_comb <- bind_rows(deg_list)
+degs_comb <- bind_rows(deg_list) %>%
+  select(!B) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 6)))
+
 sig_degs_comb <- degs_comb %>%
   filter(significance != "NonSig") %>%
   mutate(se_logFC = abs(logFC / t))
