@@ -41,7 +41,8 @@ resdir <- args$output_dir
 filepath <- paste0(resdir, "signature_reversion/")
 querypath <- paste0(resdir, "consensus_signature/")
 
-# datapath <- "./results/consensus_signature/"
+# datapath <- "./data/"
+# querypath <- "./results/consensus_signature/"
 # cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
 # filepath <- "./results/signature_reversion/"
 # create dirs if needed
@@ -68,7 +69,9 @@ data(lincs_pert_info2)
 
 # RRA signature
 rra_degs <- read_csv(paste0(querypath, "rankaggregate_consensus_signature.csv"))
-setbp1_targets <- read_csv(paste0(
+setbp1_targets_all <- read_csv(paste0(
+  datapath, "241203_setbp1_targets_names_only.csv"), col_names = FALSE)
+setbp1_targets_top <- read_csv(paste0(
   datapath, "241203_setbp1_targets_prioritized.csv"))
 
 ###### PREPARE QUERY SIGNATURE ######
@@ -121,6 +124,7 @@ unique(brain_drugs_anno$mergeMOA)
 table(brain_drugs_anno$max_phase)
 
 write_rds(brain_drugs_anno, paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+# brain_drugs_anno <- read_rds(paste0(filepath, "composite_gess_lincs_anno_braincell_results.rds"))
 # brain_drugs_anno<- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
 # setdiff(brain_drugs_anno$pref_name, brain_drugs_anno$pref_name)
 # setdiff(brain_drugs_anno$pref_name, brain_drugs_anno$pref_name)
@@ -135,7 +139,9 @@ brain_drug_targets <- brain_drugs_anno %>%
   add_count(mergeTargets) %>%
   # annotate targets that are prioritized SETBP1 regulatory targets
   mutate(
-    SETBP1_target = ifelse(mergeTargets %in% setbp1_targets$target, TRUE, FALSE))
+    SETBP1_target = ifelse(mergeTargets %in% setbp1_targets_all$X1, TRUE, FALSE),
+    SETBP1_top_target = ifelse(mergeTargets %in% setbp1_targets_top$target, TRUE, FALSE)
+  )
 
 # drug target histogram
 brain_drug_targets %>%
@@ -148,7 +154,7 @@ ggsave(paste0(filepath, "drug_targets_histogram.png"), width = 19, height = 24, 
 drug_targets_setbp1 <- brain_drug_targets %>%
   filter(SETBP1_target == TRUE) %>%
   distinct()
-drug_targets_setbp1
+print(n = 21, arrange(drug_targets_setbp1, pref_name))
 
 unique(drug_targets_setbp1$pref_name) 
 unique(drug_targets_setbp1$mergeTargets) 
@@ -163,10 +169,90 @@ drug_targets_setbp1 %>%
 ggsave(paste0(filepath, "setbp1_drug_shared_targets_trialphase.png"), width = 19, height = 19, units = "cm")
 
 drug_targets_setbp1 %>%
-  ggplot(aes(y = mergeTargets, x = -WTCS, colour = pref_name, size = 4, shape = as.factor(max_phase))) +
-  geom_point()
+  ggplot(aes(
+    y = mergeTargets, 
+    x = -WTCS
+   )) +
+  geom_point(aes(
+    colour = SETBP1_top_target, 
+    size = 4, 
+    alpha = 0.7,
+    shape = as.factor(max_phase)
+    )
+  ) +
+  scale_colour_viridis_d(end = 0.7) +
+  labs(
+    x = "-(Weighted Connectivity Score)",
+    y = "SETBP1 & Drug Target",
+    colour = "Priority SETBP1 Target",
+    shape = "Max Drug Approval Phase"
+  ) +
+  guides(size = "none", alpha = "none") +
+  theme_minimal() +
+  theme(text = element_text(face = "bold"))
 
 ggsave(paste0(filepath, "setbp1_drugs_shared_targets.png"), width = 19, height = 16, units = "cm")
+
+drug_targets_setbp1 %>%
+  filter(!is.na(pref_name)) %>%
+  ggplot(aes(
+    y = mergeTargets, 
+    x = -WTCS
+   )) +
+  geom_point(aes(
+    colour = pref_name,
+    size = 4, 
+    alpha = SETBP1_top_target,
+    shape = SETBP1_top_target
+    )
+  ) +
+  scale_alpha_manual(values = c("TRUE" = 0.85, "FALSE" = 0.45)) +
+  scale_colour_viridis_d(end = 0.7) +
+  labs(
+    x = "-(Weighted Connectivity Score)",
+    y = "SETBP1 & Drug Target",
+    colour = "Priority SETBP1 Target",
+    shape = "Max Drug Approval Phase"
+  ) +
+  guides(size = "none", alpha = "none") +
+  theme_minimal() +
+  theme(text = element_text(face = "bold"))
+
+ggsave(paste0(filepath, "setbp1_drugs_shared.png"), width = 19, height = 16, units = "cm")
+
+# full drug annotations for setbp1-target-targeting drugs
+
+setbp1_drugs <- brain_drugs_anno %>%
+  filter(pert %in% drug_targets_setbp1$pert)
+summary(setbp1_drugs)
+unique(setbp1_drugs$indication_class)
+unique(setbp1_drugs$mechanism_of_action)
+
+setbp1_drugs %>%
+  filter(!is.na(mechanism_of_action)) %>%
+  add_count(mechanism_of_action) %>%
+  ggplot(aes(
+    y = reorder(mechanism_of_action, n) 
+    # x = -WTCS
+   )) +
+  geom_bar(aes(
+    fill = pref_name
+    # alpha = SETBP1_top_target,
+    # shape = SETBP1_top_target
+    )
+  ) +
+  # scale_alpha_manual(values = c("TRUE" = 0.85, "FALSE" = 0.45)) +
+  scale_fill_viridis_d(end = 0.7) +
+  labs(
+    y = "MOA",
+    fill = "Drug with SETBP1 Target"
+  ) +
+  # guides(size = "none", alpha = "none") +
+  theme_minimal() +
+  theme(text = element_text(face = "bold"))
+
+ggsave(paste0(filepath, "moa_setbp1_drugs_shared.png"), width = 19, height = 16, units = "cm")
+
 # target set enrichment analysis
 brain_drugs_filt <- filter(lincs_brain, !is.na(t_gn_sym))
 tsea_go <- tsea_dup_hyperG(drugs = unique(brain_drugs_filt$pert), type = "GO", ont = "MF", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
@@ -200,11 +286,30 @@ approved_drugs %>%
 ggsave(paste0(filepath, "approved_drugs_braincells_full.png"), width = 16, height = 25, units = "cm")
 
 approved_drugs %>%
-  slice_min(WTCS, n = 30) %>%
+  slice_min(WTCS, n = 50) %>%
+  mutate(SETBP1_Target = ifelse(pert %in% drug_targets_setbp1$pert, TRUE, FALSE)) %>%
   ggplot(aes(
-    x = -WTCS, y = reorder(pref_name, -WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
-    )) +
-  geom_point()
+    x = -WTCS, y = reorder(pref_name, -WTCS))) +
+  geom_point(aes(
+    alpha = SETBP1_Target, 
+    colour = cell, 
+    size = -log10(WTCS_Pval), 
+    shape = SETBP1_Target)
+) +
+  scale_size(range = c(4,7.5)) +
+  scale_alpha_manual(values = c("TRUE" = 0.85, "FALSE" = 0.45)) +
+  scale_colour_viridis_d(end = 0.9) +
+  labs(
+    x = "-(Weighted Connectivity Score)",
+    y = "Drug Name",
+    shape = "Priority SETBP1 Target",
+    size = "-log10(P-value)",
+    colour = "Cell Line"
+  ) +
+  guides(size = "none", alpha = "none") +
+  theme_minimal() +
+  theme(text = element_text(face = "bold"))
+
 ggsave(paste0(filepath, "approved_drugs_braincells_topWTCS.png"), width = 16, height = 25, units = "cm")
 
 ### MOA ###
@@ -218,9 +323,14 @@ sort(table(approved_moa$MOA))
 length(unique(approved_moa$mergeMOA))
 
 approved_moa %>%
-  filter(n > 1) %>%
+  filter(n > 2) %>%
   ggplot(aes(
     y = reorder(MOA, n), fill = cell
   )) +
-  geom_bar(position = "stack")
+  labs(y = "Mechanism of Action of Approved Drugs") +
+  scale_fill_viridis_d(end = 0.9) +
+  geom_bar(position = "stack") +
+  theme_minimal() +
+  theme(text = element_text(face = "bold"))
+
 ggsave(paste0(filepath, "approved_drugs_top_moa.png"), width = 20, height = 20, units = "cm")
