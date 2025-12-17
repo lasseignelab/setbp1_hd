@@ -2,7 +2,6 @@
 
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=16G
-#SBATCH --partition=medium
 #SBATCH --partition=express
 
 cap_data_download \
