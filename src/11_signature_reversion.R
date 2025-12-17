@@ -9,55 +9,47 @@ suppressPackageStartupMessages({
   library(ExperimentHub)
   library(rhdf5)
 })
-#
-# # create parser object
-# parser <- ArgumentParser()
-#
-# parser$add_argument("-d", "--degs",
-#   type = "character",
-#   metavar = "PATH",
-#   help = "RSE file (rds format) for EDA from recount3 data (00_data_download or 01_data_preprocessing)" # nolint
-# )
-# parser$add_argument("-s", "--sra",
-#   type = "character",
-#   metavar = "PATH",
-#   help = "SRA or dataset for naming purposes" # nolint
-# )
-# parser$add_argument("-o", "--output_dir",
-#   type = "character",
-#   metavar = "PATH",
-#   help = "Path to the directory to create and write EDA results"
-# )
-#
-# # get command line options, if help option encountered print help and exit
-# args <- parser$parse_args()
-#
-# # source functions file if supplied
-# if (!is.null(args$functions)) source(args$functions)
-#
-# # start timer
-# ptm <- proc.time()
-#
-# #### Set variables for dataset ####
-# print(paste0("Reading in RSE from: ", args$rse))
-#
-# degs <- read_csv(args$rse)
 
-cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
-filepath <- "./results/signature_reversion/composite_"
+# create parser object
+parser <- ArgumentParser()
 
+parser$add_argument("-i", "--input_dir",
+  type = "character",
+  metavar = "PATH",
+  help = "Path to data directory"
+)
+parser$add_argument("-o", "--output_dir",
+  type = "character",
+  metavar = "PATH",
+  help = "Path to the results directory to read consensus signature and write signatureSearch results" # nolint
+)
+
+# get command line options, if help option encountered print help and exit
+args <- parser$parse_args()
+
+# source functions file if supplied
+if (!is.null(args$functions)) source(args$functions)
+
+# start timer
+ptm <- proc.time()
+
+#### Set variables for dataset ####
+
+datapath <- args$input_dir
+cachedir <- paste0(datapath, "ExperimentHubCache")
+resdir <- args$output_dir
+filepath <- paste0(resdir, "signature_reversion/")
+querypath <- paste0(resdir, "consensus_signature/")
+
+# datapath <- "./results/consensus_signature/"
+# cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
+# filepath <- "./results/signature_reversion/"
 # create dirs if needed
-# filepath <- paste0(args$output_dir, sra, "/")
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
 
-# majority/high freq signature
-datapath <- "./results/consensus_signature/"
-# RRA signature
-rra_degs <- read_csv(paste0(datapath, "rankaggregate_consensus_signature.csv"))
-setbp1_targets <- read_csv("./doc/241203_setbp1_targets_prioritized.csv")
+###### EXPERIMENT HUB SET UP ######
 
-# explore sigsearch data
 setExperimentHubOption("ASK", FALSE)
 setExperimentHubOption("CACHE", cachedir)
 
@@ -65,33 +57,41 @@ message("Using cache directory: ", cachedir)
 
 # getExperimentHubOption("CACHE")
 # removeCache(eh, ask = FALSE)
-eh <- ExperimentHub(localHub = FALSE)
-ssdata <- query(eh, c("signatureSearchData"))
-ssdata
-ssdata$title
-as.list(ssdata[4])
-
+eh <- ExperimentHub()#localHub = FALSE)
 # lincs 2020 filepath and db exploration
 lincs2 <- eh[["EH7297"]]
 
+# load LINCS perturbation annotations
 data(lincs_pert_info2)
 
+###### READ IN DATA ######
+
+# RRA signature
+rra_degs <- read_csv(paste0(querypath, "rankaggregate_consensus_signature.csv"))
+setbp1_targets <- read_csv(paste0(
+  datapath, "241203_setbp1_targets_prioritized.csv"))
+
+###### PREPARE QUERY SIGNATURE ######
+
+# genes available in LINCS DB
 db_genes <- h5read(lincs2, "rownames", drop = TRUE)
 
 # up vs down DEGs in signature
-composite_up <- rra_degs %>% #composite_signature %>%
+composite_up <- rra_degs %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC > 0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
 summary(composite_up)
 
-composite_down <- rra_degs %>% #composite_signature %>% 
+composite_down <- rra_degs %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC < -0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
 summary(composite_down)
+
+###### SIGNATURE REVERSION ######
 
 # query LINCS signatures
 qsig_lincs <- qSig(
@@ -114,45 +114,41 @@ lincs_brain <- lincs@result %>%
 head(lincs_brain)
 
 # annotate drugs
-lincs_brain_drugs <- lincs_brain %>%
+brain_drugs_anno <- lincs_brain %>%
   left_join(lincs_pert_info2, by = c("pert" = "pert_id"))
-head(lincs_brain_drugs)
-unique(lincs_brain_drugs$mergeMOA)
-table(lincs_brain_drugs$max_phase)
+head(brain_drugs_anno)
+unique(brain_drugs_anno$mergeMOA)
+table(brain_drugs_anno$max_phase)
 
-write_rds(lincs_brain_drugs, paste0(filepath, "gess_lincs_anno_braincell_results2.rds"))
-# lincs_brain_drugs_prev <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
-# setdiff(lincs_brain_drugs$pref_name, lincs_brain_drugs_prev$pref_name)
-# setdiff(lincs_brain_drugs_prev$pref_name, lincs_brain_drugs$pref_name)
+write_rds(brain_drugs_anno, paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+# brain_drugs_anno<- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+# setdiff(brain_drugs_anno$pref_name, brain_drugs_anno$pref_name)
+# setdiff(brain_drugs_anno$pref_name, brain_drugs_anno$pref_name)
 
-#### TARGET ANALYSIS ####
+###### TARGET ANALYSIS ######
 # separate targets by rows to compare drug targets
-brain_drug_targets <- lincs_brain_drugs %>%
+brain_drug_targets <- brain_drugs_anno %>%
   dplyr::select(
     pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway) %>%
   separate_longer_delim(mergeTargets, delim = "; ") %>%
   filter(!is.na(mergeTargets)) %>%
   add_count(mergeTargets) %>%
+  # annotate targets that are prioritized SETBP1 regulatory targets
   mutate(
     SETBP1_target = ifelse(mergeTargets %in% setbp1_targets$target, TRUE, FALSE))
 
 # drug target histogram
 brain_drug_targets %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
-  # filter(n > 4) %>%
-  # ggplot(aes(y = reorder(mergeTargets, n), x = n)) +
   ggplot(aes(y = n, fill = SETBP1_target)) +
   geom_bar()
-  # geom_bar(stat = "identity", aes(fill = SETBP1_target))
-  # geom_histogram(stat = "count")
 ggsave(paste0(filepath, "drug_targets_histogram.png"), width = 19, height = 24, units = "cm")
 
-# find SETBP1 targets that are also drug targets
+# filter for drugs that target any prioritized SETBP1 regulatory targets
 drug_targets_setbp1 <- brain_drug_targets %>%
-  inner_join(setbp1_targets, by = c("mergeTargets" = "target")) %>%
-  # semi_join(brain_drug_targets %>% filter(SETBP1_target == TRUE), by = "pert") %>%
-  # separate_longer_delim(mergeTargets, delim = "; ") %>%
+  filter(SETBP1_target == TRUE) %>%
   distinct()
+drug_targets_setbp1
 
 unique(drug_targets_setbp1$pref_name) 
 unique(drug_targets_setbp1$mergeTargets) 
@@ -187,7 +183,7 @@ result(dsea_go)
 # result(dsea_kegg)
 
 #### APPROVED/POST-MARKET DRUGS ####
-approved_drugs <- lincs_brain_drugs %>%
+approved_drugs <- brain_drugs_anno %>%
   # filter for approved drugs
   filter(max_phase == 4)
 unique(approved_drugs$pref_name)
