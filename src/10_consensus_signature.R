@@ -276,10 +276,6 @@ tanaka_genes <- gorth(
   target_organism = "hsapiens"
 )
 
-tanaka_anno <- tanaka_genes %>%
-  select(gene_name = ortholog_name) %>%
-  mutate(contrast = "Tanaka_DEG")
-
 valid_degs <- tanaka_degs %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
   select(
