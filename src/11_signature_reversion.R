@@ -272,7 +272,7 @@ result(dsea_go)
 approved_drugs <- brain_drugs_anno %>%
   # max WTCS to help with plot ordering
   group_by(pref_name) %>%
-  mutate(drug_max_WTCS = max(abs(WTCS))) %>%
+  mutate(drug_top_WTCS = min(WTCS)) %>%
   ungroup() %>%
   add_count(pert) %>%
   # filter for approved drugs
@@ -284,23 +284,23 @@ write_csv(approved_drugs, paste0(filepath, "approved_drugs_braincell_res.csv"))
 approved_drugs %>%
   filter(n > 1) %>%
   ggplot(aes(
-    x = -WTCS, y = reorder(pref_name, drug_max_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
+    x = -WTCS, y = reorder(pref_name, drug_top_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
     )) +
   geom_point()
 ggsave(paste0(filepath, "approved_drugs_braincells_multiplecells.png"), width = 16, height = 25, units = "cm")
 
 approved_drugs %>%
   ggplot(aes(
-    x = -WTCS, y = reorder(pref_name, drug_max_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
+    x = -WTCS, y = reorder(pref_name, -drug_top_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
     )) +
   geom_point()
-ggsave(paste0(filepath, "approved_drugs_braincells_full.png"), width = 16, height = 25, units = "cm")
+ggsave(paste0(filepath, "approved_drugs_braincells_full.png"), width = 16, height = 29, units = "cm")
 
 approved_drugs %>%
-  slice_min(WTCS, n = 50) %>%
+  slice_min(drug_top_WTCS, n = 50) %>%
   mutate(SETBP1_Target = ifelse(pert %in% drug_targets_setbp1$pert, TRUE, FALSE)) %>%
   ggplot(aes(
-    x = -WTCS, y = reorder(pref_name, -WTCS))) +
+    x = -WTCS, y = reorder(pref_name, -drug_top_WTCS))) +
   geom_point(aes(
     alpha = SETBP1_Target, 
     colour = cell, 
@@ -321,7 +321,7 @@ approved_drugs %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
-ggsave(paste0(filepath, "approved_drugs_braincells_topWTCS.png"), width = 16, height = 25, units = "cm")
+ggsave(paste0(filepath, "approved_drugs_braincells_topWTCS.png"), width = 19, height = 25, units = "cm")
 
 ### MOA ###
 approved_moa <- data.frame(approved_drugs) %>%
