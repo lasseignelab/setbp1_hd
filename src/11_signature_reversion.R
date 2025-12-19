@@ -270,15 +270,26 @@ result(dsea_go)
 
 #### APPROVED/POST-MARKET DRUGS ####
 approved_drugs <- brain_drugs_anno %>%
+  # max WTCS to help with plot ordering
+  group_by(pref_name) %>%
+  mutate(drug_max_WTCS = max(abs(WTCS))) %>%
+  ungroup() %>%
+  add_count(pert) %>%
   # filter for approved drugs
   filter(max_phase == 4)
+head(approved_drugs[,61:63])
 unique(approved_drugs$pref_name)
 write_csv(approved_drugs, paste0(filepath, "approved_drugs_braincell_res.csv"))
 
 approved_drugs %>%
-  # max WTCS to help with plot ordering
-  group_by(pref_name) %>%
-  mutate(drug_max_WTCS = max(abs(WTCS))) %>%
+  filter(n > 1) %>%
+  ggplot(aes(
+    x = -WTCS, y = reorder(pref_name, drug_max_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
+    )) +
+  geom_point()
+ggsave(paste0(filepath, "approved_drugs_braincells_multiplecells.png"), width = 16, height = 25, units = "cm")
+
+approved_drugs %>%
   ggplot(aes(
     x = -WTCS, y = reorder(pref_name, drug_max_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
     )) +
