@@ -8,3 +8,6 @@ cap_data_link "$LASSEIGNE_LAB_PATH/GENOME_dir/GENCODE_human/hg38_release_45/GRCh
 cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/cardo"
 cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/shaw"
 cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/tanaka"
+
+# Wong et al 2025 source data to validate DEGs
+cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/wong"
