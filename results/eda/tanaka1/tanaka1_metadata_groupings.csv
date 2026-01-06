@@ -1,0 +1,5 @@
+"","genotype","sample_type","rep","sample_name","condition","SETBP1_TPM"
+"SRR24651383","heterozygous_Vav1-iCre_and_homozygous_Setbp1-floxed_allele","Setbp1_KO",2,"KO","SETBP1-HD",0.090643
+"SRR24651384","heterozygous_Vav1-iCre_and_homozygous_Setbp1-floxed_allele","Setbp1_KO",1,"KO","SETBP1-HD",0
+"SRR24651385","homozygous_Setbp1-floxed_allele","Control",2,"control","Control",0
+"SRR24651386","homozygous_Setbp1-floxed_allele","Control",1,"control","Control",0.031352

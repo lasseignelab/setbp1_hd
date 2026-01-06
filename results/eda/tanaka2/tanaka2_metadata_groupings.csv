@@ -1,0 +1,6 @@
+"","AGE","birth_date","genotype","create_date","sample_type","rep","sample_name","condition","SETBP1_TPM"
+"SRR22198886","21_wks","2021-6-26","heterozygous_Vav1-iCre_and_homozygous_Setbp1-floxed_allele","2022-11-05T12:37:00Z","Setbp1_KO",3,"Setbp1_KO","SETBP1-HD",0
+"SRR22198887","31_wks","2021-4-1","heterozygous_Vav1-iCre_and_homozygous_Setbp1-floxed_allele","2022-11-05T14:23:00Z","Setbp1_KO",2,"Setbp1_KO","SETBP1-HD",0
+"SRR22198888","31_wks","2021-4-1","heterozygous_Vav1-iCre_and_homozygous_Setbp1-floxed_allele","2022-11-05T13:36:00Z","Setbp1_KO",1,"Setbp1_KO","SETBP1-HD",0.027884
+"SRR22198889","31_wks","2021-4-1","homozygous_Setbp1-floxed_allele","2022-11-05T14:22:00Z","Control",2,"Control","Control",0.035943
+"SRR22198890","31_wks","2021-4-1","homozygous_Setbp1-floxed_allele","2022-11-05T14:23:00Z","Control",1,"Control","Control",0.029404
