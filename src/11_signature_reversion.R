@@ -69,6 +69,12 @@ data(lincs_pert_info2)
 
 # RRA signature
 rra_degs <- read_csv(paste0(querypath, "rankaggregate_consensus_signature.csv"))
+# TODO: FIGURE OUT DISCREPENCY HERE... 38 GENES IN 1ST BUT NOT OTHER, AND 8 IN THE 2ND BUT NOT 1ST
+# rra_degs2 <- read_csv(paste0(querypath, "RRA_meta_consensus_signature.csv")) %>%
+#   filter(Direction != "Non-Significant/Inconsistent")
+# str(rra_degs)
+# setdiff(rra_degs$gene_name, rra_degs2$gene_name)
+# setdiff(rra_degs2$gene_name, rra_degs$gene_name)
 setbp1_targets_all <- read_csv(paste0(
   datapath, "241203_setbp1_targets_names_only.csv"), col_names = FALSE)
 setbp1_targets_top <- read_csv(paste0(
@@ -122,6 +128,7 @@ brain_drugs_anno <- lincs_brain %>%
 head(brain_drugs_anno)
 unique(brain_drugs_anno$mergeMOA)
 table(brain_drugs_anno$max_phase)
+length(unique(brain_drugs_anno$pert))
 
 write_rds(brain_drugs_anno, paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
 # brain_drugs_anno <- read_rds(paste0(filepath, "composite_gess_lincs_anno_braincell_results.rds"))
@@ -150,10 +157,11 @@ brain_drug_targets %>%
   geom_bar()
 ggsave(paste0(filepath, "drug_targets_histogram.png"), width = 19, height = 24, units = "cm")
 
-# filter for drugs that target any prioritized SETBP1 regulatory targets
+# filter for drugs that target any SETBP1 regulatory targets
 drug_targets_setbp1 <- brain_drug_targets %>%
   filter(SETBP1_target == TRUE) %>%
   distinct()
+str(drug_targets_setbp1)
 print(n = 21, arrange(drug_targets_setbp1, pref_name))
 
 unique(drug_targets_setbp1$pref_name) 
