@@ -56,29 +56,32 @@ read_deg <- function(dataset_name) {
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
 
-
+# function to calculate performance metrics of signature by validation genes
 calculate_sig_performance <- function(sig_genes, true_genes, universe_genes) {
   # Standardize inputs
   sig_genes <- unique(sig_genes)
   true_genes <- unique(true_genes)
-  
+
   # Contingency Table Components
-  tp <- length(intersect(sig_genes, true_genes))           # True Positives
-  fp <- length(setdiff(sig_genes, true_genes))             # False Positives
-  fn <- length(setdiff(true_genes, sig_genes))             # False Negatives
-  tn <- length(universe_genes) - (tp + fp + fn)           # True Negatives
-  
+  tp <- length(intersect(sig_genes, true_genes)) # True Positives
+  fp <- length(setdiff(sig_genes, true_genes)) # False Positives
+  fn <- length(setdiff(true_genes, sig_genes)) # False Negatives
+  tn <- length(universe_genes) - (tp + fp + fn) # True Negatives
+
   # Metrics
   precision <- ifelse((tp + fp) == 0, 0, tp / (tp + fp))
-  recall    <- ifelse((tp + fn) == 0, 0, tp / (tp + fn))
-  f1        <- ifelse((precision + recall) == 0, 0, 
-                      2 * (precision * recall) / (precision + recall))
-  
+  recall <- ifelse((tp + fn) == 0, 0, tp / (tp + fn))
+  f1 <- ifelse((precision + recall) == 0, 0,
+    2 * (precision * recall) / (precision + recall)
+  )
+
   # Statistical enrichment (Hypergeometric test)
-  p_val <- phyper(tp - 1, length(true_genes), 
-                  length(universe_genes) - length(true_genes), 
-                  length(sig_genes), lower.tail = FALSE)
-  
+  p_val <- phyper(tp - 1, length(true_genes),
+    length(universe_genes) - length(true_genes),
+    length(sig_genes),
+    lower.tail = FALSE
+  )
+
   return(data.frame(
     Precision = precision,
     Recall = recall,
@@ -328,31 +331,17 @@ tanaka_genes <- gorth(
 valid_degs <- tanaka_degs %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
   select(
-    # symbol = ortholog_name,
     gene_name = ortholog_name,
-    # ensemblID = ortholog_ensg,
     gene = ortholog_ensg,
     logFC,
-    # log2FoldChange = logFC,
     padj = adj.P.Val, contrast, dataset
   ) %>%
   bind_rows(wong_fibro, wong_neu) %>%
   mutate(
-    contrast = coalesce(contrast, "unknown"), # Cleaner than ifelse(is.na...)
+    contrast = coalesce(contrast, "unknown"),
     dataset = coalesce(dataset, "wong")
   ) %>%
   filter(!is.na(gene))
-  # distinct() %>%
-  # bind_rows(wong_fibro) %>%
-  # mutate(
-  #   contrast = ifelse(is.na(contrast), "fibroblasts", contrast),
-  # ) %>%
-  # bind_rows(wong_neu) %>%
-  # mutate(
-  #   contrast = ifelse(is.na(contrast), "neurons", contrast),
-  #   dataset = ifelse(is.na(dataset), "wong", dataset)
-  # ) %>%
-  # filter(!is.na(ensemblID))
 write_csv(valid_degs, paste0(outdir, "validation_datasets_DEGs.csv"))
 
 valid_degs_wide <- valid_degs %>%
@@ -362,51 +351,30 @@ valid_degs_wide <- valid_degs %>%
   right_join(dataset_sig_degs, by = "gene") %>%
   mutate(across(where(is.numeric), ~ replace_na(.x, 0)))
 
-# --- create column annotations --- #
-# Extract column names from the matrix part (excluding gene/symbol)
-mat_cols <- colnames(valid_degs_wide)[3:ncol(valid_degs_wide)]
-
-# Define groups using case_when logic
-col_groups <- case_when(
-  grepl("_cardo_logFC$", mat_cols) ~ "cardo",
-  grepl("_shaw_logFC$", mat_cols)  ~ "shaw",
-  mat_cols == "meta_logFC"         ~ "meta",
-  TRUE                             ~ "validation"
-)
-
-# Define specific colors
-col_anno_colors <- c(
-  "cardo"      = "black", # Black
-  "shaw"       = "#377EB8", # Blue
-  "meta"       = "#4DAF4A", # Green
-  "validation" = "#984EA3"  # Purple
-)
-
-# dataset_sig_degs
-#
-# valid_degs_wide <- valid_degs %>%
-#   select(
-#     gene = ensemblID,
-#     gene_name = symbol,
-#     logFC = log2FoldChange,
-#     contrast, dataset
-#   ) %>%
-  # unite("contrast_dataset", contrast, dataset) %>%
-  # distinct() %>%
-  # pivot_wider(
-  #   names_from = contrast_dataset, values_from = logFC, values_fill = 0
-  # ) %>%
-  # right_join(dataset_sig_degs, by = "gene") %>%
-  # mutate(
-  #   across(3:length(.), ~ replace_na(.x, 0)),
-  #   gene_name = ifelse(is.na(gene_name), "", gene_name)
-  # )
-# print(n = 20, valid_degs_wide %>% select(!gene) %>% arrange(neurons_wong))
 write_csv(
   valid_degs_wide, paste0(outdir, "validation_datasets_consensus_DEGs.csv")
 )
 
-# Create the annotation object
+# --- create column annotations --- #
+mat_cols <- colnames(valid_degs_wide)[3:ncol(valid_degs_wide)]
+
+# define groups
+col_groups <- case_when(
+  grepl("_cardo_logFC$", mat_cols) ~ "cardo",
+  grepl("_shaw_logFC$", mat_cols) ~ "shaw",
+  mat_cols == "meta_logFC" ~ "meta",
+  TRUE ~ "validation"
+)
+
+# set colors by group
+col_anno_colors <- c(
+  "cardo"      = "#984EA3", # Purple
+  "shaw"       = "#377EB8", # Blue
+  "meta"       = "#4DAF4A", # Green
+  "validation" = "black" # Black
+)
+
+# create column annotation object
 column_ha <- HeatmapAnnotation(
   Source = col_groups,
   col = list(Source = col_anno_colors),
@@ -418,12 +386,13 @@ max_lfc <- max(abs(meta_stats$meta_logFC))
 col_fun <- circlize::colorRamp2(
   c(-max_lfc, 0, max_lfc), c("blue", "white", "red")
 )
-# Prepare Matrix
+
+# prepare Matrix
 plot_mat <- as.matrix(valid_degs_wide[, 3:ncol(valid_degs_wide)])
 rownames(plot_mat) <- valid_degs_wide$gene
 
-# Plot
-pdf(paste0(outdir, "validation_degs_annotated.pdf"), width = 10, height = 20)
+# plot
+pdf(paste0(outdir, "heatmap_all_degs_validation.pdf"), width = 10, height = 20)
 Heatmap(
   plot_mat,
   name = "Log2FC",
@@ -436,16 +405,8 @@ Heatmap(
   border = TRUE
 )
 dev.off()
-# # save
-# pdf(paste0(outdir, "validation_degs_full.pdf"), width = 10, height = 22)
-# Heatmap(
-#   as.matrix(
-#     valid_degs_wide[, 3:length(valid_degs_wide)]
-#   ),
-#   row_labels = valid_degs_wide$gene_name
-# )
-# dev.off()
 
+# --- create row (gene) annotations --- #
 ### gene functional pathway annotations ###
 pathway_map <- list(
   "Forebrain_Dev" = "GO:0030900", # forebrain dev
@@ -456,8 +417,10 @@ pathway_map <- list(
   "Wnt" = "KEGG:04310" # KEGG: Wnt signaling pathway
 )
 
+target_pathway_ids <- unlist(pathway_map)
+
 pathway_df <- gconvert(
-  query = target_pathway_ids, #target_ids,
+  query = target_pathway_ids,
   organism = "hsapiens",
   target = "HGNC",
   mthreshold = Inf,
@@ -483,11 +446,7 @@ valid_degs_min <- valid_degs_wide %>%
   filter(rowSums(select(., 3:4)) != 0) %>%
   filter(gene_name %in% pathways$GeneSymbol)
 
-### prepare Heatmap parameters ###
-
 # define row annotation based on established pathways
-target_pathway_ids <- unlist(pathway_map)
-
 pathways_pivoted <- pathways %>%
   distinct() %>%
   filter(STANDARD_NAME %in% target_pathway_ids) %>%
@@ -527,51 +486,24 @@ pathways_wide <- valid_degs_wide %>%
   select(GeneSymbol, Pathway, all_of(target_pathway_ids))
 str(pathways_wide)
 
-# Filter pathways_wide to only include genes present in your plot matrix
+# filter pathways for genes in plot matrix
 plot_annotation <- pathways_wide %>%
   filter(row.names(.) %in% valid_degs_min$gene) %>%
   select(Pathway)
 
 # Define a distinct color for each pathway
-# 'Other' is set to a neutral gray
 unique_pathways <- unique(plot_annotation$Pathway)
 pathway_colors <- setNames(
-  c(RColorBrewer::brewer.pal(min(length(unique_pathways), 8), "Set1"), "#D3D3D3"), 
+  c(RColorBrewer::brewer.pal(min(length(unique_pathways), 8), "Set1"), "#D3D3D3"),
   c(unique_pathways, "Other")
 )
-# pathway_colors["Other"] <- "#D3D3D3" 
 
-# Create the single-column row annotation
+# create row annotation
 gene_ha <- rowAnnotation(
   Pathway = plot_annotation$Pathway,
   col = list(Pathway = pathway_colors),
   show_annotation_name = TRUE
 )
-# # define the correct binary column names
-# binary_col_names <- unlist(names(pathway_map)) # Use the IDs as column names
-#
-# # set colors
-# unique_pathways <- unique(pathways_wide$Pathway)
-# pathway_colors <- setNames(
-#   colorRampPalette(
-#     RColorBrewer::brewer.pal(12, "Set3")
-#   )(length(unique_pathways)),
-#   unique_pathways
-# )
-#
-# binary_colors <- c("0" = "white", "1" = "gray70")
-# binary_color_list <- rep(list(binary_colors), length(binary_col_names))
-# names(binary_color_list) <- binary_col_names
-#
-# # creat gene row annotation
-# gene_ha <- rowAnnotation(
-#   df = pathways_wide %>% filter(row.names(.) %in% valid_degs_min$gene),
-#   col = binary_color_list,
-#   width = unit(7, "cm"),
-#   annotation_name_side = "top"
-# )
-
-
 
 ### plot heatmap ###
 heatmap_obj <- Heatmap(
@@ -602,15 +534,10 @@ heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
   annotation_df <- gene_data %>%
     filter(row.names(.) %in% genes) %>%
     select(Pathway)
-    # select(all_of(names(target_pathway_ids)))
 
   gene_ha <- rowAnnotation(
     Pathway = annotation_df$Pathway,
     col = list(Pathway = pathway_colors)
-    # df = annotation_df %>% select(all_of(binary_col_names)),
-    # col = binary_color_list,
-    # width = unit(7, "cm"),
-    # annotation_name_side = "top"
   )
 
   # create plot
@@ -648,7 +575,7 @@ hm_list <- lapply(seq_along(sig_list), function(sig) {
 
 # save all plots to one PDF
 pdf(
-  paste0(outdir, "heatmap_all_sigs_validation.pdf"),
+  paste0(outdir, "heatmap_validation_annotation_by_sig.pdf"),
   width = 10, height = 18
 )
 for (plot in hm_list) {
@@ -705,7 +632,7 @@ dev.off()
 lfc_th <- 0.1 # logFC threshold
 pval_th <- -log10(0.05) # p-value threshold
 
-plot_data <- rra %>%
+rra_meta <- rra %>%
   inner_join(meta_stats, by = c("Name" = "gene")) %>%
   mutate(
     RRA_pval = -log10(Score),
@@ -715,10 +642,10 @@ plot_data <- rra %>%
       TRUE ~ "Non-Significant/Inconsistent"
     )
   )
-table(plot_data$Direction)
+table(rra_meta$Direction)
 
 # top RRA genes that don't pass meta analysis threshold
-excluded_genes <- plot_data %>%
+excluded_genes <- rra_meta %>%
   filter(RRA_pval > pval_th) %>%
   filter(Direction == "Non-Significant/Inconsistent")
 str(excluded_genes)
@@ -734,12 +661,12 @@ dev.off()
 
 # save as meta-analysis labeled RRA signature
 write_csv(
-  plot_data, paste0(outdir, "RRA_meta_consensus_signature.csv")
+  rra_meta, paste0(outdir, "RRA_meta_consensus_signature.csv")
 )
-core_genes_label <- plot_data %>%
+core_genes_label <- rra_meta %>%
   slice_max(RRA_pval, n = 10)
 
-volcano_plot <- ggplot(plot_data, aes(x = meta_logFC, y = RRA_pval)) +
+volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
   geom_point(aes(color = Direction), alpha = 0.6, size = 2) +
   scale_color_manual(values = c(
     "Upregulated" = "firebrick3",
@@ -836,11 +763,10 @@ background_g <- unique(c(
 print(paste0("Number of background genes: ", length(background_g)))
 
 true_positives <- unique(c(
-  pathways$GeneSymbol, 
+  pathways$GeneSymbol,
   tanaka_genes$ortholog_name,
   wong_neu$gene_name, wong_fibro$gene_name
-  )
-)
+))
 print(paste0("Number of validation 'TP' genes: ", length(true_positives)))
 
 sig_list <- list(
@@ -867,16 +793,17 @@ ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
     aes(label = Signature),
     size = 4,
     fontface = "bold",
-    box.padding = 0.5,      # Distance from point
-    point.padding = 0.3,    # Distance from point edge
-    segment.color = 'grey50', # Line connecting text to point
-    max.overlaps = Inf      # Ensure all labels show
+    box.padding = 0.5, # Distance from point
+    point.padding = 0.3, # Distance from point edge
+    segment.color = "grey50", # Line connecting text to point
+    max.overlaps = Inf # Ensure all labels show
   ) +
   scale_color_viridis_c(option = "magma", end = 0.85) +
   # expand limits to ensure labels aren't cut off
   expand_limits(
-    x = c(0, max(performance_results$Recall) + 0.01), 
-    y = c(0, max(performance_results$Precision) + 0.01)) +
+    x = c(0, max(performance_results$Recall) + 0.01),
+    y = c(0, max(performance_results$Precision) + 0.01)
+  ) +
   theme_minimal() +
   labs(
     title = "Signature Performance vs. Validation Set",
