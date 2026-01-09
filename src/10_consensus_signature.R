@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(argparse)
   library(recount3)
   library(ggplot2)
+  library(ggrepel)
   library(UpSetR)
   library(ComplexHeatmap)
   library(statmod)
@@ -41,10 +42,10 @@ indir <- args$indir
 degs <- args$degs
 numsig <- args$numsig
 outdir <- args$outdir
-indir <- "./data/"
-degs <- "./results/dea/"
-numsig <- 300
-outdir <- "./results/consensus_signature/"
+# indir <- "./data/"
+# degs <- "./results/dea/"
+# numsig <- 300
+# outdir <- "./results/consensus_signature/"
 
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
