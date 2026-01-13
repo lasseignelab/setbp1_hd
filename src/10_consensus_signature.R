@@ -5,7 +5,6 @@ suppressPackageStartupMessages({
   library(argparse)
   library(recount3)
   library(ggplot2)
-  library(ggrepel)
   library(UpSetR)
   library(ComplexHeatmap)
   library(statmod)
@@ -643,97 +642,13 @@ pdf(
 print(rra_meta_exc)
 dev.off()
 
-core_genes_label <- rra_meta %>%
-  slice_max(RRA_pval, n = 10)
-
-volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
-  geom_point(aes(color = Direction), alpha = 0.6, size = 2) +
-  scale_color_manual(values = c(
-    "Upregulated" = "firebrick3",
-    "Downregulated" = "dodgerblue3",
-    "Non-Significant/Inconsistent" = "gray50"
-  )) +
-  # horizontal threshold line for RRA significance
-  geom_hline(
-    yintercept = pval_th, linetype = "dashed", color = "black"
-  ) +
-  # vertical threshold lines for logFC magnitude
-  geom_vline(
-    xintercept = c(-lfc_th, lfc_th),
-    linetype = "dashed",
-    color = "black"
-  ) +
-  labs(
-    title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
-    x = "MA Aggregate logFC (Magnitude)",
-    y = "-log10(RobustRankAggregate P-value)",
-    color = "Consensus Status"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-# add text labels for top genes
-labeled_volcano_plot <- volcano_plot +
-  ggrepel::geom_text_repel(
-    data = core_genes_label,
-    aes(label = gene_name),
-    size = 3.5,
-    box.padding = 0.5,
-    point.padding = 0.5,
-    segment.color = "grey50"
-  )
-ggsave(paste0(outdir, "RRAp_metalogFC_volcano.png"),
-  dpi = 300, height = 30, width = 26, units = "cm"
-)
 
 ###### ORA OF CONSENSUS SIGNATURES ######
 # run ORA for each signature
 ora_all <- gost(sig_list, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)
 results_df <- ora_all$result
 
-# prep data for plotting
-plot_df <- results_df %>%
-  filter(significant == TRUE) %>%
-  filter(term_size < 400) %>%
-  mutate(
-    neg_log10_p = -log10(p_value),
-    # Simplify term names for better readability
-    term_name = gsub("Homo sapiens ", "", term_name)
-  )
-
-# Create the comparative dot plot
-ggplot(plot_df, aes(x = query, y = reorder(term_name, neg_log10_p))) +
-  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
-  scale_color_viridis_c(name = "-log10(p-value)") +
-  labs(
-    x = "Query Condition",
-    y = "Enriched Term",
-    size = "Gene Overlap Size"
-  ) +
-  theme_minimal() +
-  theme(axis.text.y = element_text(size = 8)) +
-  facet_grid(source ~ ., scales = "free_y", space = "free_y")
-ggsave(paste0(outdir, "ORA_comparison_dotplot.png"),
-  dpi = 300, height = 30, width = 26, units = "cm"
-)
-
-plot_df %>%
-  group_by(query, source) %>%
-  summarise(
-    n_significant_terms = n(),
-    .groups = "drop"
-  ) %>%
-  ggplot(aes(x = query, y = n_significant_terms, fill = source)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  labs(
-    x = "Query Condition",
-    y = "Count of Significant Terms",
-    fill = "Data Source"
-  ) +
-  theme_classic()
-ggsave(paste0(outdir, "ORA_term_counts_barplot.png"),
-  dpi = 300, height = 22, width = 18, units = "cm"
-)
+write_csv(results_df, paste0(outdir, "ORA_signatures_results.csv"))
 
 ##### SIGNATURE PERFORMANCE VS VALIDATION SET #####
 # rra_meta <- read_csv(paste0(outdir, "RRA_meta_consensus_signature.csv"))
@@ -774,33 +689,8 @@ performance_results <- map_df(names(sig_list), function(name) {
 print(paste0("Performance metrics for signatures vs validation genes: "))
 print(performance_results)
 
-ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
-  geom_point(aes(size = -log10(P_Value))) +
-  geom_text_repel(
-    aes(label = Signature),
-    size = 4,
-    fontface = "bold",
-    box.padding = 0.5, # Distance from point
-    point.padding = 0.3, # Distance from point edge
-    segment.color = "grey50", # Line connecting text to point
-    max.overlaps = Inf # Ensure all labels show
-  ) +
-  scale_color_viridis_c(option = "magma", end = 0.85) +
-  # expand limits to ensure labels aren't cut off
-  expand_limits(
-    x = c(0, max(performance_results$Recall) + 0.01),
-    y = c(0, max(performance_results$Precision) + 0.01)
-  ) +
-  theme_minimal() +
-  labs(
-    title = "Signature Performance vs. Validation Set",
-    subtitle = "Size indicates statistical significance (Hypergeometric)",
-    x = "Recall (Sensitivity)",
-    y = "Precision (Positive Predictive Value)"
-  )
-ggsave(paste0(outdir, "signature_performance_validation.png"),
-  dpi = 300, height = 22, width = 18, units = "cm"
-)
+write_csv(
+  performance_results, paste0(outdir, "signature_performance_metrics.csv"))
 
 #### END ####
 

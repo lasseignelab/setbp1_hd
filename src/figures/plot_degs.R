@@ -6,6 +6,7 @@ suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
   library(ggplot2)
+  library(ggrepel)
   library(UpSetR)
   library(circlize)
   library(gprofiler2)
@@ -35,11 +36,11 @@ suppressPackageStartupMessages({
 # sig_degs_comb <- read_csv(args$degs)
 # degs <- args$degs
 # create output dir if needed
-# filepath <- paste0(args$output_dir, "/")
+# outdir <- paste0(args$output_dir, "/")
 degs <- "./results/dea/"
 indir <- "./results/consensus_signature/"
-filepath <- "././results/figures/"
-if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
+outdir <- "././results/figures/"
+if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 mytheme <- theme(
   panel.grid = element_blank(),
@@ -57,9 +58,15 @@ read_deg <- function(dataset_name) {
 all_degs <- bind_rows(
   read_deg("cardo"), read_deg("shaw"), read_deg("tanaka1"), read_deg("tanaka2")
 )
+#### READ IN ORA, PERFORMANCE, AND RRA-META RESULTS ####
 # consensus DEGs
 consensus_long <- read_csv(paste0(indir, "consensus_degs_unfiltered_long.csv"))
-
+# ORA results for signatures
+results_df <- read_csv(paste0(indir, "ORA_signatures_results.csv"))
+# performance metrics for signatures
+performance_results <- read_csv(paste0(indir, "signature_performance_metrics.csv"))
+# RRA signature with meta-analysis logFCs
+rra_meta<- read_csv(paste0(indir, "RRA_meta_DEGs.csv"))
 
 # DEG counts per dataset
 all_degs %>%
@@ -75,7 +82,7 @@ all_degs %>%
   ) +
   scale_x_log10(expand = expansion(mult = 0, 0.4)) +
   mytheme
-ggsave(filename = paste0(filepath, "degs_summary_bar.png"), width = 24, height = 22, units = "cm")
+ggsave(filename = paste0(outdir, "degs_summary_bar.png"), width = 24, height = 22, units = "cm")
 
 # DEG counts per contrast by dataset
 all_degs %>%
@@ -93,7 +100,7 @@ all_degs %>%
   labs(x = "Number of Significant DEGs", y = "Differential Expression Contrast (Comparison)") +
   # scale_x_log10(expand = expansion(mult = 0, 0.5)) +
   mytheme
-ggsave(filename = paste0(filepath, "degs_contrast_summary_bar.png"), width = 24, height = 22, units = "cm")
+ggsave(filename = paste0(outdir, "degs_contrast_summary_bar.png"), width = 24, height = 22, units = "cm")
 
 
 ### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
@@ -128,7 +135,7 @@ dataset_colors <- c(
 
 png(
   paste0(
-    filepath, "upset_plot_compare_datasets.png"
+    outdir, "upset_plot_compare_datasets.png"
   ),
   width = 30, height = 20, units = "cm", res = 300
 )
@@ -149,6 +156,130 @@ upset(compare_contrasts, order.by = "freq",
   ))
 )
 dev.off()
+
+### ORA RESULTS ACROSS SIGNATURES ###
+# prep data for plotting
+plot_df <- results_df %>%
+  filter(significant == TRUE) %>%
+  filter(term_size < 400) %>%
+  mutate(
+    neg_log10_p = -log10(p_value),
+    # Simplify term names for better readability
+    term_name = gsub("Homo sapiens ", "", term_name)
+  )
+
+# Create the comparative dot plot
+ggplot(plot_df, aes(x = query, y = reorder(term_name, neg_log10_p))) +
+  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
+  scale_color_viridis_c(name = "-log10(p-value)") +
+  labs(
+    x = "Query Condition",
+    y = "Enriched Term",
+    size = "Gene Overlap Size"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8)) +
+  facet_grid(source ~ ., scales = "free_y", space = "free_y")
+ggsave(paste0(outdir, "ORA_comparison_dotplot.png"),
+  dpi = 300, height = 30, width = 26, units = "cm"
+)
+
+plot_df %>%
+  group_by(query, source) %>%
+  summarise(
+    n_significant_terms = n(),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = query, y = n_significant_terms, fill = source)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(
+    x = "Query Condition",
+    y = "Count of Significant Terms",
+    fill = "Data Source"
+  ) +
+  theme_classic()
+ggsave(paste0(outdir, "ORA_term_counts_barplot.png"),
+  dpi = 300, height = 22, width = 18, units = "cm"
+)
+
+### PERFORMANCE OF SIGNATURES BY VALIDATION GENES ###
+
+ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
+  geom_point(aes(size = -log10(P_Value))) +
+  geom_text_repel(
+    aes(label = Signature),
+    size = 4,
+    fontface = "bold",
+    box.padding = 0.5, # Distance from point
+    point.padding = 0.3, # Distance from point edge
+    segment.color = "grey50", # Line connecting text to point
+    max.overlaps = Inf # Ensure all labels show
+  ) +
+  scale_color_viridis_c(option = "magma", end = 0.85) +
+  # expand limits to ensure labels aren't cut off
+  expand_limits(
+    x = c(0, max(performance_results$Recall) + 0.01),
+    y = c(0, max(performance_results$Precision) + 0.01)
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Signature Performance vs. Validation Set",
+    subtitle = "Size indicates statistical significance (Hypergeometric)",
+    x = "Recall (Sensitivity)",
+    y = "Precision (Positive Predictive Value)"
+  )
+ggsave(paste0(outdir, "signature_performance_validation.png"),
+  dpi = 300, height = 22, width = 18, units = "cm"
+)
+
+### RRA META-ANALYSIS SIGNATURE DEG VOLCANO PLOT ###
+lfc_th <- 0.1 # logFC threshold
+pval_th <- -log10(0.05) # p-value threshold
+
+core_genes_label <- rra_meta %>%
+  slice_max(RRA_pval, n = 10)
+
+volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
+  geom_point(aes(color = Direction), alpha = 0.6, size = 2) +
+  scale_color_manual(values = c(
+    "Upregulated" = "firebrick3",
+    "Downregulated" = "dodgerblue3",
+    "Non-Significant/Inconsistent" = "gray50"
+  )) +
+  # horizontal threshold line for RRA significance
+  geom_hline(
+    yintercept = pval_th, linetype = "dashed", color = "black"
+  ) +
+  # vertical threshold lines for logFC magnitude
+  geom_vline(
+    xintercept = c(-lfc_th, lfc_th),
+    linetype = "dashed",
+    color = "black"
+  ) +
+  labs(
+    title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
+    x = "MA Aggregate logFC (Magnitude)",
+    y = "-log10(RobustRankAggregate P-value)",
+    color = "Consensus Status"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# add text labels for top genes
+labeled_volcano_plot <- volcano_plot +
+  ggrepel::geom_text_repel(
+    data = core_genes_label,
+    aes(label = gene_name),
+    size = 3.5,
+    box.padding = 0.5,
+    point.padding = 0.5,
+    segment.color = "grey50"
+  )
+ggsave(paste0(outdir, "RRAp_metalogFC_volcano.png"),
+  dpi = 300, height = 30, width = 26, units = "cm"
+)
+
+
 
 # end timer
 fptm <- proc.time()
