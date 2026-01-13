@@ -204,6 +204,7 @@ summary(meta_stats)
 
 # save meta analysis
 write_csv(meta_stats, paste0(outdir, "metaanalysis_degs.csv"))
+# meta_stats <- read_csv(paste0(outdir, "metaanalysis_degs.csv"))
 
 ### opt 3) robust rang aggregate -- create ranked lists per contrast ###
 print(paste0("Finding robust rank aggregate (RRA) DEGs..."))
@@ -247,6 +248,8 @@ composite_scores <- freq_degs %>%
 write_csv(
   composite_scores, paste0(outdir, "composite_aggregate_all_scores_degs.csv")
 )
+# composite_scores <- read_csv(paste0(outdir, "composite_aggregate_all_scores_degs.csv"))
+
 ###### FILTER AND SAVE SIGNATURES ######
 
 # save majority/high freq signature
@@ -307,9 +310,8 @@ compare_sigs <- top_freq %>%
 
 # plot DEGs across data sets for signature genes
 dataset_sig_degs <- consensus_wide %>%
-  select(gene, contains("_logFC")) %>%
-  inner_join(composite_scores, by = "gene") %>%
-  select(gene, contains("_logFC")) %>%
+  select(gene, gene_name, contains("_logFC")) %>% 
+  inner_join(composite_scores %>% select(gene), by = "gene") %>%
   select(!contains("se_logFC")) %>%
   distinct()
 
@@ -332,7 +334,7 @@ tanaka_genes <- gorth(
 valid_degs <- tanaka_degs %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
   select(
-    gene_name = ortholog_name,
+    # gene_name = ortholog_name,
     gene = ortholog_ensg,
     logFC,
     padj = adj.P.Val, contrast, dataset
@@ -348,13 +350,27 @@ write_csv(valid_degs, paste0(outdir, "validation_datasets_DEGs.csv"))
 valid_degs_wide <- valid_degs %>%
   unite("contrast_dataset", contrast, dataset) %>%
   distinct(gene, contrast_dataset, .keep_all = TRUE) %>%
+  select(gene, gene_name, contrast_dataset, logFC) %>%
   pivot_wider(names_from = contrast_dataset, values_from = logFC, values_fill = 0) %>%
-  right_join(dataset_sig_degs, by = "gene") %>%
-  mutate(across(where(is.numeric), ~ replace_na(.x, 0)))
+  # Use full_join to keep everything from both sides
+  full_join(dataset_sig_degs, by = "gene", suffix = c(".valid", ".sig")) %>%
+  mutate(
+    # Merge the two name columns: if valid name is missing, use sig name
+    gene_name = coalesce(gene_name.valid, gene_name.sig),
+    # Clean up numeric NAs (for genes missing in one of the sets)
+    across(where(is.numeric), ~ replace_na(.x, 0))
+  ) %>%
+  # Remove the temporary suffix columns
+  select(-gene_name.valid, -gene_name.sig) %>%
+  relocate(gene_name, .after = gene) %>%
+  group_by(gene) %>%
+  slice_max(order_by = rowSums(across(where(is.numeric))), n = 1, with_ties = FALSE) %>%
+  ungroup()
 
 write_csv(
   valid_degs_wide, paste0(outdir, "validation_datasets_consensus_DEGs.csv")
 )
+# valid_degs_wide <- read_csv(paste0(outdir, "validation_datasets_consensus_DEGs.csv"))
 
 # --- create column annotations --- #
 mat_cols <- colnames(valid_degs_wide)[3:ncol(valid_degs_wide)]
@@ -645,11 +661,22 @@ rra_meta <- rra %>%
   )
 table(rra_meta$Direction)
 
-# top RRA genes that don't pass meta analysis threshold
+# filter RRA-meta consensus signature
+rra_meta_filt <- rra_meta %>%
+  filter(Direction != "Non-Significant/Inconsistent")
+
+# save as meta-analysis labeled RRA signature
+write_csv(
+  rra_meta, paste0(outdir, "RRA_meta_DEGs.csv")
+)
+write_csv(
+  rra_meta_filt, paste0(outdir, "RRA_meta_consensus_signature.csv")
+)
+
+# compare RRA alone to RRA-meta
+excluded <- setdiff(rra_results$gene_name, rra_meta_filt$gene_name)
 excluded_genes <- rra_meta %>%
-  filter(RRA_pval > pval_th) %>%
-  filter(Direction == "Non-Significant/Inconsistent")
-str(excluded_genes)
+  filter(gene_name %in% excluded)
 
 rra_meta_exc <- heatmap_by_method(valid_degs_wide, excluded_genes$Name, pathways_wide, title = "RRA Genes Excluded by Meta logFC Threshold")
 # save all plots to one PDF
@@ -660,10 +687,6 @@ pdf(
 print(rra_meta_exc)
 dev.off()
 
-# save as meta-analysis labeled RRA signature
-write_csv(
-  rra_meta, paste0(outdir, "RRA_meta_consensus_signature.csv")
-)
 core_genes_label <- rra_meta %>%
   slice_max(RRA_pval, n = 10)
 
@@ -757,6 +780,12 @@ ggsave(paste0(outdir, "ORA_term_counts_barplot.png"),
 )
 
 ##### SIGNATURE PERFORMANCE VS VALIDATION SET #####
+# rra_meta <- read_csv(paste0(outdir, "RRA_meta_consensus_signature.csv"))
+# composite_signature <- read_csv(paste0(outdir, "compositescore_consensus_signature.csv"))
+# rra_results <- read_csv(paste0(outdir, "rankaggregate_consensus_signature.csv"))
+# meta_a <- read_csv(paste0(outdir, "metaanalysis_consensus_signature.csv"))
+# top_freq <- read_csv(paste0(outdir, "majorityfreq_consensus_signature.csv"))
+
 # background genes (all possible DEGs for signature)
 background_g <- unique(c(
   cardo_degs$gene_name, shaw_degs$gene_name
@@ -771,6 +800,7 @@ true_positives <- unique(c(
 print(paste0("Number of validation 'TP' genes: ", length(true_positives)))
 
 sig_list <- list(
+  # RRA_Meta = c(rra_meta_filt)$gene_name,
   Composite = c(composite_signature)$gene_name,
   RRA = c(rra_results)$gene_name,
   Meta = c(meta_a)$gene_name,
