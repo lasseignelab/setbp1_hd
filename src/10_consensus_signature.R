@@ -135,9 +135,6 @@ consensus_degs <- combined_degs %>%
 consensus_degs
 table(consensus_degs$contrast)
 
-# save consensus DEGs
-write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
-
 # long format for plotting
 consensus_long <- consensus_degs %>%
   select(gene, gene_name, contrast, dataset, logFC, adj.P.Val, se_logFC) %>%
@@ -146,6 +143,10 @@ consensus_long <- consensus_degs %>%
     names_to = "metric",
     values_to = "value"
   )
+
+# save consensus DEGs
+write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
+write_csv(consensus_long, paste0(outdir, "consensus_degs_unfiltered_long.csv"))
 
 consensus_wide <- consensus_long %>%
   distinct() %>%
@@ -598,51 +599,6 @@ pdf(
 for (plot in hm_list) {
   print(plot)
 }
-dev.off()
-
-### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
-compare_contrasts <- consensus_long %>%
-  select(gene_name, contrast) %>%
-  distinct() %>%
-  mutate(value = 1) %>%
-  pivot_wider(
-    names_from = contrast, values_from = value, values_fill = 0
-  ) %>%
-  distinct() %>%
-  column_to_rownames(var = "gene_name")
-
-# set colors for upset plot
-contrast_dataset_map <- consensus_long %>%
-  distinct(contrast, dataset) %>%
-  bind_rows(
-    data.frame(
-      dataset = c("Tanaka"),
-      contrast = c("Tanaka_DEG")
-    )
-  )
-
-dataset_colors <- c(
-  "cardo" = "orange",
-  "shaw" = "steelblue",
-  "Tanaka" = "gray90"
-)
-
-png(
-  paste0(
-    outdir, "upset_plot_compare_datasets.png"
-  ),
-  width = 30, height = 20, units = "cm", res = 300
-)
-upset(compare_contrasts,
-  set.metadata = list(data = contrast_dataset_map, plots = list(
-    list(
-      type = "matrix_rows",
-      column = "dataset",
-      assign = 10,
-      colors = dataset_colors
-    )
-  ))
-)
 dev.off()
 
 ### RRA and Meta Analysis Volcano Plot ###

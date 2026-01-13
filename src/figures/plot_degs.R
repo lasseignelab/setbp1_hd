@@ -37,6 +37,7 @@ suppressPackageStartupMessages({
 # create output dir if needed
 # filepath <- paste0(args$output_dir, "/")
 degs <- "./results/dea/"
+indir <- "./results/consensus_signature/"
 filepath <- "././results/figures/"
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 
@@ -56,6 +57,9 @@ read_deg <- function(dataset_name) {
 all_degs <- bind_rows(
   read_deg("cardo"), read_deg("shaw"), read_deg("tanaka1"), read_deg("tanaka2")
 )
+# consensus DEGs
+consensus_long <- read_csv(paste0(indir, "consensus_degs_unfiltered_long.csv"))
+
 
 # DEG counts per dataset
 all_degs %>%
@@ -91,6 +95,60 @@ all_degs %>%
   mytheme
 ggsave(filename = paste0(filepath, "degs_contrast_summary_bar.png"), width = 24, height = 22, units = "cm")
 
+
+### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
+# prep names for plotting
+consensus_degs <- consensus_long %>%
+  mutate(
+    Dataset = str_to_title(dataset),
+    Contrast = gsub(contrast, replacement = " day", pattern = "_"),
+    Contrast = gsub(Contrast, replacement = " vs. ", pattern = "vs")
+  )
+str(consensus_degs)
+unique(consensus_degs$Contrast)
+
+compare_contrasts <- consensus_degs %>%
+  select(gene_name, Contrast) %>%
+  distinct() %>%
+  mutate(value = 1) %>%
+  pivot_wider(
+    names_from = Contrast, values_from = value, values_fill = 0
+  ) %>%
+  distinct() %>%
+  column_to_rownames(var = "gene_name")
+
+# set colors for upset plot
+contrast_dataset_map <- consensus_degs %>%
+  distinct(Contrast, Dataset)
+
+dataset_colors <- c(
+  "Cardo" = viridis(10)[[1]],
+  "Shaw" = viridis(10)[[7]]
+)
+
+png(
+  paste0(
+    filepath, "upset_plot_compare_datasets.png"
+  ),
+  width = 30, height = 20, units = "cm", res = 300
+)
+upset(compare_contrasts, order.by = "freq",
+  set.metadata = list(data = contrast_dataset_map, plots = list(
+    list(
+      type = "text",
+      column = "Dataset",
+      assign = 10,
+      colors = dataset_colors
+    ),
+    list(
+      type = "matrix_rows",
+      column = "Dataset",
+      assign = 10,
+      colors = dataset_colors
+      )
+  ))
+)
+dev.off()
 
 # end timer
 fptm <- proc.time()
