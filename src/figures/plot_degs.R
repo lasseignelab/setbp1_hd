@@ -161,29 +161,14 @@ dev.off()
 # prep data for plotting
 plot_df <- results_df %>%
   filter(significant == TRUE) %>%
-  filter(term_size < 400) %>%
+  filter(term_size < 300) %>%
   mutate(
     neg_log10_p = -log10(p_value),
     # Simplify term names for better readability
     term_name = gsub("Homo sapiens ", "", term_name)
   )
 
-# Create the comparative dot plot
-ggplot(plot_df, aes(x = query, y = reorder(term_name, neg_log10_p))) +
-  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
-  scale_color_viridis_c(name = "-log10(p-value)") +
-  labs(
-    x = "Query Condition",
-    y = "Enriched Term",
-    size = "Gene Overlap Size"
-  ) +
-  theme_minimal() +
-  theme(axis.text.y = element_text(size = 8)) +
-  facet_grid(source ~ ., scales = "free_y", space = "free_y")
-ggsave(paste0(outdir, "ORA_comparison_dotplot.png"),
-  dpi = 300, height = 30, width = 26, units = "cm"
-)
-
+# counts of terms
 plot_df %>%
   group_by(query, source) %>%
   summarise(
@@ -197,10 +182,51 @@ plot_df %>%
     y = "Count of Significant Terms",
     fill = "Data Source"
   ) +
-  theme_classic()
+  mytheme
+
 ggsave(paste0(outdir, "ORA_term_counts_barplot.png"),
   dpi = 300, height = 22, width = 18, units = "cm"
 )
+# Create the comparative dot plot
+plot_df %>%
+  ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
+  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
+  scale_color_viridis_c(name = "-log10(p-value)") +
+  labs(
+    x = "Query Condition",
+    y = "Enriched Term",
+    size = "Gene Overlap Size"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8)) +
+  facet_grid(source ~ ., scales = "free_y", space = "free_y")
+
+ggsave(paste0(outdir, "ORA_comparison_dotplot.png"),
+  dpi = 300, height = 25, width = 22, units = "cm"
+)
+
+# GO:BP only
+plot_df %>%
+  filter(!source %in% c("WP", "GO:MF", "GO:CC")) %>%
+  ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
+  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
+  scale_color_viridis_c(name = "-log10(p-value)") +
+  labs(
+    x = "Signature",
+    y = "Enriched Term",
+    size = "Gene Overlap Size"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Helvetica", face = "bold"),#, size = 16)
+    axis.text = element_text(size = 10)) +
+  facet_grid(source ~ ., scales = "free_y", space = "free_y")
+
+ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
+  dpi = 300, height = 25, width = 22, units = "cm"
+)
+
+
 
 ### PERFORMANCE OF SIGNATURES BY VALIDATION GENES ###
 
@@ -221,13 +247,14 @@ ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
     x = c(0, max(performance_results$Recall) + 0.01),
     y = c(0, max(performance_results$Precision) + 0.01)
   ) +
-  theme_minimal() +
   labs(
     title = "Signature Performance vs. Validation Set",
     subtitle = "Size indicates statistical significance (Hypergeometric)",
     x = "Recall (Sensitivity)",
     y = "Precision (Positive Predictive Value)"
-  )
+  ) +
+  mytheme
+
 ggsave(paste0(outdir, "signature_performance_validation.png"),
   dpi = 300, height = 22, width = 18, units = "cm"
 )
@@ -262,8 +289,8 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
     y = "-log10(RobustRankAggregate P-value)",
     color = "Consensus Status"
   ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom") +
+  mytheme
 
 # add text labels for top genes
 labeled_volcano_plot <- volcano_plot +
