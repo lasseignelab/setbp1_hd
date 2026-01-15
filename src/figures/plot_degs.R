@@ -6,10 +6,13 @@ suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
   library(ggplot2)
+  library(viridis)
   library(ggrepel)
   library(UpSetR)
   library(circlize)
   library(gprofiler2)
+  library(cowplot)
+  library(ggplotify)
 })
 
 # create parser object
@@ -46,7 +49,7 @@ mytheme <- theme(
   panel.grid = element_blank(),
   axis.ticks = element_blank(),
   panel.background = element_blank(),
-  text = element_text(family = "Helvetica", face = "bold", size = 16)
+  text = element_text(family = "Helvetica", face = "bold", size = 12)
   )
 #### READ IN AND COMBINE DEGS ACROSS DATA SETS ####
 # helper function to read in DEGs
@@ -133,13 +136,7 @@ dataset_colors <- c(
   "Shaw" = viridis(10)[[7]]
 )
 
-png(
-  paste0(
-    outdir, "upset_plot_compare_datasets.png"
-  ),
-  width = 30, height = 20, units = "cm", res = 300
-)
-upset(compare_contrasts, order.by = "freq",
+degs_upset <- upset(compare_contrasts, order.by = "freq",
   set.metadata = list(data = contrast_dataset_map, plots = list(
     list(
       type = "text",
@@ -155,6 +152,13 @@ upset(compare_contrasts, order.by = "freq",
       )
   ))
 )
+png(
+  paste0(
+    outdir, "upset_plot_compare_datasets.png"
+  ),
+  width = 30, height = 20, units = "cm", res = 300
+)
+degs_upset
 dev.off()
 
 ### ORA RESULTS ACROSS SIGNATURES ###
@@ -206,7 +210,7 @@ ggsave(paste0(outdir, "ORA_comparison_dotplot.png"),
 )
 
 # GO:BP only
-plot_df %>%
+ora_plot <- plot_df %>%
   filter(!source %in% c("WP", "GO:MF", "GO:CC")) %>%
   ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
   geom_point(aes(size = intersection_size, color = neg_log10_p)) +
@@ -222,6 +226,7 @@ plot_df %>%
     axis.text = element_text(size = 10)) +
   facet_grid(source ~ ., scales = "free_y", space = "free_y")
 
+ora_plot
 ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
   dpi = 300, height = 25, width = 22, units = "cm"
 )
@@ -230,11 +235,11 @@ ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
 
 ### PERFORMANCE OF SIGNATURES BY VALIDATION GENES ###
 
-ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
+performance_plot <- ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
   geom_point(aes(size = -log10(P_Value))) +
   geom_text_repel(
     aes(label = Signature),
-    size = 4,
+    size = 4.5,
     fontface = "bold",
     box.padding = 0.5, # Distance from point
     point.padding = 0.3, # Distance from point edge
@@ -248,13 +253,19 @@ ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
     y = c(0, max(performance_results$Precision) + 0.01)
   ) +
   labs(
-    title = "Signature Performance vs. Validation Set",
-    subtitle = "Size indicates statistical significance (Hypergeometric)",
+    # title = "Signature Performance vs. Validation Set",
+    # subtitle = "Size indicates statistical significance (Hypergeometric)",
     x = "Recall (Sensitivity)",
     y = "Precision (Positive Predictive Value)"
   ) +
+  theme(
+    legend.position = "inside", 
+    legend.position.inside = c(.98, .05), 
+    legend.justification = c("right", "bottom")
+  ) +
   mytheme
 
+performance_plot
 ggsave(paste0(outdir, "signature_performance_validation.png"),
   dpi = 300, height = 22, width = 18, units = "cm"
 )
@@ -284,16 +295,20 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
     color = "black"
   ) +
   labs(
-    title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
+    # title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
     x = "MA Aggregate logFC (Magnitude)",
     y = "-log10(RobustRankAggregate P-value)",
     color = "Consensus Status"
   ) +
-  theme(legend.position = "bottom") +
-  mytheme
-
+  theme(
+    legend.position = "inside", 
+    legend.background = element_rect(fill = (alpha("white", 0.6))),
+    legend.position.inside = c(1, .05), 
+    legend.justification = c("right", "bottom")
+  ) +
+  mytheme +
 # add text labels for top genes
-labeled_volcano_plot <- volcano_plot +
+# labeled_volcano_plot <- volcano_plot +
   ggrepel::geom_text_repel(
     data = core_genes_label,
     aes(label = gene_name),
@@ -302,11 +317,32 @@ labeled_volcano_plot <- volcano_plot +
     point.padding = 0.5,
     segment.color = "grey50"
   )
+volcano_plot
+
 ggsave(paste0(outdir, "RRAp_metalogFC_volcano.png"),
   dpi = 300, height = 30, width = 26, units = "cm"
 )
 
+#### FIGURE 3 ASSEMBLY ####
+bottom_row <- plot_grid(performance_plot, volcano_plot, labels = c('B', 'C'))
+png(paste0(outdir, "figure_3.png"),
+  width = 350,
+  height = 425,
+  units = "mm",
+  res = 300
+)
 
+cowplot::plot_grid(
+  # as.ggplot(degs_upset),
+  ora_plot,
+  bottom_row,
+  # performance_plot,
+  # volcano_plot,
+  labels = c('A', ''),# "AUTO"
+  ncol = 1
+)
+
+dev.off()
 
 # end timer
 fptm <- proc.time()
