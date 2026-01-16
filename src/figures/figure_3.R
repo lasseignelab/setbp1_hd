@@ -45,7 +45,7 @@ degs <- args$degs
 outdir <- args$output_dir
 
 # create output dir if needed
- outdir <- "././results/figures/"
+outdir <- "././results/figures/"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 mytheme <- theme(
@@ -253,7 +253,9 @@ ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
 
 ### PERFORMANCE OF SIGNATURES BY VALIDATION GENES ###
 
-performance_plot <- ggplot(performance_res, aes(x = Recall, y = Precision, color = F1_Score)) +
+performance_plot <- ggplot(
+  performance_res, aes(x = Recall, y = Precision, color = F1_Score)
+) +
   geom_point(aes(size = -log10(P_Value))) +
   geom_label_repel(
     aes(label = Signature),
