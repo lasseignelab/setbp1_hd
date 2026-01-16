@@ -45,9 +45,7 @@ degs <- args$degs
 outdir <- args$output_dir
 
 # create output dir if needed
-# degs <- "./results/dea/"
-# indir <- "./results/consensus_signature/"
-# outdir <- "././results/figures/"
+ outdir <- "././results/figures/"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 mytheme <- theme(
@@ -115,7 +113,6 @@ all_degs %>%
     x = "Number of Significant DEGs",
     y = "Differential Expression Contrast (Comparison)"
   ) +
-  # scale_x_log10(expand = expansion(mult = 0, 0.5)) +
   mytheme
 ggsave(
   filename = paste0(outdir, "degs_contrast_summary_bar.png"),
@@ -254,8 +251,6 @@ ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
   dpi = 300, height = 25, width = 22, units = "cm"
 )
 
-
-
 ### PERFORMANCE OF SIGNATURES BY VALIDATION GENES ###
 
 performance_plot <- ggplot(performance_res, aes(x = Recall, y = Precision, color = F1_Score)) +
@@ -333,6 +328,7 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
   ggrepel::geom_text_repel(
     data = core_genes_label,
     aes(label = gene_name),
+    seed = 42,
     size = 5.5,
     fontface = "bold",
     min.segment.length = 0,
