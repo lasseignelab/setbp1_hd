@@ -41,10 +41,6 @@ indir <- args$indir
 degs <- args$degs
 numsig <- args$numsig
 outdir <- args$outdir
-# indir <- "./data/"
-# degs <- "./results/dea/"
-# numsig <- 300
-# outdir <- "./results/consensus_signature/"
 
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
@@ -82,14 +78,14 @@ calculate_sig_performance <- function(sig_genes, true_genes, universe_genes) {
     lower.tail = FALSE
   )
 
-  return(data.frame(
+  data.frame(
     Precision = precision,
     Recall = recall,
     F1_Score = f1,
     P_Value = p_val,
     TP = tp,
     FP = fp
-  ))
+  )
 }
 
 # start timer
@@ -204,7 +200,6 @@ summary(meta_stats)
 
 # save meta analysis
 write_csv(meta_stats, paste0(outdir, "metaanalysis_degs.csv"))
-# meta_stats <- read_csv(paste0(outdir, "metaanalysis_degs.csv"))
 
 ### opt 3) robust rang aggregate -- create ranked lists per contrast ###
 print(paste0("Finding robust rank aggregate (RRA) DEGs..."))
@@ -248,7 +243,6 @@ composite_scores <- freq_degs %>%
 write_csv(
   composite_scores, paste0(outdir, "composite_aggregate_all_scores_degs.csv")
 )
-# composite_scores <- read_csv(paste0(outdir, "composite_aggregate_all_scores_degs.csv"))
 
 ###### FILTER AND SAVE SIGNATURES ######
 
@@ -310,8 +304,12 @@ compare_sigs <- top_freq %>%
 
 # plot DEGs across data sets for signature genes
 dataset_sig_degs <- consensus_wide %>%
-  select(gene, gene_name, contains("_logFC")) %>% 
-  inner_join(composite_scores %>% select(gene), by = "gene") %>%
+  select(gene, gene_name, contains("_logFC")) %>%
+  inner_join(
+    composite_scores %>%
+      select(gene),
+    by = "gene"
+  ) %>%
   select(!contains("se_logFC")) %>%
   distinct()
 
@@ -334,7 +332,6 @@ tanaka_genes <- gorth(
 valid_degs <- tanaka_degs %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
   select(
-    # gene_name = ortholog_name,
     gene = ortholog_ensg,
     logFC,
     padj = adj.P.Val, contrast, dataset
@@ -351,7 +348,9 @@ valid_degs_wide <- valid_degs %>%
   unite("contrast_dataset", contrast, dataset) %>%
   distinct(gene, contrast_dataset, .keep_all = TRUE) %>%
   select(gene, gene_name, contrast_dataset, logFC) %>%
-  pivot_wider(names_from = contrast_dataset, values_from = logFC, values_fill = 0) %>%
+  pivot_wider(
+    names_from = contrast_dataset, values_from = logFC, values_fill = 0
+  ) %>%
   # Use full_join to keep everything from both sides
   full_join(dataset_sig_degs, by = "gene", suffix = c(".valid", ".sig")) %>%
   mutate(
@@ -364,13 +363,16 @@ valid_degs_wide <- valid_degs %>%
   select(-gene_name.valid, -gene_name.sig) %>%
   relocate(gene_name, .after = gene) %>%
   group_by(gene) %>%
-  slice_max(order_by = rowSums(across(where(is.numeric))), n = 1, with_ties = FALSE) %>%
+  slice_max(
+    order_by = rowSums(across(where(is.numeric))),
+    n = 1,
+    with_ties = FALSE
+  ) %>%
   ungroup()
 
 write_csv(
   valid_degs_wide, paste0(outdir, "validation_datasets_consensus_DEGs.csv")
 )
-# valid_degs_wide <- read_csv(paste0(outdir, "validation_datasets_consensus_DEGs.csv"))
 
 # --- create column annotations --- #
 mat_cols <- colnames(valid_degs_wide)[3:ncol(valid_degs_wide)]
@@ -511,7 +513,9 @@ plot_annotation <- pathways_wide %>%
 # Define a distinct color for each pathway
 unique_pathways <- unique(plot_annotation$Pathway)
 pathway_colors <- setNames(
-  c(RColorBrewer::brewer.pal(min(length(unique_pathways), 8), "Set1"), "#D3D3D3"),
+  c(RColorBrewer::brewer.pal(
+    min(length(unique_pathways), 8), "Set1"
+  ), "#D3D3D3"),
   c(unique_pathways, "Other")
 )
 
@@ -633,7 +637,12 @@ excluded <- setdiff(rra_results$gene_name, rra_meta_filt$gene_name)
 excluded_genes <- rra_meta %>%
   filter(gene_name %in% excluded)
 
-rra_meta_exc <- heatmap_by_method(valid_degs_wide, excluded_genes$Name, pathways_wide, title = "RRA Genes Excluded by Meta logFC Threshold")
+rra_meta_exc <- heatmap_by_method(
+  valid_degs_wide,
+  excluded_genes$Name,
+  pathways_wide,
+  title = "RRA Genes Excluded by Meta logFC Threshold"
+)
 # save all plots to one PDF
 pdf(
   paste0(outdir, "heatmap_rra_meta_excluded.pdf"),
@@ -651,12 +660,6 @@ results_df <- ora_all$result
 write_csv(results_df, paste0(outdir, "ORA_signatures_results.csv"))
 
 ##### SIGNATURE PERFORMANCE VS VALIDATION SET #####
-# rra_meta <- read_csv(paste0(outdir, "RRA_meta_consensus_signature.csv"))
-# composite_signature <- read_csv(paste0(outdir, "compositescore_consensus_signature.csv"))
-# rra_results <- read_csv(paste0(outdir, "rankaggregate_consensus_signature.csv"))
-# meta_a <- read_csv(paste0(outdir, "metaanalysis_consensus_signature.csv"))
-# top_freq <- read_csv(paste0(outdir, "majorityfreq_consensus_signature.csv"))
-
 # background genes (all possible DEGs for signature)
 background_g <- unique(c(
   cardo_degs$gene_name, shaw_degs$gene_name
@@ -671,7 +674,6 @@ true_positives <- unique(c(
 print(paste0("Number of validation 'TP' genes: ", length(true_positives)))
 
 sig_list <- list(
-  # RRA_Meta = c(rra_meta_filt)$gene_name,
   Composite = c(composite_signature)$gene_name,
   RRA = c(rra_results)$gene_name,
   Meta = c(meta_a)$gene_name,
@@ -690,7 +692,8 @@ print(paste0("Performance metrics for signatures vs validation genes: "))
 print(performance_results)
 
 write_csv(
-  performance_results, paste0(outdir, "signature_performance_metrics.csv"))
+  performance_results, paste0(outdir, "signature_performance_metrics.csv")
+)
 
 #### END ####
 
