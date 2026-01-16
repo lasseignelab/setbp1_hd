@@ -45,7 +45,6 @@ degs <- args$degs
 outdir <- args$output_dir
 
 # create output dir if needed
-outdir <- "././results/figures/"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 mytheme <- theme(
