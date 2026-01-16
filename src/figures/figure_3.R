@@ -12,37 +12,42 @@ suppressPackageStartupMessages({
   library(circlize)
   library(gprofiler2)
   library(cowplot)
-  library(ggplotify)
 })
 
 # create parser object
-# parser <- ArgumentParser()
-#
-# parser$add_argument("-d", "--degs",
-#   type = "character",
-#   help = "Parent directory containing each dataset's DEG CSV files"
-# )
-# parser$add_argument("-o", "--output_dir",
-#   type = "character",
-#   metavar = "PATH",
-#   help = "Path to the directory to write DEA analysis results"
-# )
-#
-# # get command line options, if help option encountered print help and exit
-# args <- parser$parse_args()
-#
-# # start timer
-# ptm <- proc.time()
-#
-# #### Set variables for dataset ####
-# print(paste0("Reading in DEGs from: ", args$degs))
-# sig_degs_comb <- read_csv(args$degs)
-# degs <- args$degs
+parser <- ArgumentParser()
+
+parser$add_argument("-i", "--input_dir",
+  type = "character",
+  metavar = "PATH",
+  help = "Path to the directory with input files"
+)
+parser$add_argument("-d", "--degs",
+  type = "character",
+  help = "Parent directory containing each dataset's DEG CSV files"
+)
+parser$add_argument("-o", "--output_dir",
+  type = "character",
+  metavar = "PATH",
+  help = "Path to the directory to write results"
+)
+
+# get command line options, if help option encountered print help and exit
+args <- parser$parse_args()
+
+# start timer
+ptm <- proc.time()
+
+#### Set variables for dataset ####
+print(paste0("Reading in DEGs from: ", args$degs))
+indir <- args$input_dir
+degs <- args$degs
+outdir <- args$output_dir
+
 # create output dir if needed
-# outdir <- paste0(args$output_dir, "/")
-degs <- "./results/dea/"
-indir <- "./results/consensus_signature/"
-outdir <- "././results/figures/"
+# degs <- "./results/dea/"
+# indir <- "./results/consensus_signature/"
+# outdir <- "././results/figures/"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 mytheme <- theme(
