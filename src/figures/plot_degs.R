@@ -67,7 +67,7 @@ consensus_long <- read_csv(paste0(indir, "consensus_degs_unfiltered_long.csv"))
 # ORA results for signatures
 results_df <- read_csv(paste0(indir, "ORA_signatures_results.csv"))
 # performance metrics for signatures
-performance_results <- read_csv(paste0(indir, "signature_performance_metrics.csv"))
+performance_res <- read_csv(paste0(indir, "signature_performance_metrics.csv"))
 # RRA signature with meta-analysis logFCs
 rra_meta <- read_csv(paste0(indir, "RRA_meta_DEGs.csv"))
 
@@ -85,12 +85,18 @@ all_degs %>%
   ) +
   scale_x_log10(expand = expansion(mult = 0, 0.4)) +
   mytheme
-ggsave(filename = paste0(outdir, "degs_summary_bar.png"), width = 24, height = 22, units = "cm")
+ggsave(
+  filename = paste0(
+    outdir, "degs_summary_bar.png"
+  ), width = 24, height = 22, units = "cm"
+)
 
 # DEG counts per contrast by dataset
 all_degs %>%
   filter(significance != "NonSig" & dataset %in% c("cardo", "shaw")) %>%
-  filter(!contrast %in% c("PATH_vs_PATH", "NPC_HD", "KOvsWT_NPC", "KOvsWT_all")) %>%
+  filter(
+    !contrast %in% c("PATH_vs_PATH", "NPC_HD", "KOvsWT_NPC", "KOvsWT_all")
+  ) %>%
   add_count(contrast) %>%
   distinct(contrast, dataset, n) %>%
   ggplot(aes(x = n, y = reorder(contrast, n), fill = dataset)) +
@@ -100,10 +106,16 @@ all_degs %>%
     aes(label = n, x = n + 350, fontface = "bold"),
     position = position_dodge(0.9)
   ) +
-  labs(x = "Number of Significant DEGs", y = "Differential Expression Contrast (Comparison)") +
+  labs(
+    x = "Number of Significant DEGs",
+    y = "Differential Expression Contrast (Comparison)"
+  ) +
   # scale_x_log10(expand = expansion(mult = 0, 0.5)) +
   mytheme
-ggsave(filename = paste0(outdir, "degs_contrast_summary_bar.png"), width = 24, height = 22, units = "cm")
+ggsave(
+  filename = paste0(outdir, "degs_contrast_summary_bar.png"),
+  width = 24, height = 22, units = "cm"
+)
 
 
 ### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
@@ -196,7 +208,9 @@ ggsave(paste0(outdir, "ORA_term_counts_barplot.png"),
 plot_df %>%
   ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
   geom_point(aes(size = intersection_size, color = neg_log10_p)) +
-  scale_color_viridis_c(name = "-log10(p-value)", option = "magma", end = 0.85) +
+  scale_color_viridis_c(
+    name = "-log10(p-value)", option = "magma", end = 0.85
+  ) +
   labs(
     x = "Query Condition",
     y = "Enriched Term",
@@ -215,7 +229,9 @@ ora_plot <- plot_df %>%
   filter(!source %in% c("WP", "GO:MF", "GO:CC")) %>%
   ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
   geom_point(aes(size = intersection_size, color = neg_log10_p)) +
-  scale_color_viridis_c(name = "-log10(p-value)", option = "magma", end = 0.85) +
+  scale_color_viridis_c(
+    name = "-log10(p-value)", option = "magma", end = 0.85
+  ) +
   labs(
     x = "Signature",
     y = "Enriched Term",
@@ -223,7 +239,7 @@ ora_plot <- plot_df %>%
   ) +
   theme_minimal() +
   theme(
-    text = element_text(family = "Helvetica", face = "bold"), # , size = 16)
+    text = element_text(family = "Helvetica", face = "bold"),
     axis.text = element_text(size = 12)
   ) +
   facet_grid(source ~ ., scales = "free_y", space = "free_y")
@@ -237,7 +253,7 @@ ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
 
 ### PERFORMANCE OF SIGNATURES BY VALIDATION GENES ###
 
-performance_plot <- ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
+performance_plot <- ggplot(performance_res, aes(x = Recall, y = Precision, color = F1_Score)) +
   geom_point(aes(size = -log10(P_Value))) +
   geom_label_repel(
     aes(label = Signature),
@@ -253,12 +269,10 @@ performance_plot <- ggplot(performance_results, aes(x = Recall, y = Precision, c
   scale_color_viridis_c(option = "magma", end = 0.85) +
   # expand limits to ensure labels aren't cut off
   expand_limits(
-    x = c(0.01, max(performance_results$Recall) + 0.01),
-    y = c(0.08, max(performance_results$Precision) + 0.01)
+    x = c(0.01, max(performance_res$Recall) + 0.01),
+    y = c(0.08, max(performance_res$Precision) + 0.01)
   ) +
   labs(
-    # title = "Signature Performance vs. Validation Set",
-    # subtitle = "Size indicates statistical significance (Hypergeometric)",
     x = "Recall (Sensitivity)",
     y = "Precision (Positive Predictive Value)"
   ) +
@@ -285,9 +299,7 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
   geom_point(aes(color = Direction), alpha = 0.75, size = 2.5) +
   scale_color_manual(values = c(
     "Upregulated" = viridis(20, option = "magma")[[17]],
-# "firebrick3",
     "Downregulated" = viridis(20, option = "magma")[[3]],
-# "dodgerblue3",
     "Non-Significant/Inconsistent" = "gray80"
   )) +
   # horizontal threshold line for RRA significance
@@ -301,7 +313,6 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
     color = "black"
   ) +
   labs(
-    # title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
     x = "MA Aggregate logFC (Magnitude)",
     y = "-log10(RobustRankAggregate P-value)",
     color = "Consensus Status"
@@ -314,7 +325,6 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
   ) +
   mytheme +
   # add text labels for top genes
-  # labeled_volcano_plot <- volcano_plot +
   ggrepel::geom_text_repel(
     data = core_genes_label,
     aes(label = gene_name),
@@ -324,7 +334,7 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
     box.padding = 1.15,
     point.padding = 0.70,
     segment.color = "grey50",
-    max.overlaps = Inf # Ensure all labels show
+    max.overlaps = Inf
   )
 volcano_plot
 
@@ -342,12 +352,9 @@ png(paste0(outdir, "figure_3.png"),
 )
 
 cowplot::plot_grid(
-  # as.ggplot(degs_upset),
   ora_plot,
   bottom_row,
-  # performance_plot,
-  # volcano_plot,
-  labels = c("A", ""), # "AUTO"
+  labels = c("A", ""),
   ncol = 1
 )
 
