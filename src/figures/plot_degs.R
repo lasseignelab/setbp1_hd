@@ -49,8 +49,8 @@ mytheme <- theme(
   panel.grid = element_blank(),
   axis.ticks = element_blank(),
   panel.background = element_blank(),
-  text = element_text(family = "Helvetica", face = "bold", size = 12)
-  )
+  text = element_text(family = "Helvetica", face = "bold", size = 14)
+)
 #### READ IN AND COMBINE DEGS ACROSS DATA SETS ####
 # helper function to read in DEGs
 read_deg <- function(dataset_name) {
@@ -69,7 +69,7 @@ results_df <- read_csv(paste0(indir, "ORA_signatures_results.csv"))
 # performance metrics for signatures
 performance_results <- read_csv(paste0(indir, "signature_performance_metrics.csv"))
 # RRA signature with meta-analysis logFCs
-rra_meta<- read_csv(paste0(indir, "RRA_meta_DEGs.csv"))
+rra_meta <- read_csv(paste0(indir, "RRA_meta_DEGs.csv"))
 
 # DEG counts per dataset
 all_degs %>%
@@ -80,7 +80,7 @@ all_degs %>%
   geom_bar(stat = "identity", position = "dodge") +
   scale_fill_viridis_d(begin = .3) +
   geom_text(
-    aes(label = n, x = n + (n * 1.01), fontface = "bold"), 
+    aes(label = n, x = n + (n * 1.01), fontface = "bold"),
     position = position_dodge(0.9)
   ) +
   scale_x_log10(expand = expansion(mult = 0, 0.4)) +
@@ -97,7 +97,7 @@ all_degs %>%
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_viridis_d(end = .7) +
   geom_text(
-    aes(label = n, x = n + 350, fontface = "bold"), 
+    aes(label = n, x = n + 350, fontface = "bold"),
     position = position_dodge(0.9)
   ) +
   labs(x = "Number of Significant DEGs", y = "Differential Expression Contrast (Comparison)") +
@@ -136,7 +136,8 @@ dataset_colors <- c(
   "Shaw" = viridis(10)[[7]]
 )
 
-degs_upset <- upset(compare_contrasts, order.by = "freq",
+degs_upset <- upset(compare_contrasts,
+  order.by = "freq",
   set.metadata = list(data = contrast_dataset_map, plots = list(
     list(
       type = "text",
@@ -149,7 +150,7 @@ degs_upset <- upset(compare_contrasts, order.by = "freq",
       column = "Dataset",
       assign = 10,
       colors = dataset_colors
-      )
+    )
   ))
 )
 png(
@@ -195,7 +196,7 @@ ggsave(paste0(outdir, "ORA_term_counts_barplot.png"),
 plot_df %>%
   ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
   geom_point(aes(size = intersection_size, color = neg_log10_p)) +
-  scale_color_viridis_c(name = "-log10(p-value)") +
+  scale_color_viridis_c(name = "-log10(p-value)", option = "magma", end = 0.85) +
   labs(
     x = "Query Condition",
     y = "Enriched Term",
@@ -214,7 +215,7 @@ ora_plot <- plot_df %>%
   filter(!source %in% c("WP", "GO:MF", "GO:CC")) %>%
   ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
   geom_point(aes(size = intersection_size, color = neg_log10_p)) +
-  scale_color_viridis_c(name = "-log10(p-value)") +
+  scale_color_viridis_c(name = "-log10(p-value)", option = "magma", end = 0.85) +
   labs(
     x = "Signature",
     y = "Enriched Term",
@@ -222,8 +223,9 @@ ora_plot <- plot_df %>%
   ) +
   theme_minimal() +
   theme(
-    text = element_text(family = "Helvetica", face = "bold"),#, size = 16)
-    axis.text = element_text(size = 10)) +
+    text = element_text(family = "Helvetica", face = "bold"), # , size = 16)
+    axis.text = element_text(size = 12)
+  ) +
   facet_grid(source ~ ., scales = "free_y", space = "free_y")
 
 ora_plot
@@ -237,20 +239,22 @@ ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
 
 performance_plot <- ggplot(performance_results, aes(x = Recall, y = Precision, color = F1_Score)) +
   geom_point(aes(size = -log10(P_Value))) +
-  geom_text_repel(
+  geom_label_repel(
     aes(label = Signature),
-    size = 4.5,
+    seed = 42,
+    size = 6.5,
+    min.segment.length = 0.05,
     fontface = "bold",
-    box.padding = 0.5, # Distance from point
-    point.padding = 0.3, # Distance from point edge
+    box.padding = 1.55, # Distance from point
+    point.padding = 0.65, # Distance from point edge
     segment.color = "grey50", # Line connecting text to point
     max.overlaps = Inf # Ensure all labels show
   ) +
   scale_color_viridis_c(option = "magma", end = 0.85) +
   # expand limits to ensure labels aren't cut off
   expand_limits(
-    x = c(0, max(performance_results$Recall) + 0.01),
-    y = c(0, max(performance_results$Precision) + 0.01)
+    x = c(0.01, max(performance_results$Recall) + 0.01),
+    y = c(0.08, max(performance_results$Precision) + 0.01)
   ) +
   labs(
     # title = "Signature Performance vs. Validation Set",
@@ -259,8 +263,8 @@ performance_plot <- ggplot(performance_results, aes(x = Recall, y = Precision, c
     y = "Precision (Positive Predictive Value)"
   ) +
   theme(
-    legend.position = "inside", 
-    legend.position.inside = c(.98, .05), 
+    legend.position = "inside",
+    legend.position.inside = c(.98, .05),
     legend.justification = c("right", "bottom")
   ) +
   mytheme
@@ -278,11 +282,13 @@ core_genes_label <- rra_meta %>%
   slice_max(RRA_pval, n = 10)
 
 volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
-  geom_point(aes(color = Direction), alpha = 0.6, size = 2) +
+  geom_point(aes(color = Direction), alpha = 0.75, size = 2.5) +
   scale_color_manual(values = c(
-    "Upregulated" = "firebrick3",
-    "Downregulated" = "dodgerblue3",
-    "Non-Significant/Inconsistent" = "gray50"
+    "Upregulated" = viridis(20, option = "magma")[[17]],
+# "firebrick3",
+    "Downregulated" = viridis(20, option = "magma")[[3]],
+# "dodgerblue3",
+    "Non-Significant/Inconsistent" = "gray80"
   )) +
   # horizontal threshold line for RRA significance
   geom_hline(
@@ -301,21 +307,24 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
     color = "Consensus Status"
   ) +
   theme(
-    legend.position = "inside", 
+    legend.position = "inside",
     legend.background = element_rect(fill = (alpha("white", 0.6))),
-    legend.position.inside = c(1, .05), 
+    legend.position.inside = c(1, .05),
     legend.justification = c("right", "bottom")
   ) +
   mytheme +
-# add text labels for top genes
-# labeled_volcano_plot <- volcano_plot +
+  # add text labels for top genes
+  # labeled_volcano_plot <- volcano_plot +
   ggrepel::geom_text_repel(
     data = core_genes_label,
     aes(label = gene_name),
-    size = 3.5,
-    box.padding = 0.5,
-    point.padding = 0.5,
-    segment.color = "grey50"
+    size = 5.5,
+    fontface = "bold",
+    min.segment.length = 0,
+    box.padding = 1.15,
+    point.padding = 0.70,
+    segment.color = "grey50",
+    max.overlaps = Inf # Ensure all labels show
   )
 volcano_plot
 
@@ -324,7 +333,7 @@ ggsave(paste0(outdir, "RRAp_metalogFC_volcano.png"),
 )
 
 #### FIGURE 3 ASSEMBLY ####
-bottom_row <- plot_grid(performance_plot, volcano_plot, labels = c('B', 'C'))
+bottom_row <- plot_grid(performance_plot, volcano_plot, labels = c("B", "C"))
 png(paste0(outdir, "figure_3.png"),
   width = 350,
   height = 425,
@@ -338,7 +347,7 @@ cowplot::plot_grid(
   bottom_row,
   # performance_plot,
   # volcano_plot,
-  labels = c('A', ''),# "AUTO"
+  labels = c("A", ""), # "AUTO"
   ncol = 1
 )
 
