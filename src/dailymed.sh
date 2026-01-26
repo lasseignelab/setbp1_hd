@@ -10,4 +10,5 @@ singularity exec --cleanenv \
                  --containall \
                  -B "${CAP_PROJECT_PATH}" \
                  "${CAP_CONTAINER_PATH}"/sitemap-scraper_latest.sif \
-                  python3 "${CAP_PROJECT_PATH}"/src/extract_dailymed.py
+                  python3 "${CAP_PROJECT_PATH}"/src/extract_dailymed.py \
+                  -o "${CAP_RESULTS_PATH}"
