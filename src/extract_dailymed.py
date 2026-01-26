@@ -1,6 +1,8 @@
 import requests
 import csv
 import time
+import os
+import argparse
 from bs4 import BeautifulSoup
 
 def clean_html(html_text):
@@ -30,72 +32,77 @@ def get_drug_data(drug_name):
         print(f"Error finding {drug_name}: {e}")
         return None
 
-    # 2. Define LOINC codes
-    # 34066-1: Boxed Warning
-    # 42228-7: Pregnancy (Modern PLLR)
-    # 34092-7: Nursing Mothers (Legacy fallback)
-    # 77290-5: Lactation (Modern PLLR)
-    # 43682-4: Pharmacokinetics
+    # 2. Define LOINC codes with Fallbacks
+    # Key = CSV Column Name : Value = List of LOINC codes to try in order
     sections_to_fetch = {
-        "Boxed Warning": "34066-1",
-        "Pregnancy": "42228-7",
-        "Lactation": "77290-5",
-        "Pharmacokinetics": "43682-4"
+        "Boxed Warning": ["34066-1"],
+        "Pregnancy": ["42228-7", "34077-8", "42229-5"], 
+        "Lactation": ["77290-5", "34092-7"],
+        "Pharmacokinetics": ["43682-4", "34090-1"] # 34090-1 is Clinical Pharmacology
     }
 
     drug_info = {"Drug Name": drug_name, "Set ID": set_id}
 
-    for section_name, loinc in sections_to_fetch.items():
-        url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}/sections.json?section_loinc={loinc}"
-        try:
-            sec_response = requests.get(url).json()
-            
-            # If modern section is missing, try legacy fallback for Pregnancy/Lactation
-            if not sec_response.get('data'):
-                if section_name == "Pregnancy":
-                    # Try legacy 'Pregnancy' or 'Teratogenic Effects'
-                    url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}/sections.json?section_loinc=34077-8"
-                    sec_response = requests.get(url).json()
-                elif section_name == "Lactation":
-                    # Try legacy 'Nursing Mothers'
-                    url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}/sections.json?section_loinc=34092-7"
-                    sec_response = requests.get(url).json()
-
-            raw_html = sec_response['data'][0]['text'] if sec_response.get('data') else ""
-            clean_text = clean_html(raw_html)
-            
-            if section_name == "Pharmacokinetics":
-                bbb_keywords = ["blood-brain barrier", "crosses the bbb", "cerebrospinal fluid", "cns penetration", "distribution"]
-                found_bbb = "Not explicitly detailed in Pharmacokinetics section."
-                lower_text = clean_text.lower()
-                for phrase in bbb_keywords:
-                    if phrase in lower_text:
-                        idx = lower_text.find(phrase)
-                        # Extract context around the match
-                        found_bbb = clean_text[max(0, idx-50) : idx+200].replace('\n', ' ') + "..."
-                        break
-                drug_info["BBB Information"] = found_bbb
-            else:
-                drug_info[section_name] = clean_text if clean_text != "N/A" else "Section not found."
-        except:
-            drug_info[section_name] = "Error retrieving section."
+    for column_name, loinc_list in sections_to_fetch.items():
+        section_content = "Section not found."
+        
+        for loinc in loinc_list:
+            url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}/sections.json?section_loinc={loinc}"
+            try:
+                sec_response = requests.get(url).json()
+                if sec_response.get('data'):
+                    section_content = clean_html(sec_response['data'][0]['text'])
+                    break # Stop once we find data for this section
+            except:
+                continue
+        
+        # Special handling for BBB info within the Pharmacokinetics section
+        if column_name == "Pharmacokinetics":
+            bbb_keywords = ["blood-brain barrier", "crosses the bbb", "cerebrospinal fluid", "cns penetration"]
+            found_bbb = "Not explicitly detailed."
+            lower_text = section_content.lower()
+            for phrase in bbb_keywords:
+                if phrase in lower_text:
+                    idx = lower_text.find(phrase)
+                    found_bbb = section_content[max(0, idx-50) : idx+200].replace('\n', ' ') + "..."
+                    break
+            drug_info["BBB Information"] = found_bbb
+            # We keep the full Pharmacokinetics text in the dict because it's in fieldnames now
+            drug_info["Pharmacokinetics"] = section_content
+        else:
+            drug_info[column_name] = section_content
 
     return drug_info
 
-# --- Execution ---
-# Add your list of medications here
-drug_list = ["Sertraline", "Amoxicillin", "Lisinopril", "Ibuprofen", "Valproic Acid"]
-output_file = "drug_safety_database.csv"
+def main():
+    # --- 1. SET UP THE USER ARGUMENT ---
+    parser = argparse.ArgumentParser(description="Extract medication safety data from DailyMed.")
+    parser.add_argument("-o", "--output_dir", help="Directory to save the CSV file", default=".")
+    args = parser.parse_args()
 
-with open(output_file, mode='w', newline='', encoding='utf-8') as f:
-    writer = csv.DictWriter(f, fieldnames=["Drug Name", "Set ID", "Boxed Warning", "Pregnancy", "Lactation", "BBB Information"])
-    writer.writeheader()
+    # --- 2. CREATE DIRECTORY IF IT DOESN'T EXIST ---
+    if not os.path.exists(args.output_dir):
+        print(f"Creating directory: {args.output_dir}")
+        os.makedirs(args.output_dir)
 
-    for drug in drug_list:
-        data = get_drug_data(drug)
-        if data:
-            writer.writerow(data)
-        time.sleep(0.5) # Politeness delay
+    # --- 3. JOIN DIRECTORY WITH FILENAME ---
+    output_path = os.path.join(args.output_dir, "drug_safety_database.csv")
 
-print(f"\nProcessing complete. You've got drugs! Saved at {output_file}")
+    drug_list = ["Sertraline", "Amoxicillin", "Lisinopril", "Ibuprofen"]
+    fieldnames = ["Drug Name", "Set ID", "Boxed Warning", "Pregnancy", "Lactation", "Pharmacokinetics", "BBB Information"]
 
+    with open(output_path, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for drug in drug_list:
+            data = get_drug_data(drug)
+            if data:
+                writer.writerow(data)
+            time.sleep(0.5)
+
+    absolute_path = os.path.abspath(output_path)
+    print(f"\nFULL SYSTEM PATH: {absolute_path}")
+    print(f"\nYou've got drugs! Data saved to: {output_path}")
+
+if __name__ == "__main__":
+    main()
