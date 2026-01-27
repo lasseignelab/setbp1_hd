@@ -5,12 +5,10 @@ import os
 import argparse
 from bs4 import BeautifulSoup
 
-def clean_html(html_text):
-    if not html_text:
-        return "N/A"
-    # DailyMed HTML often contains complex tables; this keeps the text readable
-    soup = BeautifulSoup(html_text, "html.parser")
-    return soup.get_text(separator=' ').strip()
+def clean_xml_text(element):
+    if element is None:
+        return "Not found"
+    return ' '.join(element.get_text(separator=' ').split()).strip()
 
 def get_drug_data(drug_name):
     print(f"Fetching data for: {drug_name}...")
@@ -19,76 +17,112 @@ def get_drug_data(drug_name):
     search_url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?drug_name={drug_name}"
     try:
         response = requests.get(search_url)
-        response.raise_for_status()
         search_data = response.json()
         
         if not search_data.get('data'):
             print(f"No results found for {drug_name}")
             return None
-            
-        # We take the first result. Note: 'setid' has no underscore in the API response.
         set_id = search_data['data'][0]['setid']
     except Exception as e:
         print(f"Error finding {drug_name}: {e}")
         return None
 
-    # 2. Define LOINC codes with Fallbacks
-    # Key = CSV Column Name : Value = List of LOINC codes to try in order
-    sections_to_fetch = {
-        "Boxed Warning": ["34066-1"],
-        "Pregnancy": ["42228-7", "34077-8", "42229-5"], 
-        "Lactation": ["77290-5", "34092-7"],
-        "Pharmacokinetics": ["43682-4", "34090-1"] # 34090-1 is Clinical Pharmacology
+   # 2. Fetch the Full SPL XML
+    xml_url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}.xml"
+    try:
+        xml_response = requests.get(xml_url, timeout=20)
+        if xml_response.status_code != 200:
+            print(f"    [!] XML API returned status {xml_response.status_code}")
+            return None
+        
+        # Parse as XML
+        soup = BeautifulSoup(xml_response.content, "xml")
+    except Exception as e:
+        print(f"    [!] XML Fetch/Parse Error: {e}")
+        return None
+
+    drug_info = {
+        "Drug Name": drug_name, 
+        "Set ID": set_id,
+        "Boxed Warning": "Not found",
+        "Pregnancy": "Not found",
+        "Lactation": "Not found",
+        "Pharmacokinetics": "Not found",
+        "BBB Information": "Not explicitly detailed"
     }
 
-    drug_info = {"Drug Name": drug_name, "Set ID": set_id}
+    # 3. Find all <section> tags in the SPL
+    sections = soup.find_all('section')
+    
+    for section in sections:
+        # Check the <title> tag inside the section
+        title_tag = section.find('title')
+        if not title_tag:
+            continue
+            
+        title_text = title_tag.get_text().upper()
+        
+        # Determine which column this section belongs to
+        target_key = None
+        if "WARNING" in title_text and "BOX" in title_text:
+            target_key = "Boxed Warning"
+        elif "PREGNANCY" in title_text:
+            target_key = "Pregnancy"
+        elif "LACTATION" in title_text or "NURSING MOTHERS" in title_text:
+            target_key = "Lactation"
+        elif "PHARMACOKINETICS" in title_text or "CLINICAL PHARMACOLOGY" in title_text:
+            target_key = "Pharmacokinetics"
 
-    for column_name, loinc_list in sections_to_fetch.items():
-        section_content = "Section not found."
-        
-        for loinc in loinc_list:
-            url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}/sections.json?section_loinc={loinc}"
-            try:
-                sec_response = requests.get(url).json()
-                if sec_response.get('data'):
-                    section_content = clean_html(sec_response['data'][0]['text'])
-                    break # Stop once we find data for this section
-            except:
-                continue
-        
-        # Special handling for BBB info within the Pharmacokinetics section
-        if column_name == "Pharmacokinetics":
-            bbb_keywords = ["blood-brain barrier", "crosses the bbb", "cerebrospinal fluid", "cns penetration"]
-            found_bbb = "Not explicitly detailed."
-            lower_text = section_content.lower()
-            for phrase in bbb_keywords:
-                if phrase in lower_text:
-                    idx = lower_text.find(phrase)
-                    found_bbb = section_content[max(0, idx-50) : idx+200].replace('\n', ' ') + "..."
-                    break
-            drug_info["BBB Information"] = found_bbb
-            # We keep the full Pharmacokinetics text in the dict because it's in fieldnames now
-            drug_info["Pharmacokinetics"] = section_content
-        else:
-            drug_info[column_name] = section_content
+        if target_key:
+            # Extract the <text> block which contains the clinical content
+            text_block = section.find('text')
+            content = clean_xml_text(text_block)
+            drug_info[target_key] = content
+
+            # BBB Logic specifically for the Pharmacology sections
+            if target_key == "Pharmacokinetics":
+                bbb_keywords = ["blood-brain barrier", "crosses the bbb", "cerebrospinal fluid", "cns penetration"]
+                lower_text = content.lower()
+                for phrase in bbb_keywords:
+                    if phrase in lower_text:
+                        idx = lower_text.find(phrase)
+                        drug_info["BBB Information"] = content[max(0, idx-50) : idx+250] + "..."
+                        break
 
     return drug_info
 
 def main():
-    # --- 1. SET UP THE USER ARGUMENT ---
+    # Set up argument parser
     parser = argparse.ArgumentParser(description="Extract medication safety data from DailyMed.")
+    parser.add_argument("-i", "--input_csv", help="Path to CSV file with drug names for querying in second column", required=True) 
     parser.add_argument("-o", "--output_dir", help="Directory to save the CSV file", default=".")
     args = parser.parse_args()
 
-    # --- 2. CREATE DIRECTORY IF IT DOESN'T EXIST ---
+    # Parse input CSV
+    drug_list = []
+    try:
+        with open(args.input_csv, mode='r', encoding='utf-8') as infile:
+            reader = csv.reader(infile)
+            header = next(reader) # Skip header
+            for row in reader:
+                if len(row) >= 2:
+                    # Column 2 (index 1) is pref_name. Strip quotes and whitespace.
+                    drug_name = row[1].strip().strip('"')
+                    if drug_name:
+                        drug_list.append(drug_name)
+    except Exception as e:
+        print(f"Error reading input CSV: {e}")
+        return
+
+    print(f"Loaded {len(drug_list)} drugs for processing.")
+
+    # Create output directory
     if not os.path.exists(args.output_dir):
         print(f"Creating directory: {args.output_dir}")
         os.makedirs(args.output_dir)
 
-    # --- 3. JOIN DIRECTORY WITH FILENAME ---
     output_path = os.path.join(args.output_dir, "drug_safety_database.csv")
 
-    drug_list = ["Sertraline", "Amoxicillin", "Lisinopril", "Ibuprofen"]
     fieldnames = ["Drug Name", "Set ID", "Boxed Warning", "Pregnancy", "Lactation", "Pharmacokinetics", "BBB Information"]
 
     with open(output_path, mode='w', newline='', encoding='utf-8') as f:
@@ -98,7 +132,8 @@ def main():
             data = get_drug_data(drug)
             if data:
                 writer.writerow(data)
-            time.sleep(0.5)
+                print(f"    [+] Successfully processed {drug}")
+            time.sleep(1.5)
 
     absolute_path = os.path.abspath(output_path)
     print(f"\nFULL SYSTEM PATH: {absolute_path}")
