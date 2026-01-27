@@ -41,6 +41,15 @@ resdir <- args$output_dir
 filepath <- paste0(resdir, "signature_reversion/")
 querypath <- paste0(resdir, "consensus_signature/")
 
+### TEMP ###
+brain_drugs_anno <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+brain_drugs_filt <- brain_drugs_anno %>%
+                    dplyr::select(
+                       pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway) %>%
+                    filter(!is.na(pref_name))
+write_csv(brain_drugs_filt, paste0(filepath, "brain_drugs_filtered.csv"))
+
+
 # datapath <- "./data/"
 # querypath <- "./results/consensus_signature/"
 # cachedir <- "/data/user/lizzyr/setbp1_hd/data/ExperimentHubCache"
@@ -63,18 +72,12 @@ eh <- ExperimentHub()#localHub = FALSE)
 lincs2 <- eh[["EH7297"]]
 
 # load LINCS perturbation annotations
-data(lincs_pert_info2)
+# data(lincs_pert_info2)
 
 ###### READ IN DATA ######
 
 # RRA signature
 rra_degs <- read_csv(paste0(querypath, "rankaggregate_consensus_signature.csv"))
-# TODO: FIGURE OUT DISCREPENCY HERE... 38 GENES IN 1ST BUT NOT OTHER, AND 8 IN THE 2ND BUT NOT 1ST
-# rra_degs2 <- read_csv(paste0(querypath, "RRA_meta_consensus_signature.csv")) %>%
-#   filter(Direction != "Non-Significant/Inconsistent")
-# str(rra_degs)
-# setdiff(rra_degs$gene_name, rra_degs2$gene_name)
-# setdiff(rra_degs2$gene_name, rra_degs$gene_name)
 setbp1_targets_all <- read_csv(paste0(
   datapath, "241203_setbp1_targets_names_only.csv"), col_names = FALSE)
 setbp1_targets_top <- read_csv(paste0(
@@ -121,6 +124,7 @@ lincs_brain <- lincs@result %>%
   filter(WTCS < 0) %>%
   arrange(WTCS)
 head(lincs_brain)
+write_csv(lincs_brain, paste0(filepath, "gess_lincs_braincells_results.csv"))
 
 # annotate drugs
 brain_drugs_anno <- lincs_brain %>%
