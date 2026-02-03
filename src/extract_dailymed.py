@@ -53,12 +53,11 @@ def get_drug_data(drug_name):
 
     # 3. Find all <section> tags in the SPL
     sections = soup.find_all('section')
-    
-    for section in sections:
-        # Check the <title> tag inside the section
-        title_tag = section.find('title')
-        if not title_tag:
-            continue
+        for section in sections:
+            # Check the <title> tag inside the section
+            title_tag = section.find('title')
+            if not title_tag:
+                continue
             
         title_text = title_tag.get_text().upper()
         
@@ -106,7 +105,6 @@ def main():
             header = next(reader) # Skip header
             for row in reader:
                 if len(row) >= 2:
-                    # Column 2 (index 1) is pref_name. Strip quotes and whitespace.
                     drug_name = row[1].strip().strip('"')
                     if drug_name:
                         drug_list.append(drug_name)
@@ -123,7 +121,7 @@ def main():
 
     output_path = os.path.join(args.output_dir, "drug_safety_database.csv")
 
-    fieldnames = ["Drug Name", "Set ID", "Boxed Warning", "Pregnancy", "Lactation", "Pharmacokinetics", "BBB Information"]
+    fieldnames = ["Name", "ID", "BBW", "Pregnancy", "Lact", "Ph kin", "BBB"]
 
     with open(output_path, mode='w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
