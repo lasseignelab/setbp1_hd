@@ -53,11 +53,11 @@ def get_drug_data(drug_name):
 
     # 3. Find all <section> tags in the SPL
     sections = soup.find_all('section')
-        for section in sections:
-            # Check the <title> tag inside the section
-            title_tag = section.find('title')
-            if not title_tag:
-                continue
+    for section in sections:
+        # Check the <title> tag inside the section
+        title_tag = section.find('title')
+        if not title_tag:
+            continue
             
         title_text = title_tag.get_text().upper()
         
@@ -102,7 +102,7 @@ def main():
     try:
         with open(args.input_csv, mode='r', encoding='utf-8') as infile:
             reader = csv.reader(infile)
-            header = next(reader) # Skip header
+            header = next(reader)
             for row in reader:
                 if len(row) >= 2:
                     drug_name = row[1].strip().strip('"')
