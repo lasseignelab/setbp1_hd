@@ -44,9 +44,10 @@ querypath <- paste0(resdir, "consensus_signature/")
 ### TEMP ###
 brain_drugs_anno <- read_rds(paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
 brain_drugs_filt <- brain_drugs_anno %>%
-                    dplyr::select(
-                       pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway) %>%
-                    filter(!is.na(pref_name))
+  dplyr::select(
+    pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway
+  ) %>%
+  filter(!is.na(pref_name))
 write_csv(brain_drugs_filt, paste0(filepath, "brain_drugs_filtered.csv"))
 
 
@@ -67,7 +68,7 @@ message("Using cache directory: ", cachedir)
 
 # getExperimentHubOption("CACHE")
 # removeCache(eh, ask = FALSE)
-eh <- ExperimentHub()#localHub = FALSE)
+eh <- ExperimentHub() # localHub = FALSE)
 # lincs 2020 filepath and db exploration
 lincs2 <- eh[["EH7297"]]
 
@@ -79,9 +80,11 @@ lincs2 <- eh[["EH7297"]]
 # RRA signature
 rra_degs <- read_csv(paste0(querypath, "rankaggregate_consensus_signature.csv"))
 setbp1_targets_all <- read_csv(paste0(
-  datapath, "241203_setbp1_targets_names_only.csv"), col_names = FALSE)
+  datapath, "241203_setbp1_targets_names_only.csv"
+), col_names = FALSE)
 setbp1_targets_top <- read_csv(paste0(
-  datapath, "241203_setbp1_targets_prioritized.csv"))
+  datapath, "241203_setbp1_targets_prioritized.csv"
+))
 
 ###### PREPARE QUERY SIGNATURE ######
 
@@ -107,12 +110,13 @@ summary(composite_down)
 
 # query LINCS signatures
 qsig_lincs <- qSig(
-  query = list(upset = composite_up$entrez, downset = composite_down$entrez), 
-  gess_method = "LINCS", 
-  refdb = lincs2)
+  query = list(upset = composite_up$entrez, downset = composite_down$entrez),
+  gess_method = "LINCS",
+  refdb = lincs2
+)
 
 # calculate signature reversion metrics of query vs LINCS DB
-lincs <- gess_lincs(qsig_lincs, sortby="WTCS", tau=FALSE, workers=1)
+lincs <- gess_lincs(qsig_lincs, sortby = "WTCS", tau = FALSE, workers = 1)
 str(lincs)
 write_rds(lincs, paste0(filepath, "gess_lincs_results.rds"))
 # lincs <- read_rds(paste0(filepath, "gess_lincs_results.rds"))
@@ -144,7 +148,8 @@ write_rds(brain_drugs_anno, paste0(filepath, "gess_lincs_anno_braincell_results.
 # separate targets by rows to compare drug targets
 brain_drug_targets <- brain_drugs_anno %>%
   dplyr::select(
-    pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway) %>%
+    pert, pref_name, max_phase, cell, WTCS, WTCS_Pval, mergeTargets, Target_pathway
+  ) %>%
   separate_longer_delim(mergeTargets, delim = "; ") %>%
   filter(!is.na(mergeTargets)) %>%
   add_count(mergeTargets) %>%
@@ -168,8 +173,8 @@ drug_targets_setbp1 <- brain_drug_targets %>%
 str(drug_targets_setbp1)
 print(n = 21, arrange(drug_targets_setbp1, pref_name))
 
-unique(drug_targets_setbp1$pref_name) 
-unique(drug_targets_setbp1$mergeTargets) 
+unique(drug_targets_setbp1$pref_name)
+unique(drug_targets_setbp1$mergeTargets)
 write_csv(drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv"))
 
 drug_targets_setbp1 %>%
@@ -182,16 +187,15 @@ ggsave(paste0(filepath, "setbp1_drug_shared_targets_trialphase.png"), width = 19
 
 drug_targets_setbp1 %>%
   ggplot(aes(
-    y = mergeTargets, 
+    y = mergeTargets,
     x = -WTCS
-   )) +
+  )) +
   geom_point(aes(
-    colour = SETBP1_top_target, 
-    size = 4, 
+    colour = SETBP1_top_target,
+    size = 4,
     alpha = 0.7,
     shape = as.factor(max_phase)
-    )
-  ) +
+  )) +
   scale_colour_viridis_d(end = 0.7) +
   labs(
     x = "-(Weighted Connectivity Score)",
@@ -208,16 +212,15 @@ ggsave(paste0(filepath, "setbp1_drugs_shared_targets.png"), width = 19, height =
 drug_targets_setbp1 %>%
   filter(!is.na(pref_name)) %>%
   ggplot(aes(
-    y = mergeTargets, 
+    y = mergeTargets,
     x = -WTCS
-   )) +
+  )) +
   geom_point(aes(
     colour = pref_name,
-    size = 4, 
+    size = 4,
     alpha = SETBP1_top_target,
     shape = SETBP1_top_target
-    )
-  ) +
+  )) +
   scale_alpha_manual(values = c("TRUE" = 0.85, "FALSE" = 0.45)) +
   scale_colour_viridis_d(end = 0.7) +
   labs(
@@ -244,15 +247,14 @@ setbp1_drugs %>%
   filter(!is.na(mechanism_of_action)) %>%
   add_count(mechanism_of_action) %>%
   ggplot(aes(
-    y = reorder(mechanism_of_action, n) 
+    y = reorder(mechanism_of_action, n)
     # x = -WTCS
-   )) +
+  )) +
   geom_bar(aes(
     fill = pref_name
     # alpha = SETBP1_top_target,
     # shape = SETBP1_top_target
-    )
-  ) +
+  )) +
   # scale_alpha_manual(values = c("TRUE" = 0.85, "FALSE" = 0.45)) +
   scale_fill_viridis_d(end = 0.7) +
   labs(
@@ -289,7 +291,7 @@ approved_drugs <- brain_drugs_anno %>%
   add_count(pert) %>%
   # filter for approved drugs
   filter(max_phase == 4)
-head(approved_drugs[,61:63])
+head(approved_drugs[, 61:63])
 unique(approved_drugs$pref_name)
 write_csv(approved_drugs, paste0(filepath, "approved_drugs_braincell_res.csv"))
 
@@ -297,14 +299,14 @@ approved_drugs %>%
   filter(n > 1) %>%
   ggplot(aes(
     x = -WTCS, y = reorder(pref_name, drug_top_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
-    )) +
+  )) +
   geom_point()
 ggsave(paste0(filepath, "approved_drugs_braincells_multiplecells.png"), width = 16, height = 25, units = "cm")
 
 approved_drugs %>%
   ggplot(aes(
     x = -WTCS, y = reorder(pref_name, -drug_top_WTCS), alpha = 0.7, colour = cell, size = -log10(WTCS_Pval)
-    )) +
+  )) +
   geom_point()
 ggsave(paste0(filepath, "approved_drugs_braincells_full.png"), width = 16, height = 29, units = "cm")
 
@@ -312,14 +314,15 @@ approved_drugs %>%
   slice_min(drug_top_WTCS, n = 50) %>%
   mutate(SETBP1_Target = ifelse(pert %in% drug_targets_setbp1$pert, TRUE, FALSE)) %>%
   ggplot(aes(
-    x = -WTCS, y = reorder(pref_name, -drug_top_WTCS))) +
+    x = -WTCS, y = reorder(pref_name, -drug_top_WTCS)
+  )) +
   geom_point(aes(
-    alpha = SETBP1_Target, 
-    colour = cell, 
-    size = -log10(WTCS_Pval), 
-    shape = SETBP1_Target)
-) +
-  scale_size(range = c(4,7.5)) +
+    alpha = SETBP1_Target,
+    colour = cell,
+    size = -log10(WTCS_Pval),
+    shape = SETBP1_Target
+  )) +
+  scale_size(range = c(4, 7.5)) +
   scale_alpha_manual(values = c("TRUE" = 0.85, "FALSE" = 0.45)) +
   scale_colour_viridis_d(end = 0.9) +
   labs(
