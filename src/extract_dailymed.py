@@ -5,20 +5,22 @@ import os
 import argparse
 from bs4 import BeautifulSoup
 
+
 def clean_xml_text(element):
     if element is None:
         return "Not found"
     return ' '.join(element.get_text(separator=' ').split()).strip()
 
+
 def get_drug_data(drug_name):
     print(f"Fetching data for: {drug_name}...")
-    
+
     # 1. Search for Set ID (Corrected key: 'setid')
     search_url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?drug_name={drug_name}"
     try:
         response = requests.get(search_url)
         search_data = response.json()
-        
+ 
         if not search_data.get('data'):
             print(f"No results found for {drug_name}")
             return None
@@ -27,14 +29,14 @@ def get_drug_data(drug_name):
         print(f"Error finding {drug_name}: {e}")
         return None
 
-   # 2. Fetch the Full SPL XML
+    # 2. Fetch the Full SPL XML
     xml_url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}.xml"
     try:
         xml_response = requests.get(xml_url, timeout=20)
         if xml_response.status_code != 200:
             print(f"    [!] XML API returned status {xml_response.status_code}")
             return None
-        
+
         # Parse as XML
         soup = BeautifulSoup(xml_response.content, "xml")
     except Exception as e:
@@ -42,7 +44,7 @@ def get_drug_data(drug_name):
         return None
 
     drug_info = {
-        "Drug Name": drug_name, 
+        "Drug Name": drug_name,
         "Set ID": set_id,
         "Boxed Warning": "Not found",
         "Pregnancy": "Not found",
@@ -58,9 +60,9 @@ def get_drug_data(drug_name):
         title_tag = section.find('title')
         if not title_tag:
             continue
-            
+
         title_text = title_tag.get_text().upper()
-        
+
         # Determine which column this section belongs to
         target_key = None
         if "WARNING" in title_text and "BOX" in title_text:
@@ -80,7 +82,8 @@ def get_drug_data(drug_name):
 
             # BBB Logic specifically for the Pharmacology sections
             if target_key == "Pharmacokinetics":
-                bbb_keywords = ["blood-brain barrier", "crosses the bbb", "cerebrospinal fluid", "cns penetration"]
+                bbb_keywords = ["blood-brain barrier", "crosses the bbb",
+                                "cerebrospinal fluid", "cns penetration"]
                 lower_text = content.lower()
                 for phrase in bbb_keywords:
                     if phrase in lower_text:
@@ -90,11 +93,15 @@ def get_drug_data(drug_name):
 
     return drug_info
 
+
 def main():
     # Set up argument parser
-    parser = argparse.ArgumentParser(description="Extract medication safety data from DailyMed.")
-    parser.add_argument("-i", "--input_csv", help="Path to CSV file with drug names for querying in second column", required=True) 
-    parser.add_argument("-o", "--output_dir", help="Directory to save the CSV file", default=".")
+    parser = argparse.ArgumentParser(description="Extract medication safety "
+                                    "data from DailyMed.")
+    parser.add_argument("-i", "--input_csv", help="Path to CSV file with drug "
+                        "names for querying in second column", required=True) 
+    parser.add_argument("-o", "--output_dir", help="Directory to save the "
+                        "CSV file", default=".")
     args = parser.parse_args()
 
     # Parse input CSV
@@ -102,7 +109,6 @@ def main():
     try:
         with open(args.input_csv, mode='r', encoding='utf-8') as infile:
             reader = csv.reader(infile)
-            header = next(reader)
             for row in reader:
                 if len(row) >= 2:
                     drug_name = row[1].strip().strip('"')
@@ -136,6 +142,7 @@ def main():
     absolute_path = os.path.abspath(output_path)
     print(f"\nFULL SYSTEM PATH: {absolute_path}")
     print(f"\nYou've got drugs! Data saved to: {output_path}")
+
 
 if __name__ == "__main__":
     main()
