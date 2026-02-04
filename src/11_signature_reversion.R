@@ -43,7 +43,8 @@ querypath <- paste0(resdir, "consensus_signature/")
 
 ### TEMP ###
 brain_drugs_anno <- read_rds(
-paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+  paste0(filepath, "gess_lincs_anno_braincell_results.rds")
+)
 brain_drugs_filt <- brain_drugs_anno %>%
   dplyr::select(
     pert, pref_name, max_phase, cell,
@@ -64,20 +65,19 @@ setExperimentHubOption("CACHE", cachedir)
 
 message("Using cache directory: ", cachedir)
 
-# getExperimentHubOption("CACHE")
-# removeCache(eh, ask = FALSE)
 eh <- ExperimentHub() # localHub = FALSE)
 # lincs 2020 filepath and db exploration
 lincs2 <- eh[["EH7297"]]
 
 # load LINCS perturbation annotations
-# data(lincs_pert_info2)
+data(lincs_pert_info2)
 
 ###### READ IN DATA ######
 
 # RRA signature
 rra_degs <- read_csv(
-paste0(querypath, "rankaggregate_consensus_signature.csv"))
+  paste0(querypath, "rankaggregate_consensus_signature.csv")
+)
 setbp1_targets_all <- read_csv(paste0(
   datapath, "241203_setbp1_targets_names_only.csv"
 ), col_names = FALSE)
@@ -118,7 +118,6 @@ qsig_lincs <- qSig(
 lincs <- gess_lincs(qsig_lincs, sortby = "WTCS", tau = FALSE, workers = 1)
 str(lincs)
 write_rds(lincs, paste0(filepath, "gess_lincs_results.rds"))
-# lincs <- read_rds(paste0(filepath, "gess_lincs_results.rds"))
 
 # filter for brain/CNS-derived/relevant cells (HEK cells often used in neuro)
 brain_cells <- c("NEU", "SHSY5Y", "NPC", "HEK293", "HEK293T")
@@ -138,7 +137,8 @@ table(brain_drugs_anno$max_phase)
 length(unique(brain_drugs_anno$pert))
 
 write_rds(
-brain_drugs_anno, paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+  brain_drugs_anno, paste0(filepath, "gess_lincs_anno_braincell_results.rds")
+)
 
 ###### TARGET ANALYSIS ######
 # separate targets by rows to compare drug targets
@@ -153,9 +153,11 @@ brain_drug_targets <- brain_drugs_anno %>%
   # annotate targets that are prioritized SETBP1 regulatory targets
   mutate(
     SETBP1_target = ifelse(
-    mergeTargets %in% setbp1_targets_all$X1, TRUE, FALSE),
+      mergeTargets %in% setbp1_targets_all$X1, TRUE, FALSE
+    ),
     SETBP1_top_target = ifelse(
-    mergeTargets %in% setbp1_targets_top$target, TRUE, FALSE)
+      mergeTargets %in% setbp1_targets_top$target, TRUE, FALSE
+    )
   )
 
 # filter for drugs that target any SETBP1 regulatory targets
@@ -168,7 +170,8 @@ print(n = 21, arrange(drug_targets_setbp1, pref_name))
 unique(drug_targets_setbp1$pref_name)
 unique(drug_targets_setbp1$mergeTargets)
 write_csv(
-drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv"))
+  drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv")
+)
 
 # full drug annotations for setbp1-target-targeting drugs
 
@@ -182,17 +185,20 @@ unique(setbp1_drugs$mechanism_of_action)
 brain_drugs_filt <- filter(lincs_brain, !is.na(t_gn_sym))
 tsea_go <- tsea_dup_hyperG(
   drugs = unique(brain_drugs_filt$pert),
-  type = "GO", ont = "MF", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
+  type = "GO", ont = "MF", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000
+)
 result(tsea_go)
 
 tsea_kegg <- tsea_dup_hyperG(
   drugs = unique(brain_drugs_filt$pert),
-  type = "KEGG", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000)
+  type = "KEGG", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000
+)
 result(tsea_kegg)
 
 # drug set enrichment analysis
 dsea_go <- dsea_hyperG(
-  drugs = unique(lincs_brain$pert), type = "GO", ont = "MF")
+  drugs = unique(lincs_brain$pert), type = "GO", ont = "MF"
+)
 result(dsea_go)
 
 #### APPROVED/POST-MARKET DRUGS ####

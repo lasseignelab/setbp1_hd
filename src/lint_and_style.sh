@@ -8,7 +8,7 @@
 #
 # FILE_PATH=$1
 # PROJ=${pwd}
-FILE_PATH="${CAP_PROJECT_PATH}/src/12_drugtarget_analysis.R"
+FILE_PATH="${CAP_PROJECT_PATH}/src/11_signature_reversion.R"
 
 # Run lintr and styler inside the container
 singularity exec --cleanenv \

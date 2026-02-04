@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 # DailyMed base API URL
 DAILYMED_BASE = "https://dailymed.nlm.nih.gov/dailymed/services/v2/"
 
+
 # Helper function for XML text parsing
 def clean_xml_text(element):
     if element is None:
