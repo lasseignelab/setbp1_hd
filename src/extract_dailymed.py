@@ -15,13 +15,14 @@ def clean_xml_text(element):
 
 def get_drug_data(drug_name):
     print(f"Fetching data for: {drug_name}...")
+    DAILYMED_BASE = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/"
 
     # 1. Search for Set ID (Corrected key: 'setid')
-    search_url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?drug_name={drug_name}"
+    search_url = f"{DAILYMED_BASE}spls.json?drug_name={drug_name}"
     try:
         response = requests.get(search_url, timeout=20)
         search_data = response.json()
- 
+
         if not search_data.get('data'):
             print(f"No results found for {drug_name}")
             return None
@@ -31,7 +32,7 @@ def get_drug_data(drug_name):
         return None
 
     # 2. Fetch the Full SPL XML
-    xml_url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/{set_id}.xml"
+    xml_url = f"{DAILYMED_BASE}spls/{set_id}.xml"
     try:
         xml_response = requests.get(xml_url, timeout=20)
         if xml_response.status_code != 200:
@@ -102,10 +103,11 @@ def get_drug_data(drug_name):
 
 def main():
     # Set up argument parser
-    parser = argparse.ArgumentParser(description="Extract medication safety "
-                                    "data from DailyMed.")
+    parser = argparse.ArgumentParser(
+            description="Extract medication safety data from DailyMed."
+            )
     parser.add_argument("-i", "--input_csv", help="Path to CSV file with drug "
-                        "names for querying in second column", required=True) 
+                        "names for querying in second column", required=True)
     parser.add_argument("-o", "--output_dir", help="Directory to save the "
                         "CSV file", default=".")
     args = parser.parse_args()
