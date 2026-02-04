@@ -1,3 +1,4 @@
+# pylint: disable=import-error
 import requests
 import csv
 import time
@@ -18,7 +19,7 @@ def get_drug_data(drug_name):
     # 1. Search for Set ID (Corrected key: 'setid')
     search_url = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?drug_name={drug_name}"
     try:
-        response = requests.get(search_url)
+        response = requests.get(search_url, timeout=20)
         search_data = response.json()
  
         if not search_data.get('data'):
@@ -88,7 +89,12 @@ def get_drug_data(drug_name):
                 for phrase in bbb_keywords:
                     if phrase in lower_text:
                         idx = lower_text.find(phrase)
-                        drug_info["BBB Information"] = content[max(0, idx-50) : idx+250] + "..."
+                        start_idx = max(0, idx - 50)
+                        end_idx = idx + 250
+                        drug_info["BBB Information"] = (
+                                content[start_idx:end_idx] + "..."
+                        )
+
                         break
 
     return drug_info
