@@ -242,3 +242,4 @@ bin/conda/work/*
 bin/conda/.nextflow/
 bin/container/*
 bin/docker/
+src/lint_and_style.sh

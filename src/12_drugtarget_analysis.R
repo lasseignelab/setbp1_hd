@@ -95,8 +95,8 @@ contrasts_skip <- c(
 
 target_degs <- all_degs %>%
   filter(gene_name %in% drugs_brain_targets$mergeTargets)
-  # filter(gene_name %in% drugs_setbp1$mergeTargets)
-  # inner_join(drugs_setbp1, by = c("gene_name" = "mergeTargets"))
+# filter(gene_name %in% drugs_setbp1$mergeTargets)
+# inner_join(drugs_setbp1, by = c("gene_name" = "mergeTargets"))
 # length(unique(target_degs$pert))
 length(unique(target_degs$gene_name))
 intersect(target_degs$gene_name, drugs_setbp1$mergeTargets)
@@ -135,8 +135,8 @@ mat_cols <- colnames(target_degs_wide)[3:ncol(target_degs_wide)]
 # Define groups using case_when logic
 col_groups <- case_when(
   grepl("_cardo$", mat_cols) ~ "cardo",
-  grepl("_shaw$", mat_cols)  ~ "shaw",
-  TRUE                             ~ "validation"
+  grepl("_shaw$", mat_cols) ~ "shaw",
+  TRUE ~ "validation"
 )
 col_groups
 
@@ -144,7 +144,7 @@ col_groups
 col_anno_colors <- c(
   "cardo"      = "#4DAF4A", # Black
   "shaw"       = "#377EB8", # Blue
-  "validation" = "#984EA3"  # Purple
+  "validation" = "#984EA3" # Purple
 )
 
 column_ha <- HeatmapAnnotation(
@@ -181,13 +181,13 @@ heatmap_obj <- Heatmap(
 
 # save
 png(paste0(outdir, "target_exp_heatmap.png"), width = 20, height = 55, units = "cm", res = 300)
-draw(heatmap_obj)#, column_title_gp = gpar(fontsize = 14, fontface = "bold"))
+draw(heatmap_obj) # , column_title_gp = gpar(fontsize = 14, fontface = "bold"))
 dev.off()
 
 ### DRUG TARGETS FILTERED FOR APPROVED DRUGS ###
 approved_drugs <- drugs_brain %>%
   filter(max_phase == 4) %>%
-  separate_longer_delim(mergeTargets, delim =  "; ")
+  separate_longer_delim(mergeTargets, delim = "; ")
 unique(approved_drugs$mergeTargets)
 
 target_degs_approved <- target_degs_wide %>%
@@ -220,7 +220,7 @@ heatmap_obj <- Heatmap(
 
 # save
 png(paste0(outdir, "approveddrugs_target_exp_heatmap.png"), width = 20, height = 55, units = "cm", res = 300)
-draw(heatmap_obj)#, column_title_gp = gpar(fontsize = 14, fontface = "bold"))
+draw(heatmap_obj) # , column_title_gp = gpar(fontsize = 14, fontface = "bold"))
 dev.off()
 
 
