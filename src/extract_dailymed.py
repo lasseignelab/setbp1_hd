@@ -7,6 +7,10 @@ import argparse
 from bs4 import BeautifulSoup
 
 
+# DailyMed base API URL
+DAILYMED_BASE = "https://dailymed.nlm.nih.gov/dailymed/services/v2/"
+
+# Helper function for XML text parsing
 def clean_xml_text(element):
     if element is None:
         return "Not found"
@@ -15,7 +19,6 @@ def clean_xml_text(element):
 
 def get_drug_data(drug_name):
     print(f"Fetching data for: {drug_name}...")
-    DAILYMED_BASE = f"https://dailymed.nlm.nih.gov/dailymed/services/v2/"
 
     # 1. Search for Set ID (Corrected key: 'setid')
     search_url = f"{DAILYMED_BASE}spls.json?drug_name={drug_name}"
