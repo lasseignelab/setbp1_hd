@@ -61,14 +61,18 @@ read_deg <- function(dataset_name) {
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
 all_degs <- bind_rows(
-  read_deg("cardo"), read_deg("shaw"), read_deg("tanaka1"), read_deg("tanaka2")
+  read_deg("cardo"),
+  read_deg("shaw"),
+  read_deg("tanaka1"),
+  read_deg("tanaka2")
 )
 
 
 #### INITIAL CODE TRANSFER FROM OTHER SCRIPT ####
 # Read in data
 brain_drugs_anno <- read_rds(
-  paste0(filepath, "gess_lincs_anno_braincell_results.rds"))
+  paste0(filepath, "gess_lincs_anno_braincell_results.rds")
+)
 brain_drugs_filt <- brain_drugs_anno %>%
   dplyr::select(
     pert, pref_name, max_phase, cell, WTCS,
@@ -85,7 +89,7 @@ brain_drug_targets %>%
   geom_bar()
 ggsave(paste0(
   filepath, "drug_targets_histogram.png"
-  ), width = 19, height = 24, units = "cm")
+), width = 19, height = 24, units = "cm")
 
 drug_targets_setbp1 %>%
   ggplot(aes(
@@ -98,7 +102,7 @@ drug_targets_setbp1 %>%
   geom_point()
 
 ggsave(paste0(
-filepath, "setbp1_drug_shared_targets_trialphase.png"
+  filepath, "setbp1_drug_shared_targets_trialphase.png"
 ), width = 19, height = 19, units = "cm")
 
 
@@ -125,7 +129,7 @@ drug_targets_setbp1 %>%
   theme(text = element_text(face = "bold"))
 
 ggsave(paste0(
-filepath, "setbp1_drugs_shared_targets.png"
+  filepath, "setbp1_drugs_shared_targets.png"
 ), width = 19, height = 16, units = "cm")
 
 
@@ -154,7 +158,7 @@ drug_targets_setbp1 %>%
   theme(text = element_text(face = "bold"))
 
 ggsave(paste0(
-filepath, "setbp1_drugs_shared.png"
+  filepath, "setbp1_drugs_shared.png"
 ), width = 19, height = 16, units = "cm")
 
 
@@ -163,36 +167,33 @@ setbp1_drugs %>%
   add_count(mechanism_of_action) %>%
   ggplot(aes(
     y = reorder(mechanism_of_action, n)
-    # x = -WTCS
   )) +
   geom_bar(aes(
     fill = pref_name
-    # alpha = SETBP1_top_target,
   )) +
-  # scale_alpha_manual(values = c("TRUE" = 0.85, "FALSE" = 0.45)) +
   scale_fill_viridis_d(end = 0.7) +
   labs(
     y = "MOA",
     fill = "Drug with SETBP1 Target"
   ) +
-  # guides(size = "none", alpha = "none") +
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
 ggsave(paste0(
-filepath, "moa_setbp1_drugs_shared.png"
+  filepath, "moa_setbp1_drugs_shared.png"
 ), width = 19, height = 16, units = "cm")
 
 
 approved_drugs %>%
   filter(n > 1) %>%
   ggplot(aes(
-    x = -WTCS, y = reorder(pref_name, drug_top_WTCS), alpha = 0.7,
+    x = -WTCS, y = reorder(pref_name, drug_top_WTCS),
+    alpha = 0.7,
     colour = cell, size = -log10(WTCS_Pval)
   )) +
   geom_point()
 ggsave(paste0(
-filepath, "approved_drugs_braincells_multiplecells.png"
+  filepath, "approved_drugs_braincells_multiplecells.png"
 ), width = 16, height = 25, units = "cm")
 
 approved_drugs %>%
@@ -202,13 +203,14 @@ approved_drugs %>%
   )) +
   geom_point()
 ggsave(paste0(
-filepath, "approved_drugs_braincells_full.png"
+  filepath, "approved_drugs_braincells_full.png"
 ), width = 16, height = 29, units = "cm")
 
 approved_drugs %>%
   slice_min(drug_top_WTCS, n = 50) %>%
   mutate(SETBP1_Target = ifelse(
-  pert %in% drug_targets_setbp1$pert, TRUE, FALSE)) %>%
+    pert %in% drug_targets_setbp1$pert, TRUE, FALSE
+  )) %>%
   ggplot(aes(
     x = -WTCS, y = reorder(pref_name, -drug_top_WTCS)
   )) +
@@ -233,12 +235,14 @@ approved_drugs %>%
   theme(text = element_text(face = "bold"))
 
 ggsave(paste0(
-filepath, "approved_drugs_braincells_topWTCS.png"
+  filepath, "approved_drugs_braincells_topWTCS.png"
 ), width = 19, height = 25, units = "cm")
 
 ### MOA ###
 approved_moa <- data.frame(approved_drugs) %>%
-  dplyr::select(pert, pref_name, WTCS, WTCS_Pval, cell, mergeMOA) %>%
+  dplyr::select(
+    pert, pref_name, WTCS, WTCS_Pval, cell, mergeMOA
+  ) %>%
   separate_longer_delim(cols = mergeMOA, delim = "; ") %>%
   mutate(MOA = stringr::str_to_upper(mergeMOA)) %>%
   add_count(MOA)
@@ -258,12 +262,15 @@ approved_moa %>%
   theme(text = element_text(face = "bold"))
 
 ggsave(paste0(
-filepath, "approved_drugs_top_moa.png"
+  filepath, "approved_drugs_top_moa.png"
 ), width = 20, height = 20, units = "cm")
 
 
 #### FIGURE 3 ASSEMBLY ####
-bottom_row <- plot_grid(performance_plot, volcano_plot, labels = c("B", "C"))
+bottom_row <- plot_grid(
+  performance_plot, volcano_plot,
+  labels = c("B", "C")
+)
 png(paste0(outdir, "figure_3.png"),
   width = 350,
   height = 425,

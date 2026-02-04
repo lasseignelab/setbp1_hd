@@ -14,33 +14,33 @@ suppressPackageStartupMessages({
 })
 ###### SET UP ######
 # create parser object
-# parser <- ArgumentParser()
-#
-# parser$add_argument("-i", "--indir",
-#   type = "character",
-#   help = "Path to the input data directory to access validation data"
-# )
-# parser$add_argument("-d", "--degs",
-#   type = "character",
-#   help = "Parent directory containing each dataset's DEG CSV files"
-# )
-# parser$add_argument("-n", "--numsig",
-#   type = "integer",
-#   help = "Number of top DEGs by method used to retain for signature"
-# )
-# parser$add_argument("-o", "--outdir",
-#   type = "character",
-#   help = "Path to the directory to write consensus signature results"
-# )
-# # get command line options, if help option encountered print help and exit
-# args <- parser$parse_args()
-# indir <- args$indir
-# degs <- args$degs
-# outdir <- args$outdir
-#
-# # create output dir if needed
-# if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
-#
+parser <- ArgumentParser()
+
+parser$add_argument("-i", "--indir",
+  type = "character",
+  help = "Path to the input data directory to access validation data"
+)
+parser$add_argument("-d", "--degs",
+  type = "character",
+  help = "Parent directory containing each dataset's DEG CSV files"
+)
+parser$add_argument("-n", "--numsig",
+  type = "integer",
+  help = "Number of top DEGs by method used to retain for signature"
+)
+parser$add_argument("-o", "--outdir",
+  type = "character",
+  help = "Path to the directory to write consensus signature results"
+)
+# get command line options, if help option encountered print help and exit
+args <- parser$parse_args()
+indir <- args$indir
+degs <- args$degs
+outdir <- args$outdir
+
+# create output dir if needed
+if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
+
 degs <- "./results/dea/"
 datadir <- "./data/"
 indir <- "./results/signature_reversion/"
@@ -56,20 +56,30 @@ read_deg <- function(dataset_name) {
 ptm <- proc.time()
 
 ###### READ IN DATA ######
-drugs_brain <- read_rds(paste0(indir, "gess_lincs_anno_braincell_results.rds"))
-drugs_setbp1 <- read_csv(paste0(indir, "setbp1_drug_shared_targets.csv"))
+drugs_brain <- read_rds(
+  paste0(indir, "gess_lincs_anno_braincell_results.rds")
+)
+drugs_setbp1 <- read_csv(
+  paste0(indir, "setbp1_drug_shared_targets.csv")
+)
 
 # Wong et al data
 wong_fibro <- read_excel(paste0(
   datadir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"
 ), sheet = 3, skip = 1) %>%
-  select(gene = ensemblID, logFC = log2FoldChange, gene_name = symbol, adj.P.Val = padj) %>%
+  select(
+    gene = ensemblID, logFC = log2FoldChange,
+    gene_name = symbol, adj.P.Val = padj
+  ) %>%
   mutate(contrast = "fibro", dataset = "wong")
 
 wong_neu <- read_excel(paste0(
   datadir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"
 ), sheet = 3, skip = 1) %>%
-  select(gene = `...1`, logFC = log2FoldChange, gene_name = symbol, adj.P.Val = padj) %>%
+  select(
+    gene = `...1`, logFC = log2FoldChange,
+    gene_name = symbol, adj.P.Val = padj
+  ) %>%
   mutate(contrast = "neu", dataset = "wong")
 
 # combine validation DEGs and cardo/shaw DEGs
@@ -84,7 +94,9 @@ all_degs <- bind_rows(
 
 ###### FIND DRUG TARGET DEGS ######
 drugs_brain_targets <- drugs_brain %>%
-  select(pert, pert_iname, pref_name, WTCS, WTCS_Pval, mergeTargets) %>%
+  select(
+    pert, pert_iname, pref_name, WTCS, WTCS_Pval, mergeTargets
+  ) %>%
   separate_longer_delim(mergeTargets, delim = "; ") %>%
   filter(!is.na(mergeTargets))
 
@@ -95,9 +107,6 @@ contrasts_skip <- c(
 
 target_degs <- all_degs %>%
   filter(gene_name %in% drugs_brain_targets$mergeTargets)
-# filter(gene_name %in% drugs_setbp1$mergeTargets)
-# inner_join(drugs_setbp1, by = c("gene_name" = "mergeTargets"))
-# length(unique(target_degs$pert))
 length(unique(target_degs$gene_name))
 intersect(target_degs$gene_name, drugs_setbp1$mergeTargets)
 setdiff(drugs_setbp1$mergeTargets, target_degs$gene_name)
@@ -107,7 +116,11 @@ write_csv(target_degs, paste0(outdir, "drug_target_degs.csv"))
 target_degs
 target_degs %>%
   filter(gene_name %in% drugs_setbp1$mergeTargets) %>%
-  ggplot(aes(x = -log10(adj.P.Val), y = logFC, colour = contrast, shape = gene_name)) +
+  ggplot(aes(
+    x = -log10(adj.P.Val),
+    y = logFC,
+    colour = contrast, shape = gene_name
+  )) +
   geom_point()
 ggsave(paste0(outdir, "target_exp_contrasts.png"))
 
@@ -115,7 +128,9 @@ target_degs_wide <- target_degs %>%
   unite("contrast_dataset", contrast, dataset) %>%
   select(gene, gene_name, logFC, contrast_dataset) %>%
   distinct() %>%
-  pivot_wider(names_from = contrast_dataset, values_from = logFC, values_fill = 0) %>%
+  pivot_wider(
+    names_from = contrast_dataset, values_from = logFC, values_fill = 0
+  ) %>%
   # rm characters "NA" -- not in NA class
   filter(gene_name != "NA")
 
@@ -156,7 +171,11 @@ column_ha <- HeatmapAnnotation(
 #--- Row Annotations ---#
 row_groups <- target_degs_wide %>%
   select(gene, gene_name) %>%
-  mutate(SETBP1_target = ifelse(gene_name %in% unique(drugs_setbp1$mergeTargets), TRUE, FALSE)) %>%
+  mutate(
+    SETBP1_target = ifelse(
+      gene_name %in% unique(drugs_setbp1$mergeTargets), TRUE, FALSE
+    )
+  ) %>%
   column_to_rownames(var = "gene")
 
 gene_ha <- rowAnnotation(
@@ -180,8 +199,10 @@ heatmap_obj <- Heatmap(
 )
 
 # save
-png(paste0(outdir, "target_exp_heatmap.png"), width = 20, height = 55, units = "cm", res = 300)
-draw(heatmap_obj) # , column_title_gp = gpar(fontsize = 14, fontface = "bold"))
+png(paste0(
+  outdir, "target_exp_heatmap.png"
+), width = 20, height = 55, units = "cm", res = 300)
+draw(heatmap_obj)
 dev.off()
 
 ### DRUG TARGETS FILTERED FOR APPROVED DRUGS ###
@@ -196,7 +217,9 @@ target_degs_approved <- target_degs_wide %>%
 #--- Row Annotations ---#
 row_groups <- target_degs_approved %>%
   select(gene, gene_name) %>%
-  mutate(SETBP1_target = ifelse(gene_name %in% unique(drugs_setbp1$mergeTargets), TRUE, FALSE)) %>%
+  mutate(SETBP1_target = ifelse(
+    gene_name %in% unique(drugs_setbp1$mergeTargets), TRUE, FALSE
+  )) %>%
   column_to_rownames(var = "gene")
 
 gene_ha <- rowAnnotation(
@@ -219,10 +242,11 @@ heatmap_obj <- Heatmap(
 )
 
 # save
-png(paste0(outdir, "approveddrugs_target_exp_heatmap.png"), width = 20, height = 55, units = "cm", res = 300)
+png(paste0(
+  outdir, "approveddrugs_target_exp_heatmap.png"
+), width = 20, height = 55, units = "cm", res = 300)
 draw(heatmap_obj) # , column_title_gp = gpar(fontsize = 14, fontface = "bold"))
 dev.off()
-
 
 
 #### END ####
