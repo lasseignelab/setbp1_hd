@@ -37,11 +37,17 @@ ptm <- proc.time()
 
 datapath <- args$input_dir
 cachedir <- paste0(datapath, "ExperimentHubCache")
+message("Location of cache directory: ", cachedir)
 resdir <- args$output_dir
 filepath <- paste0(resdir, "signature_reversion/")
 querypath <- paste0(resdir, "consensus_signature/")
 
 ### TEMP ###
+# check versions that might be causing error
+message("dbplyr version: ", packageVersion("dbplyr"))
+message("BiocFileCache version: ", packageVersion("BiocFileCache"))
+message("dplyr version: ", packageVersion("dplyr"))
+
 brain_drugs_anno <- read_rds(
   paste0(filepath, "gess_lincs_anno_braincell_results.rds")
 )
@@ -65,12 +71,18 @@ setExperimentHubOption("CACHE", cachedir)
 
 message("Using cache directory: ", cachedir)
 
-eh <- ExperimentHub() # localHub = FALSE)
+# Force a clean load of the hub
+Sys.setenv(EXPERIMENT_HUB_CACHE = cachedir)
+eh <- ExperimentHub(localHub = FALSE)
+
+eh <- ExperimentHub(localHub = FALSE)
 # lincs 2020 filepath and db exploration
+message("Loading in lincs2 EH db...")
 lincs2 <- eh[["EH7297"]]
 
 # load LINCS perturbation annotations
 data(lincs_pert_info2)
+message("Loading in lincs2 annotation EH db...")
 
 ###### READ IN DATA ######
 
@@ -117,7 +129,7 @@ qsig_lincs <- qSig(
 # calculate signature reversion metrics of query vs LINCS DB
 lincs <- gess_lincs(qsig_lincs, sortby = "WTCS", tau = FALSE, workers = 1)
 str(lincs)
-write_rds(lincs, paste0(filepath, "gess_lincs_results.rds"))
+write_rds(lincs, paste0(filepath, "lincs_results.rds"))
 
 # filter for brain/CNS-derived/relevant cells (HEK cells often used in neuro)
 brain_cells <- c("NEU", "SHSY5Y", "NPC", "HEK293", "HEK293T")
@@ -126,7 +138,7 @@ lincs_brain <- lincs@result %>%
   filter(WTCS < 0) %>%
   arrange(WTCS)
 head(lincs_brain)
-write_csv(lincs_brain, paste0(filepath, "gess_lincs_braincells_results.csv"))
+write_csv(lincs_brain, paste0(filepath, "lincs_braincells_results.csv"))
 
 # annotate drugs
 brain_drugs_anno <- lincs_brain %>%
@@ -137,7 +149,7 @@ table(brain_drugs_anno$max_phase)
 length(unique(brain_drugs_anno$pert))
 
 write_rds(
-  brain_drugs_anno, paste0(filepath, "gess_lincs_anno_braincell_results.rds")
+  brain_drugs_anno, paste0(filepath, "lincs_anno_braincell_results.rds")
 )
 
 ###### TARGET ANALYSIS ######
@@ -170,7 +182,7 @@ print(n = 21, arrange(drug_targets_setbp1, pref_name))
 unique(drug_targets_setbp1$pref_name)
 unique(drug_targets_setbp1$mergeTargets)
 write_csv(
-  drug_targets_setbp1, paste0(filepath, "setbp1_drug_shared_targets.csv")
+  drug_targets_setbp1, paste0(filepath, "setbp1_drug_targets.csv")
 )
 
 # full drug annotations for setbp1-target-targeting drugs
@@ -212,7 +224,7 @@ approved_drugs <- brain_drugs_anno %>%
   filter(max_phase == 4)
 head(approved_drugs[, 61:63])
 unique(approved_drugs$pref_name)
-write_csv(approved_drugs, paste0(filepath, "approved_drugs_braincell_res.csv"))
+write_csv(approved_drugs, paste0(filepath, "approved_drugs_res.csv"))
 
 
 # end timer
