@@ -6,7 +6,6 @@ import os
 import argparse
 from bs4 import BeautifulSoup
 
-
 # DailyMed base API URL
 DAILYMED_BASE = "https://dailymed.nlm.nih.gov/dailymed/services/v2/"
 
@@ -15,7 +14,7 @@ DAILYMED_BASE = "https://dailymed.nlm.nih.gov/dailymed/services/v2/"
 def clean_xml_text(element):
     if element is None:
         return "Not found"
-    return ' '.join(element.get_text(separator=' ').split()).strip()
+    return " ".join(element.get_text(separator=" ").split()).strip()
 
 
 def get_drug_data(drug_name):
@@ -27,10 +26,10 @@ def get_drug_data(drug_name):
         response = requests.get(search_url, timeout=20)
         search_data = response.json()
 
-        if not search_data.get('data'):
+        if not search_data.get("data"):
             print(f"No results found for {drug_name}")
             return None
-        set_id = search_data['data'][0]['setid']
+        set_id = search_data["data"][0]["setid"]
     except Exception as e:
         print(f"Error finding {drug_name}: {e}")
         return None
@@ -56,14 +55,14 @@ def get_drug_data(drug_name):
         "Pregnancy": "Not found",
         "Lactation": "Not found",
         "Pharmacokinetics": "Not found",
-        "BBB Information": "Not explicitly detailed"
+        "BBB Information": "Not explicitly detailed",
     }
 
     # 3. Find all <section> tags in the SPL
-    sections = soup.find_all('section')
+    sections = soup.find_all("section")
     for section in sections:
         # Check the <title> tag inside the section
-        title_tag = section.find('title')
+        title_tag = section.find("title")
         if not title_tag:
             continue
 
@@ -82,14 +81,18 @@ def get_drug_data(drug_name):
 
         if target_key:
             # Extract the <text> block which contains the clinical content
-            text_block = section.find('text')
+            text_block = section.find("text")
             content = clean_xml_text(text_block)
             drug_info[target_key] = content
 
             # BBB Logic specifically for the Pharmacology sections
             if target_key == "Pharmacokinetics":
-                bbb_keywords = ["blood-brain barrier", "crosses the bbb",
-                                "cerebrospinal fluid", "cns penetration"]
+                bbb_keywords = [
+                    "blood-brain barrier",
+                    "crosses the bbb",
+                    "cerebrospinal fluid",
+                    "cns penetration",
+                ]
                 lower_text = content.lower()
                 for phrase in bbb_keywords:
                     if phrase in lower_text:
@@ -97,7 +100,7 @@ def get_drug_data(drug_name):
                         start_idx = max(0, idx - 50)
                         end_idx = idx + 250
                         drug_info["BBB Information"] = (
-                                content[start_idx:end_idx] + "..."
+                            content[start_idx:end_idx] + "..."
                         )
 
                         break
@@ -108,18 +111,23 @@ def get_drug_data(drug_name):
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(
-            description="Extract medication safety data from DailyMed."
-            )
-    parser.add_argument("-i", "--input_csv", help="Path to CSV file with drug "
-                        "names for querying in second column", required=True)
-    parser.add_argument("-o", "--output_dir", help="Directory to save the "
-                        "CSV file", default=".")
+        description="Extract medication safety data from DailyMed."
+    )
+    parser.add_argument(
+        "-i",
+        "--input_csv",
+        help="Path to CSV file with drug names for querying in second column",
+        required=True,
+    )
+    parser.add_argument(
+        "-o", "--output_dir", help="Directory to save the CSV file", default="."
+    )
     args = parser.parse_args()
 
     # Parse input CSV
     drug_list = []
     try:
-        with open(args.input_csv, mode='r', encoding='utf-8') as infile:
+        with open(args.input_csv, mode="r", encoding="utf-8") as infile:
             reader = csv.reader(infile)
             for row in reader:
                 if len(row) >= 2:
@@ -141,7 +149,7 @@ def main():
 
     fieldnames = ["Name", "ID", "BBW", "Pregnancy", "Lact", "Ph kin", "BBB"]
 
-    with open(output_path, mode='w', newline='', encoding='utf-8') as f:
+    with open(output_path, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for drug in drug_list:
