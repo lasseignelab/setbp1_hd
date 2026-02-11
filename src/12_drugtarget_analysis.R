@@ -134,7 +134,6 @@ target_degs_wide <- target_degs %>%
   # rm characters "NA" -- not in NA class
   filter(gene_name != "NA")
 
-# print(paste0("Consensus genes dataframe: "))
 str(target_degs_wide)
 
 ### prepare Heatmap parameters ###
