@@ -1,5 +1,4 @@
-# lintr: disable object_usage_linter
-# script for analyzing DEGs combined across contrasts
+# script for plotting signature reversion drug figure
 set.seed(42)
 
 suppressPackageStartupMessages({
@@ -22,10 +21,7 @@ parser$add_argument("-i", "--input_dir",
   metavar = "PATH",
   help = "Path to the directory with input files"
 )
-parser$add_argument("-d", "--degs",
-  type = "character",
-  help = "Parent directory containing each dataset's DEG CSV files"
-)
+
 parser$add_argument("-o", "--output_dir",
   type = "character",
   metavar = "PATH",
@@ -39,13 +35,12 @@ args <- parser$parse_args()
 ptm <- proc.time()
 
 #### Set variables for dataset ####
-print(paste0("Reading in DEGs from: ", args$degs))
 indir <- args$input_dir
-degs <- args$degs
-outdir <- args$output_dir
+filepath <- args$output_dir
 
 # create output dir if needed
-if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
+if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
+print(paste0("Results will be saved to ", filepath))
 
 mytheme <- theme(
   panel.grid = element_blank(),
@@ -54,35 +49,22 @@ mytheme <- theme(
   text = element_text(family = "Helvetica", face = "bold", size = 14)
 )
 #### READ IN AND COMBINE DEGS ACROSS DATA SETS ####
-# helper function to read in DEGs
-read_deg <- function(dataset_name) {
-  file <- file.path(degs, dataset_name, "unfiltered_degs.csv")
-  if (!file.exists(file)) stop("Missing file: ", file)
-  read_csv(file) %>% mutate(dataset = dataset_name)
-}
-all_degs <- bind_rows(
-  read_deg("cardo"),
-  read_deg("shaw"),
-  read_deg("tanaka1"),
-  read_deg("tanaka2")
+# Read in data
+brain_drugs_filt <- read_csv(
+  paste0(indir, "brain_drugs_filtered.csv")
+)
+brain_drug_targets <- read_rds(
+  paste0(indir, "lincs_anno_braincell_results.rds")
 )
 
+drug_targets_setbp1 <- read_csv(
+  paste0(indir, "setbp1_drug_targets.csv")
+)
 
 #### INITIAL CODE TRANSFER FROM OTHER SCRIPT ####
-# Read in data
-brain_drugs_anno <- read_rds(
-  paste0(filepath, "gess_lincs_anno_braincell_results.rds")
-)
-brain_drugs_filt <- brain_drugs_anno %>%
-  dplyr::select(
-    pert, pref_name, max_phase, cell, WTCS,
-    WTCS_Pval, mergeTargets, Target_pathway
-  ) %>%
-  filter(!is.na(pref_name))
-write_csv(brain_drugs_filt, paste0(filepath, "brain_drugs_filtered.csv"))
-
 
 # drug target histogram
+print(str(brain_drug_targets))
 brain_drug_targets %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
@@ -106,7 +88,7 @@ ggsave(paste0(
 ), width = 19, height = 19, units = "cm")
 
 
-drug_targets_setbp1 %>%
+setbp1_targets_plot <- drug_targets_setbp1 %>%
   ggplot(aes(
     y = mergeTargets,
     x = -WTCS
@@ -128,6 +110,7 @@ drug_targets_setbp1 %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
+setbp1_targets_plot 
 ggsave(paste0(
   filepath, "setbp1_drugs_shared_targets.png"
 ), width = 19, height = 16, units = "cm")
@@ -162,7 +145,7 @@ ggsave(paste0(
 ), width = 19, height = 16, units = "cm")
 
 
-setbp1_drugs %>%
+moa_setbp1 <- psetbp1_drugs %>%
   filter(!is.na(mechanism_of_action)) %>%
   add_count(mechanism_of_action) %>%
   ggplot(aes(
@@ -206,7 +189,7 @@ ggsave(paste0(
   filepath, "approved_drugs_braincells_full.png"
 ), width = 16, height = 29, units = "cm")
 
-approved_drugs %>%
+topWTCS_approved_plot <- approved_drugs %>%
   slice_min(drug_top_WTCS, n = 50) %>%
   mutate(SETBP1_Target = ifelse(
     pert %in% drug_targets_setbp1$pert, TRUE, FALSE
@@ -234,6 +217,7 @@ approved_drugs %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
+topWTCS_approved_plot 
 ggsave(paste0(
   filepath, "approved_drugs_braincells_topWTCS.png"
 ), width = 19, height = 25, units = "cm")
@@ -250,7 +234,7 @@ str(approved_moa)
 sort(table(approved_moa$MOA))
 length(unique(approved_moa$mergeMOA))
 
-approved_moa %>%
+approved_moa_plot <- approved_moa %>%
   filter(n > 2) %>%
   ggplot(aes(
     y = reorder(MOA, n), fill = cell
@@ -261,17 +245,18 @@ approved_moa %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
+approved_moa_plot 
 ggsave(paste0(
   filepath, "approved_drugs_top_moa.png"
 ), width = 20, height = 20, units = "cm")
 
 
-#### FIGURE 3 ASSEMBLY ####
+#### FIGURE 5 ASSEMBLY ####
 bottom_row <- plot_grid(
   performance_plot, volcano_plot,
   labels = c("B", "C")
 )
-png(paste0(outdir, "figure_3.png"),
+png(paste0(filepath, "figure_5.png"),
   width = 350,
   height = 425,
   units = "mm",
@@ -279,9 +264,12 @@ png(paste0(outdir, "figure_3.png"),
 )
 
 cowplot::plot_grid(
-  ora_plot,
-  bottom_row,
-  labels = c("A", ""),
+  approved_moa_plot,
+  topWTCS_approved_plot, 
+  setbp1_targets_plot, 
+  labels = "AUTO",
+  # bottom_row,
+  # labels = c("A", ""),
   ncol = 1
 )
 
