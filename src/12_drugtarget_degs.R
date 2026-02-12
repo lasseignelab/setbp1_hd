@@ -24,13 +24,9 @@ parser$add_argument("-d", "--degs",
   type = "character",
   help = "Parent directory containing each dataset's DEG CSV files"
 )
-parser$add_argument("-n", "--numsig",
-  type = "integer",
-  help = "Number of top DEGs by method used to retain for signature"
-)
 parser$add_argument("-o", "--outdir",
   type = "character",
-  help = "Path to the directory to write consensus signature results"
+  help = "Path to the directory to read in signature results and write target DEG results" # nolint
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
@@ -41,10 +37,6 @@ outdir <- args$outdir
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
-degs <- "./results/dea/"
-datadir <- "./data/"
-indir <- "./results/signature_reversion/"
-outdir <- "./results/drug_analysis/"
 # helper function to read in DEGs
 read_deg <- function(dataset_name) {
   file <- file.path(degs, dataset_name, "significant_degs.csv")
@@ -57,15 +49,15 @@ ptm <- proc.time()
 
 ###### READ IN DATA ######
 drugs_brain <- read_rds(
-  paste0(indir, "gess_lincs_anno_braincell_results.rds")
+  paste0(outdir, "gess_lincs_anno_braincell_results.rds")
 )
 drugs_setbp1 <- read_csv(
-  paste0(indir, "setbp1_drug_shared_targets.csv")
+  paste0(outdir, "setbp1_drug_shared_targets.csv")
 )
 
 # Wong et al data
 wong_fibro <- read_excel(paste0(
-  datadir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"
+  indir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"
 ), sheet = 3, skip = 1) %>%
   select(
     gene = ensemblID, logFC = log2FoldChange,
@@ -74,7 +66,7 @@ wong_fibro <- read_excel(paste0(
   mutate(contrast = "fibro", dataset = "wong")
 
 wong_neu <- read_excel(paste0(
-  datadir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"
+  indir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"
 ), sheet = 3, skip = 1) %>%
   select(
     gene = `...1`, logFC = log2FoldChange,
