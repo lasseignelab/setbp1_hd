@@ -42,6 +42,7 @@ filepath <- args$output_dir
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
 print(paste0("Results will be saved to ", filepath))
 
+# ggplot theme
 mytheme <- theme(
   panel.grid = element_blank(),
   axis.ticks = element_blank(),
@@ -63,14 +64,14 @@ drug_targets_setbp1 <- read_csv(
   paste0(indir, "setbp1_drug_targets.csv")
 )
 
-#### INITIAL CODE TRANSFER FROM OTHER SCRIPT ####
-
+### DRUG TARGETS ###
 # drug target histogram
 print(str(brain_drug_targets))
 drug_targets_setbp1 %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
   geom_bar()
+
 ggsave(paste0(
   filepath, "drug_targets_histogram.png"
 ), width = 19, height = 24, units = "cm")
@@ -146,7 +147,7 @@ ggsave(paste0(
   filepath, "setbp1_drugs_shared.png"
 ), width = 19, height = 16, units = "cm")
 
-
+### APPROVED DRUGS ###
 approved_drugs %>%
   filter(n > 1) %>%
   ggplot(aes(
@@ -169,7 +170,7 @@ ggsave(paste0(
   filepath, "approved_drugs_braincells_full.png"
 ), width = 16, height = 29, units = "cm")
 
-top_WTCS_plot <- approved_drugs %>%
+top_wtcs_plot <- approved_drugs %>%
   slice_min(drug_top_WTCS, n = 50) %>%
   mutate(SETBP1_Target = ifelse(
     pert %in% drug_targets_setbp1$pert, TRUE, FALSE
@@ -197,7 +198,7 @@ top_WTCS_plot <- approved_drugs %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
-top_WTCS_plot
+top_wtcs_plot
 ggsave(paste0(
   filepath, "approved_drugs_braincells_topWTCS.png"
 ), width = 19, height = 25, units = "cm")
@@ -241,7 +242,7 @@ png(paste0(filepath, "figure_5.png"),
 
 cowplot::plot_grid(
   approved_moa_plot,
-  top_WTCS_plot,
+  top_wtcs_plot,
   setbp1_targets_plot,
   labels = "AUTO",
   ncol = 1

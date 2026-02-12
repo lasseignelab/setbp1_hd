@@ -1,4 +1,5 @@
 # pylint: disable=import-error
+# Script for accessing DailyMed API for safety data
 import requests
 import csv
 import time
@@ -145,7 +146,7 @@ def main():
         print(f"Creating directory: {args.output_dir}")
         os.makedirs(args.output_dir)
 
-    output_path = os.path.join(args.output_dir, "drug_safety_database.csv")
+    output_path = os.path.join(args.output_dir, "drug_safety_data.csv")
 
     fieldnames = ["Name", "ID", "BBW", "Pregnancy", "Lact", "Ph kin", "BBB"]
 
