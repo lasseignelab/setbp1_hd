@@ -51,22 +51,18 @@ mytheme <- theme(
 )
 #### READ IN AND COMBINE DEGS ACROSS DATA SETS ####
 # Read in data
-brain_drugs_filt <- read_csv(
-  paste0(indir, "brain_drugs_filtered.csv")
-)
-brain_drug_targets <- read_rds(
-  paste0(indir, "lincs_anno_braincell_results.rds")
-)
 approved_drugs <- read_csv(
   paste0(indir, "approved_drugs_braincell_res.csv")
 )
 drug_targets_setbp1 <- read_csv(
   paste0(indir, "setbp1_drug_targets.csv")
 )
+drug_safety <- read_csv(
+  paste0(indir, "drug_safety_data.csv")
+)
 
 ### DRUG TARGETS ###
 # drug target histogram
-print(str(brain_drug_targets))
 drug_targets_setbp1 %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
@@ -202,6 +198,15 @@ top_wtcs_plot
 ggsave(paste0(
   filepath, "approved_drugs_braincells_topWTCS.png"
 ), width = 19, height = 25, units = "cm")
+
+### ANNOTATED DRUG TABLE ###
+full_drug_anno <- approved_drugs %>%
+  mutate(SETBP1_Target = ifelse(
+    pert %in% drug_targets_setbp1$pert, TRUE, FALSE
+  )) %>%
+  left_join(drug_safety, by = c("pref_name" = "Name"))
+
+write_csv(full_drug_anno, paste0(filepath, "full_drug_safety_anno_table.csv"))
 
 ### MOA ###
 approved_moa <- data.frame(approved_drugs) %>%
