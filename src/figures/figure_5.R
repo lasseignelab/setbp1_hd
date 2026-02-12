@@ -49,20 +49,21 @@ mytheme <- theme(
   panel.background = element_blank(),
   text = element_text(family = "Helvetica", face = "bold", size = 14)
 )
-#### READ IN AND COMBINE DEGS ACROSS DATA SETS ####
-# Read in data
+#### READ IN DRUG DATA ####
+# signature reversion results and annotations
 approved_drugs <- read_csv(
   paste0(indir, "approved_drugs_braincell_res.csv")
 )
 drug_targets_setbp1 <- read_csv(
   paste0(indir, "setbp1_drug_targets.csv")
 )
+# DailyMed safety annotations for signature reversion drugs
 drug_safety <- read_csv(
   paste0(indir, "drug_safety_data.csv")
 )
 
-### DRUG TARGETS ###
-# drug target histogram
+### SETBP1 DRUG TARGETS ###
+message("Plotting shared drug/SETBP1 targets plots...")
 drug_targets_setbp1 %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
@@ -144,6 +145,8 @@ ggsave(paste0(
 ), width = 19, height = 16, units = "cm")
 
 ### APPROVED DRUGS ###
+message("Plotting approved drug plots...")
+
 approved_drugs %>%
   filter(n > 1) %>%
   ggplot(aes(
@@ -165,6 +168,9 @@ approved_drugs %>%
 ggsave(paste0(
   filepath, "approved_drugs_braincells_full.png"
 ), width = 16, height = 29, units = "cm")
+
+### TOP WTCS APPROVED DRUGS, SETBP1 TARGET ANNOTATED ###
+message("Plotting top WTCS-approved, SETBP1-annotated drug plots...")
 
 top_wtcs_plot <- approved_drugs %>%
   slice_min(drug_top_WTCS, n = 50) %>%
@@ -200,6 +206,8 @@ ggsave(paste0(
 ), width = 19, height = 25, units = "cm")
 
 ### ANNOTATED DRUG TABLE ###
+message("Writing full drug table with SETBP1 + safety annotations...")
+
 full_drug_anno <- approved_drugs %>%
   mutate(SETBP1_Target = ifelse(
     pert %in% drug_targets_setbp1$pert, TRUE, FALSE
@@ -209,6 +217,8 @@ full_drug_anno <- approved_drugs %>%
 write_csv(full_drug_anno, paste0(filepath, "full_drug_safety_anno_table.csv"))
 
 ### MOA ###
+message("Plotting approved drug MOA plots...")
+
 approved_moa <- data.frame(approved_drugs) %>%
   dplyr::select(
     pert, pref_name, WTCS, WTCS_Pval, cell, mergeMOA
@@ -238,6 +248,8 @@ ggsave(paste0(
 
 
 #### FIGURE 5 ASSEMBLY ####
+message("Plotting figure 5...")
+
 png(paste0(filepath, "figure_5.png"),
   width = 350,
   height = 425,
