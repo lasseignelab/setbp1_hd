@@ -2,9 +2,6 @@ suppressPackageStartupMessages({
   library(argparse)
   library(tidyverse)
   library(recount3)
-  library(ggplot2)
-  library(ComplexHeatmap)
-  library(gprofiler2)
   library(signatureSearch)
   library(ExperimentHub)
   library(rhdf5)
@@ -36,29 +33,11 @@ ptm <- proc.time()
 #### Set variables for dataset ####
 
 datapath <- args$input_dir
-cachedir <- paste0(datapath, "ExperimentHubCache")
-message("Location of cache directory: ", cachedir)
 resdir <- args$output_dir
 filepath <- paste0(resdir, "signature_reversion/")
 querypath <- paste0(resdir, "consensus_signature/")
-
-### TEMP ###
-# check versions that might be causing error
-message("dbplyr version: ", packageVersion("dbplyr"))
-message("BiocFileCache version: ", packageVersion("BiocFileCache"))
-message("dplyr version: ", packageVersion("dplyr"))
-
-brain_drugs_anno <- read_rds(
-  paste0(filepath, "gess_lincs_anno_braincell_results.rds")
-)
-brain_drugs_filt <- brain_drugs_anno %>%
-  dplyr::select(
-    pert, pref_name, max_phase, cell,
-    WTCS, WTCS_Pval, mergeTargets, Target_pathway
-  ) %>%
-  filter(!is.na(pref_name))
-write_csv(brain_drugs_filt, paste0(filepath, "brain_drugs_filtered.csv"))
-
+cachedir <- paste0(datapath, "ExperimentHubCache")
+message("Location of cache directory: ", cachedir)
 
 # create dirs if needed
 if (!dir.exists(filepath)) dir.create(filepath, recursive = TRUE)
@@ -68,8 +47,6 @@ if (!dir.exists(cachedir)) dir.create(cachedir, recursive = TRUE)
 
 setExperimentHubOption("ASK", FALSE)
 setExperimentHubOption("CACHE", cachedir)
-
-message("Using cache directory: ", cachedir)
 
 # Force a clean load of the hub
 Sys.setenv(EXPERIMENT_HUB_CACHE = cachedir)
@@ -90,6 +67,7 @@ message("Loading in lincs2 annotation EH db...")
 rra_degs <- read_csv(
   paste0(querypath, "rankaggregate_consensus_signature.csv")
 )
+# SETBP1 regulatory targets
 setbp1_targets_all <- read_csv(paste0(
   datapath, "241203_setbp1_targets_names_only.csv"
 ), col_names = FALSE)
@@ -103,25 +81,25 @@ setbp1_targets_top <- read_csv(paste0(
 db_genes <- h5read(lincs2, "rownames", drop = TRUE)
 
 # up vs down DEGs in signature
-composite_up <- rra_degs %>%
+degs_up <- rra_degs %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC > 0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
-summary(composite_up)
+message("Up genes summary... ", summary(degs_up))
 
-composite_down <- rra_degs %>%
+degs_down <- rra_degs %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC < -0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
-summary(composite_down)
+message("Down genes summary... ", summary(degs_down))
 
 ###### SIGNATURE REVERSION ######
 
 # query LINCS signatures
 qsig_lincs <- qSig(
-  query = list(upset = composite_up$entrez, downset = composite_down$entrez),
+  query = list(upset = degs_up$entrez, downset = degs_down$entrez),
   gess_method = "LINCS",
   refdb = lincs2
 )
@@ -143,10 +121,10 @@ write_csv(lincs_brain, paste0(filepath, "lincs_braincells_results.csv"))
 # annotate drugs
 brain_drugs_anno <- lincs_brain %>%
   left_join(lincs_pert_info2, by = c("pert" = "pert_id"))
-head(brain_drugs_anno)
-unique(brain_drugs_anno$mergeMOA)
-table(brain_drugs_anno$max_phase)
-length(unique(brain_drugs_anno$pert))
+message(
+  "Number of unique reversion drugs in brain-relevant cells: ",
+  length(unique(brain_drugs_anno$pert))
+)
 
 write_rds(
   brain_drugs_anno, paste0(filepath, "lincs_anno_braincell_results.rds")
@@ -179,8 +157,12 @@ drug_targets_setbp1 <- brain_drug_targets %>%
 str(drug_targets_setbp1)
 print(n = 21, arrange(drug_targets_setbp1, pref_name))
 
-unique(drug_targets_setbp1$pref_name)
-unique(drug_targets_setbp1$mergeTargets)
+message(
+  "Drugs that target SETBP1 targets: ", unique(drug_targets_setbp1$pref_name)
+)
+message(
+  "Drug target SETBP1 targets: ", unique(drug_targets_setbp1$mergeTargets)
+)
 write_csv(
   drug_targets_setbp1, paste0(filepath, "setbp1_drug_targets.csv")
 )
@@ -189,9 +171,6 @@ write_csv(
 
 setbp1_drugs <- brain_drugs_anno %>%
   filter(pert %in% drug_targets_setbp1$pert)
-summary(setbp1_drugs)
-unique(setbp1_drugs$indication_class)
-unique(setbp1_drugs$mechanism_of_action)
 
 # target set enrichment analysis
 brain_drugs_filt <- filter(lincs_brain, !is.na(t_gn_sym))
@@ -222,8 +201,7 @@ approved_drugs <- brain_drugs_anno %>%
   add_count(pert) %>%
   # filter for approved drugs
   filter(max_phase == 4)
-head(approved_drugs[, 61:63])
-unique(approved_drugs$pref_name)
+
 write_csv(approved_drugs, paste0(filepath, "approved_drugs_res.csv"))
 
 

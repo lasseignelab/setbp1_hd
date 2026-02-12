@@ -1,4 +1,4 @@
-# script used to find consensus human signature from cardo and shaw data sets
+# script for analyzing DEGs of drug targets from signature reversion results
 set.seed(42)
 
 suppressPackageStartupMessages({
@@ -49,10 +49,10 @@ ptm <- proc.time()
 
 ###### READ IN DATA ######
 drugs_brain <- read_rds(
-  paste0(outdir, "gess_lincs_anno_braincell_results.rds")
+  paste0(outdir, "lincs_anno_braincell_results.rds")
 )
 drugs_setbp1 <- read_csv(
-  paste0(outdir, "setbp1_drug_shared_targets.csv")
+  paste0(outdir, "setbp1_drug_targets.csv")
 )
 
 # Wong et al data
@@ -84,6 +84,15 @@ all_degs <- bind_rows(
   wong_fibro
 )
 
+### SIMPLIFIED DRUG TABLE ###
+brain_drugs_filt <- drugs_brain %>%
+  dplyr::select(
+    pert, pref_name, max_phase, cell,
+    WTCS, WTCS_Pval, mergeTargets, Target_pathway
+  ) %>%
+  filter(!is.na(pref_name))
+write_csv(brain_drugs_filt, paste0(outdir, "brain_drugs_filtered.csv"))
+
 ###### FIND DRUG TARGET DEGS ######
 drugs_brain_targets <- drugs_brain %>%
   select(
@@ -99,13 +108,21 @@ contrasts_skip <- c(
 
 target_degs <- all_degs %>%
   filter(gene_name %in% drugs_brain_targets$mergeTargets)
-length(unique(target_degs$gene_name))
-intersect(target_degs$gene_name, drugs_setbp1$mergeTargets)
-setdiff(drugs_setbp1$mergeTargets, target_degs$gene_name)
+message(
+  "Number of unique target DEGs: ", length(unique(target_degs$gene_name))
+)
+message(
+  "Target DEGs that are also SETBP1 targets: ",
+  intersect(target_degs$gene_name, drugs_setbp1$mergeTargets)
+)
+message(
+  "SETBP1 targets that are not DEGs: ",
+  setdiff(drugs_setbp1$mergeTargets, target_degs$gene_name)
+)
 
 # save consensus DEGs
 write_csv(target_degs, paste0(outdir, "drug_target_degs.csv"))
-target_degs
+
 target_degs %>%
   filter(gene_name %in% drugs_setbp1$mergeTargets) %>%
   ggplot(aes(
@@ -129,6 +146,7 @@ target_degs_wide <- target_degs %>%
 str(target_degs_wide)
 
 ### prepare Heatmap parameters ###
+message("Preparing heatmap parameters...")
 # color scale for logFC
 max_lfc <- max(abs(target_degs$logFC))
 col_fun <- circlize::colorRamp2(
@@ -175,6 +193,8 @@ gene_ha <- rowAnnotation(
 )
 
 ### plot heatmap ###
+message("Plotting all target DEGs heatmap...")
+
 heatmap_obj <- Heatmap(
   as.matrix(target_degs_wide[, 3:length(target_degs_wide)]),
   name = "Log2(Fold Change)",
@@ -200,7 +220,7 @@ dev.off()
 approved_drugs <- drugs_brain %>%
   filter(max_phase == 4) %>%
   separate_longer_delim(mergeTargets, delim = "; ")
-unique(approved_drugs$mergeTargets)
+message("Approved drug drug targets: ", unique(approved_drugs$mergeTargets))
 
 target_degs_approved <- target_degs_wide %>%
   filter(gene_name %in% approved_drugs$mergeTargets)
@@ -218,6 +238,8 @@ gene_ha <- rowAnnotation(
   col = list(SETBP1_target = c("TRUE" = "steelblue", "FALSE" = "white"))
 )
 ### plot heatmap ###
+message("Plotting approved drugs target DEGs heatmap...")
+
 heatmap_obj <- Heatmap(
   as.matrix(target_degs_approved[, 3:length(target_degs_approved)]),
   name = "Log2(Fold Change)",
