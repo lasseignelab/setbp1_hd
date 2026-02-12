@@ -10,6 +10,6 @@ singularity exec --cleanenv \
                  --containall \
                  -B "${CAP_PROJECT_PATH}" \
                  "${CAP_CONTAINER_PATH}"/sitemap-scraper_latest.sif \
-                  python3 "${CAP_PROJECT_PATH}"/src/extract_dailymed.py \
+                  python3 "${CAP_PROJECT_PATH}"/src/13_drug_safety.py \
                   -i "${CAP_RESULTS_PATH}"/signature_reversion/brain_drugs_filtered.csv \
                   -o "${CAP_RESULTS_PATH}"/signature_reversion

@@ -50,13 +50,13 @@ def get_drug_data(drug_name):
         return None
 
     drug_info = {
-        "Drug Name": drug_name,
-        "Set ID": set_id,
-        "Boxed Warning": "Not found",
+        "Name": drug_name,
+        "ID": set_id,
+        "BBW": "Not found",
         "Pregnancy": "Not found",
-        "Lactation": "Not found",
-        "Pharmacokinetics": "Not found",
-        "BBB Information": "Not explicitly detailed",
+        "Lact": "Not found",
+        "Ph kin": "Not found",
+        "BBB": "Not explicitly detailed",
     }
 
     # 3. Find all <section> tags in the SPL
@@ -72,13 +72,13 @@ def get_drug_data(drug_name):
         # Determine which column this section belongs to
         target_key = None
         if "WARNING" in title_text and "BOX" in title_text:
-            target_key = "Boxed Warning"
+            target_key = "BBW"
         elif "PREGNANCY" in title_text:
             target_key = "Pregnancy"
         elif "LACTATION" in title_text or "NURSING MOTHERS" in title_text:
-            target_key = "Lactation"
+            target_key = "Lact"
         elif "PHARMACOKINETICS" in title_text or "CLINICAL PHARMACOLOGY" in title_text:
-            target_key = "Pharmacokinetics"
+            target_key = "Ph kin"
 
         if target_key:
             # Extract the <text> block which contains the clinical content
@@ -100,9 +100,7 @@ def get_drug_data(drug_name):
                         idx = lower_text.find(phrase)
                         start_idx = max(0, idx - 50)
                         end_idx = idx + 250
-                        drug_info["BBB Information"] = (
-                            content[start_idx:end_idx] + "..."
-                        )
+                        drug_info["BBB"] = content[start_idx:end_idx] + "..."
 
                         break
 
