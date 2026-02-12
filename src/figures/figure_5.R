@@ -112,7 +112,7 @@ setbp1_targets_plot <- drug_targets_setbp1 %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
-setbp1_targets_plot 
+setbp1_targets_plot
 ggsave(paste0(
   filepath, "setbp1_drugs_shared_targets.png"
 ), width = 19, height = 16, units = "cm")
@@ -146,29 +146,6 @@ ggsave(paste0(
   filepath, "setbp1_drugs_shared.png"
 ), width = 19, height = 16, units = "cm")
 
-#
-# moa_setbp1 <- setbp1_drugs %>%
-#   filter(!is.na(mechanism_of_action)) %>%
-#   add_count(mechanism_of_action) %>%
-#   ggplot(aes(
-#     y = reorder(mechanism_of_action, n)
-#   )) +
-#   geom_bar(aes(
-#     fill = pref_name
-#   )) +
-#   scale_fill_viridis_d(end = 0.7) +
-#   labs(
-#     y = "MOA",
-#     fill = "Drug with SETBP1 Target"
-#   ) +
-#   theme_minimal() +
-#   theme(text = element_text(face = "bold"))
-#
-# moa_setbp1
-# ggsave(paste0(
-#   filepath, "moa_setbp1_drugs_shared.png"
-# ), width = 19, height = 16, units = "cm")
-#
 
 approved_drugs %>%
   filter(n > 1) %>%
@@ -192,7 +169,7 @@ ggsave(paste0(
   filepath, "approved_drugs_braincells_full.png"
 ), width = 16, height = 29, units = "cm")
 
-topWTCS_approved_plot <- approved_drugs %>%
+top_WTCS_plot <- approved_drugs %>%
   slice_min(drug_top_WTCS, n = 50) %>%
   mutate(SETBP1_Target = ifelse(
     pert %in% drug_targets_setbp1$pert, TRUE, FALSE
@@ -220,7 +197,7 @@ topWTCS_approved_plot <- approved_drugs %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
-topWTCS_approved_plot 
+top_WTCS_plot
 ggsave(paste0(
   filepath, "approved_drugs_braincells_topWTCS.png"
 ), width = 19, height = 25, units = "cm")
@@ -248,17 +225,13 @@ approved_moa_plot <- approved_moa %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
-approved_moa_plot 
+approved_moa_plot
 ggsave(paste0(
   filepath, "approved_drugs_top_moa.png"
 ), width = 20, height = 20, units = "cm")
 
 
 #### FIGURE 5 ASSEMBLY ####
-# bottom_row <- plot_grid(
-#   performance_plot, volcano_plot,
-#   labels = c("B", "C")
-# )
 png(paste0(filepath, "figure_5.png"),
   width = 350,
   height = 425,
@@ -268,11 +241,9 @@ png(paste0(filepath, "figure_5.png"),
 
 cowplot::plot_grid(
   approved_moa_plot,
-  topWTCS_approved_plot, 
-  setbp1_targets_plot, 
+  top_WTCS_plot,
+  setbp1_targets_plot,
   labels = "AUTO",
-  # bottom_row,
-  # labels = c("A", ""),
   ncol = 1
 )
 
