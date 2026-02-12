@@ -56,7 +56,9 @@ brain_drugs_filt <- read_csv(
 brain_drug_targets <- read_rds(
   paste0(indir, "lincs_anno_braincell_results.rds")
 )
-
+approved_drugs <- read_csv(
+  paste0(indir, "approved_drugs_braincell_res.csv")
+)
 drug_targets_setbp1 <- read_csv(
   paste0(indir, "setbp1_drug_targets.csv")
 )
@@ -65,7 +67,7 @@ drug_targets_setbp1 <- read_csv(
 
 # drug target histogram
 print(str(brain_drug_targets))
-brain_drug_targets %>%
+drug_targets_setbp1 %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
   geom_bar()
@@ -144,28 +146,29 @@ ggsave(paste0(
   filepath, "setbp1_drugs_shared.png"
 ), width = 19, height = 16, units = "cm")
 
-
-moa_setbp1 <- psetbp1_drugs %>%
-  filter(!is.na(mechanism_of_action)) %>%
-  add_count(mechanism_of_action) %>%
-  ggplot(aes(
-    y = reorder(mechanism_of_action, n)
-  )) +
-  geom_bar(aes(
-    fill = pref_name
-  )) +
-  scale_fill_viridis_d(end = 0.7) +
-  labs(
-    y = "MOA",
-    fill = "Drug with SETBP1 Target"
-  ) +
-  theme_minimal() +
-  theme(text = element_text(face = "bold"))
-
-ggsave(paste0(
-  filepath, "moa_setbp1_drugs_shared.png"
-), width = 19, height = 16, units = "cm")
-
+#
+# moa_setbp1 <- setbp1_drugs %>%
+#   filter(!is.na(mechanism_of_action)) %>%
+#   add_count(mechanism_of_action) %>%
+#   ggplot(aes(
+#     y = reorder(mechanism_of_action, n)
+#   )) +
+#   geom_bar(aes(
+#     fill = pref_name
+#   )) +
+#   scale_fill_viridis_d(end = 0.7) +
+#   labs(
+#     y = "MOA",
+#     fill = "Drug with SETBP1 Target"
+#   ) +
+#   theme_minimal() +
+#   theme(text = element_text(face = "bold"))
+#
+# moa_setbp1
+# ggsave(paste0(
+#   filepath, "moa_setbp1_drugs_shared.png"
+# ), width = 19, height = 16, units = "cm")
+#
 
 approved_drugs %>%
   filter(n > 1) %>%
@@ -252,10 +255,10 @@ ggsave(paste0(
 
 
 #### FIGURE 5 ASSEMBLY ####
-bottom_row <- plot_grid(
-  performance_plot, volcano_plot,
-  labels = c("B", "C")
-)
+# bottom_row <- plot_grid(
+#   performance_plot, volcano_plot,
+#   labels = c("B", "C")
+# )
 png(paste0(filepath, "figure_5.png"),
   width = 350,
   height = 425,
