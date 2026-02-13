@@ -52,7 +52,7 @@ mytheme <- theme(
 #### READ IN DRUG DATA ####
 # signature reversion results and annotations
 approved_drugs <- read_csv(
-  paste0(indir, "approved_drugs_braincell_res.csv")
+  paste0(indir, "approved_drugs_res.csv")
 )
 drug_targets_setbp1 <- read_csv(
   paste0(indir, "setbp1_drug_targets.csv")
@@ -88,7 +88,7 @@ ggsave(paste0(
 ), width = 19, height = 19, units = "cm")
 
 
-setbp1_targets_plot <- drug_targets_setbp1 %>%
+drug_targets_setbp1 %>%
   ggplot(aes(
     y = mergeTargets,
     x = -WTCS
@@ -110,13 +110,12 @@ setbp1_targets_plot <- drug_targets_setbp1 %>%
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
-setbp1_targets_plot
 ggsave(paste0(
-  filepath, "setbp1_drugs_shared_targets.png"
+  filepath, "setbp1_drugs_shared_phase.png"
 ), width = 19, height = 16, units = "cm")
 
 
-drug_targets_setbp1 %>%
+setbp1_targets_plot <- drug_targets_setbp1 %>%
   filter(!is.na(pref_name)) %>%
   ggplot(aes(
     y = mergeTargets,
@@ -133,13 +132,14 @@ drug_targets_setbp1 %>%
   labs(
     x = "-(Weighted Connectivity Score)",
     y = "SETBP1 & Drug Target",
-    colour = "Priority SETBP1 Target",
-    shape = "Max Drug Approval Phase"
+    colour = "Drug",
+    shape = "Approved Drug"
   ) +
   guides(size = "none", alpha = "none") +
   theme_minimal() +
   theme(text = element_text(face = "bold"))
 
+setbp1_targets_plot
 ggsave(paste0(
   filepath, "setbp1_drugs_shared.png"
 ), width = 19, height = 16, units = "cm")
