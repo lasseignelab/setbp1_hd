@@ -86,14 +86,14 @@ degs_up <- rra_degs %>%
   filter(meta_logFC > 0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
-message("Up genes summary... ", summary(degs_up))
+cat("Up genes summary... ", summary(degs_up), "\n", sep = " ")
 
 degs_down <- rra_degs %>%
   mutate(entrez = as.character(entrez)) %>%
   filter(meta_logFC < -0.1) %>%
   filter(entrez %in% db_genes) %>%
   slice_min(Score, n = 100)
-message("Down genes summary... ", summary(degs_down))
+cat("Down genes summary... ", summary(degs_down), "\n", sep = " ")
 
 ###### SIGNATURE REVERSION ######
 
@@ -121,9 +121,9 @@ write_csv(lincs_brain, paste0(filepath, "lincs_braincells_results.csv"))
 # annotate drugs
 brain_drugs_anno <- lincs_brain %>%
   left_join(lincs_pert_info2, by = c("pert" = "pert_id"))
-message(
+cat(
   "Number of unique reversion drugs in brain-relevant cells: ",
-  length(unique(brain_drugs_anno$pert))
+  length(unique(brain_drugs_anno$pert)), "\n", sep = " "
 )
 
 write_rds(
@@ -157,11 +157,15 @@ drug_targets_setbp1 <- brain_drug_targets %>%
 str(drug_targets_setbp1)
 print(n = 21, arrange(drug_targets_setbp1, pref_name))
 
-message(
-  "Drugs that target SETBP1 targets: ", unique(drug_targets_setbp1$pref_name)
+cat(
+  "Drugs that target SETBP1 targets: ",
+  unique(drug_targets_setbp1$pref_name),
+  "\n", sep = " "
 )
-message(
-  "Drug target SETBP1 targets: ", unique(drug_targets_setbp1$mergeTargets)
+cat(
+  "Drug target SETBP1 targets: ",
+  unique(drug_targets_setbp1$mergeTargets),
+  "\n", sep = " "
 )
 write_csv(
   drug_targets_setbp1, paste0(filepath, "setbp1_drug_targets.csv")

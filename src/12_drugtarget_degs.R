@@ -108,16 +108,18 @@ contrasts_skip <- c(
 
 target_degs <- all_degs %>%
   filter(gene_name %in% drugs_brain_targets$mergeTargets)
-message(
+cat(
   "Number of unique target DEGs: ", length(unique(target_degs$gene_name))
 )
-message(
+cat(
   "Target DEGs that are also SETBP1 targets: ",
-  intersect(target_degs$gene_name, drugs_setbp1$mergeTargets)
+  intersect(target_degs$gene_name, drugs_setbp1$mergeTargets),
+  "\n", sep = " "
 )
-message(
+cat(
   "SETBP1 targets that are not DEGs: ",
-  setdiff(drugs_setbp1$mergeTargets, target_degs$gene_name)
+  setdiff(drugs_setbp1$mergeTargets, target_degs$gene_name),
+  "\n", sep = " "
 )
 
 # save consensus DEGs
@@ -146,7 +148,7 @@ target_degs_wide <- target_degs %>%
 str(target_degs_wide)
 
 ### prepare Heatmap parameters ###
-message("Preparing heatmap parameters...")
+cat("Preparing heatmap parameters...")
 # color scale for logFC
 max_lfc <- max(abs(target_degs$logFC))
 col_fun <- circlize::colorRamp2(
@@ -193,7 +195,7 @@ gene_ha <- rowAnnotation(
 )
 
 ### plot heatmap ###
-message("Plotting all target DEGs heatmap...")
+cat("Plotting all target DEGs heatmap...")
 
 heatmap_obj <- Heatmap(
   as.matrix(target_degs_wide[, 3:length(target_degs_wide)]),
@@ -220,7 +222,11 @@ dev.off()
 approved_drugs <- drugs_brain %>%
   filter(max_phase == 4) %>%
   separate_longer_delim(mergeTargets, delim = "; ")
-message("Approved drug drug targets: ", unique(approved_drugs$mergeTargets))
+cat(
+  "Approved drug drug targets: ",
+  unique(approved_drugs$mergeTargets),
+  "\n", sep = " "
+)
 
 target_degs_approved <- target_degs_wide %>%
   filter(gene_name %in% approved_drugs$mergeTargets)
@@ -238,7 +244,7 @@ gene_ha <- rowAnnotation(
   col = list(SETBP1_target = c("TRUE" = "steelblue", "FALSE" = "white"))
 )
 ### plot heatmap ###
-message("Plotting approved drugs target DEGs heatmap...")
+cat("Plotting approved drugs target DEGs heatmap...")
 
 heatmap_obj <- Heatmap(
   as.matrix(target_degs_approved[, 3:length(target_degs_approved)]),
