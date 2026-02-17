@@ -52,7 +52,6 @@ setExperimentHubOption("CACHE", cachedir)
 Sys.setenv(EXPERIMENT_HUB_CACHE = cachedir)
 eh <- ExperimentHub(localHub = FALSE)
 
-eh <- ExperimentHub(localHub = FALSE)
 # lincs 2020 filepath and db exploration
 message("Loading in lincs2 EH db...")
 lincs2 <- eh[["EH7297"]]
@@ -176,25 +175,6 @@ write_csv(
 setbp1_drugs <- brain_drugs_anno %>%
   filter(pert %in% drug_targets_setbp1$pert)
 
-# target set enrichment analysis
-brain_drugs_filt <- filter(lincs_brain, !is.na(t_gn_sym))
-tsea_go <- tsea_dup_hyperG(
-  drugs = unique(brain_drugs_filt$pert),
-  type = "GO", ont = "MF", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000
-)
-result(tsea_go)
-
-tsea_kegg <- tsea_dup_hyperG(
-  drugs = unique(brain_drugs_filt$pert),
-  type = "KEGG", pvalueCutoff = 0.5, minGSSize = 2, maxGSSize = 2000
-)
-result(tsea_kegg)
-
-# drug set enrichment analysis
-dsea_go <- dsea_hyperG(
-  drugs = unique(lincs_brain$pert), type = "GO", ont = "MF"
-)
-result(dsea_go)
 
 #### APPROVED/POST-MARKET DRUGS ####
 approved_drugs <- brain_drugs_anno %>%
