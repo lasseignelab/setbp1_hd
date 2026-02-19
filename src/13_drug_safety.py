@@ -1,5 +1,5 @@
 # pylint: disable=import-error
-# Script for accessing DailyMed API for safety data
+# Script for accessing DailyMed API for safety data--constantly updated so outputs are NOT reproducible, see Zenodo for version used in original analysis # nolint
 import requests
 import csv
 import time
