@@ -44,9 +44,6 @@ read_deg <- function(dataset_name) {
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
 
-# start timer
-ptm <- proc.time()
-
 ###### READ IN DATA ######
 drugs_brain <- read_rds(
   paste0(outdir, "lincs_anno_braincell_results.rds")
@@ -168,7 +165,7 @@ col_groups
 
 # Define specific colors
 col_anno_colors <- c(
-  "cardo"      = "#4DAF4A", # Black
+  "cardo"      = "#4DAF4A", # Green
   "shaw"       = "#377EB8", # Blue
   "validation" = "#984EA3" # Purple
 )
@@ -264,7 +261,7 @@ heatmap_obj <- Heatmap(
 png(paste0(
   outdir, "approveddrugs_target_exp_heatmap.png"
 ), width = 20, height = 55, units = "cm", res = 300)
-draw(heatmap_obj) # , column_title_gp = gpar(fontsize = 14, fontface = "bold"))
+draw(heatmap_obj)
 dev.off()
 
 
