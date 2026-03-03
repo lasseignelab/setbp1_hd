@@ -1,31 +1,49 @@
-
 ##### Permuation Analysis of SETBP1 Targets #####
 ## GOAL: To determine the presence and/or directional bias of SETBP1 targets toward pre-natal or post-natal window.
-
 ## RESULTS: SETBP1 targets are robustly up-regulated during pre-natal window (i.e., early brain development)
 ## NOTES: Both mean and median were tested for these permutation analyses to determine 
 
-# Library Set-Up
-library(readr)
-library(dplyr)
-library(readxl)
+suppressPackageStartupMessages({
+  library(argparse)
+  library(readr)
+  library(ggplot2)
+  library(tidyverse)
+  library(readxl)
+})
+###### SET UP ######
+# create parser object
+parser <- ArgumentParser()
 
-# File Path
-setwd("/Users/sashthall/Desktop/setbp1-hd")
+parser$add_argument("-i", "--indir",
+  type = "character",
+  help = "Path to the input data directory to access expression data"
+)
+parser$add_argument("-o", "--outdir",
+  type = "character",
+  help = "Path to the directory to write results"
+)
+# get command line options, if help option encountered print help and exit
+args <- parser$parse_args()
+indir <- args$indir
+outdir <- args$outdir
+
+# create output dir if needed
+if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Loading in downloaded daa
 # BrainSpan
-rows_meta <- read_csv("rows_metadata.csv")
-cols_meta <- read_csv("columns_metadata.csv")
+rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
+cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
 
 # GTEx (rows = genes, cols = samples, col 1 = row_num)
 gtex_raw_expression <- read_csv("expression_matrix.csv", col_names = FALSE)
 
 # SETBP1 targets
-setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
-setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
+setbp1_targets <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+# setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
+# setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
 
-# Keeping track of downloaded genes 
+# Keeping track of downloaded genes
 cat("Loaded", nrow(rows_meta), "genes and", nrow(cols_meta), "samples.\n")
 cat("Number of SETBP1 target names read:", length(setbp1_targets), "\n\n")
 
@@ -40,6 +58,7 @@ cat("Expression matrix dimensions (genes x samples):",
 rownames(expr_mat) <- rows_meta$gene_symbol
 colnames(expr_mat) <- cols_meta$column_num
 
+write_csv(expr_mat, paste0(outdir, "aggregate_gene_exp_mat.csv"))
 
 # Converts BrainSpan age into years relative to birth (e.g., 8 pcw = 8 post-conception weeks = negative years; 4 mos = 4 months post-natal = 4/12 years; 1 yrs = 1 year after birth)
 parse_age_to_years <- function(age_str) {
@@ -100,6 +119,7 @@ gene_stats <- gene_stats %>%
   filter(!is.na(prenatal_minus_postnatal))
 
 cat("Genes with valid prenatal/postnatal means:", nrow(gene_stats), "\n\n")
+write_csv(gene_stats, paste0(outdir, "prenatal_postnatal_gene_means.csv"))
 
 # Creating master list of all of the genes and filtering for SETBP1 targets
 master_stats <- gene_stats$gene_symbol
@@ -148,11 +168,13 @@ cat("Z-score:", z_score, "\n")
 cat("Empirical p (SETBP1 > random):", p_emp, "\n\n")
 
 # Plot for testing purposes
+png(paste0("histogram_mean_perm.png"), width = 20, height = 15, units = "cm", res = 300)
 hist(perm_stats, breaks = 50,
       main = "Null distribution of mean (prenatal - postnatal)",
      xlab = "Mean (prenatal - postnatal) over random gene sets")
 abline(v = obs_stat, col = "red", lwd = 2)
 legend("topright", legend = c("Observed SETBP1 mean"), lwd = 2, col = "red")
+dev.off()
 
 
 # Median based permutation tests to confirm SETBP1 targets, as a whole, display pre-natal upregulated gene expression
@@ -168,6 +190,7 @@ gene_stats_med <- tibble(
   gene_symbol = rownames(expr_mat),
   diff_median = prenatal_minus_postnatal_med
 ) %>% filter(!is.na(diff_median))
+write_csv(gene_stats_med, paste0(outdir, "prenatal_postnatal_gene_median.csv"))
 
 ## Median Vector List
 median_stats_vector <- gene_stats_med$diff_median
@@ -201,15 +224,13 @@ cat("Unique values in perm_stats_med:", length(unique(perm_stats_med)), "\n")
 
 # Plot the Median results
 ## NOTE: Red line may not show up on graph due to x-axis stopping at 0
+png(paste0("histogram_median_perm.png"), width = 20, height = 15, units = "cm", res = 300)
 hist(perm_stats_med, breaks = 50,
      main = "Median-based Null Distribution",
      xlab = "Median (prenatal - postnatal) of random sets",
      col = "lightblue")
 abline(v = median_obs_stat, col = "red", lwd = 2)
 legend("topright", legend = c("Observed SETBP1 Median"), lwd = 2, col = "red")
-
-
-#### Next Script: *insert file name + goal here*
-
+dev.off()
 
 
