@@ -140,6 +140,7 @@ write_csv(cols_meta, paste0(outdir, "metadata_development_windows.csv"))
 set.seed(123)  
 n_perm <- 5000  
 all_genes <- rownames(expr_mat)
+gene_results <- data.frame()
 stats_results <- data.frame()
 
 # Calculating average expression for every gene for different windows
@@ -164,7 +165,8 @@ for (win in windows) {
   # Observed statistic (mean of gene set in this window)
   select_data <- expr_mat[, selected_samples, drop = FALSE]
   # Target gene means, NAs removed
-  obs_val <- mean(rowMeans(select_data[setbp1_targets, , drop=FALSE], na.rm = TRUE))
+  gene_means <- rowMeans(select_data[setbp1_targets, , drop=FALSE], na.rm = TRUE)
+  obs_val <- mean(gene_means)
   
   cat("\nFinding null distribution...\n")
   # Null distribution
@@ -179,6 +181,8 @@ for (win in windows) {
   p_val <- sum(null_dist >= obs_val) / n_perm
   z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
   
+  gene_results <- rbind(gene_results, gene_means)
+
   stats_results <- rbind(stats_results, data.frame(
     # region = reg,
     window = win,
@@ -188,6 +192,7 @@ for (win in windows) {
   ))
 }
 # }
+write_csv(gene_results, paste0(outdir, "temporal_window_gene_means.csv"))
 write_csv(stats_results, paste0(outdir, "temporal_window_perm_stats.csv"))
 cat("\n\nPermutation loop finished.\n")
 
