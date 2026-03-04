@@ -192,6 +192,8 @@ for (win in windows) {
   ))
 }
 # }
+rownames(gene_results) <- setbp1_targets
+colnames(gene_results) <- windows
 write_csv(gene_results, paste0(outdir, "temporal_window_gene_means.csv"))
 write_csv(stats_results, paste0(outdir, "temporal_window_perm_stats.csv"))
 cat("\n\nPermutation loop finished.\n")
