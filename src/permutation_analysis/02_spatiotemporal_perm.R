@@ -88,6 +88,9 @@ colnames(expr_mat) <- cols_meta$column_num
 # Filter SETBP1 targets for genes in brainspan data
 setbp1_targets <- intersect(setbp1_targets, rownames(expr_mat))
 
+# Brain regions of interest for SETBP1-HD
+target_regions <- c("STR", "CBC", "VFC", "MFC", "STC")
+
 # Converts BrainSpan age into years relative to birth (e.g., 8 pcw = 8 post-conception weeks = negative years; 4 mos = 4 months post-natal = 4/12 years; 1 yrs = 1 year after birth)
 # Defining age windows and defining disease window (i.e., timeframe relevant for testing purposes); SETBP1 clinical developmental window = 0 to 2 years
 cols_meta <- cols_meta %>%
@@ -106,7 +109,8 @@ cols_meta <- cols_meta %>%
     !is.na(years)  & years >= 8   & years <= 15 ~ "Late_Childhood",
     !is.na(years)  & years >= 18                ~ "Adult",
     TRUE ~ "Other" # Catches anything that doesn't fit
-         ))
+         )) %>%
+         filter(structure_acronym %in% target_regions, dev_window != "Other")
 
 cat("Sample number by age window:", table(cols_meta$dev_window))
 write_csv(cols_meta, paste0(outdir, "metadata_development_windows.csv"))
@@ -121,28 +125,30 @@ stats_results <- data.frame()
 # Calculating average expression for every gene for different windows
 windows <- unique(cols_meta$dev_window)
 
+for (reg in target_regions) {
 for (win in windows) {
-# Samples in each window
-  cat("\nRunning permutation for: \n", win)
-  win_samples <- cols_meta %>% filter(dev_window == win) %>% pull(column_num)
-  win_samples <- as.character(win_samples)
-  win_samples <- intersect(win_samples, colnames(expr_mat))
+# Samples in each window + region combo
+  cat("\nRunning permutation for: \n", reg, win)
+  selected_samples <- cols_meta %>% 
+      filter(structure_acronym == reg, dev_window == win) %>% 
+      pull(column_num) %>% as.character()
   
-  if(length(win_samples) < 2) next # Skip windows with insufficient data
+  # Ensure those samples exist in the expression matrix
+    selected_samples <- intersect(selected_samples, colnames(expr_mat))
+  if(length(selected_samples) < 2) next # Skip windows with insufficient data
   
   cat("\nFinding observation stat...\n")
   # Observed statistic (mean of gene set in this window)
-  win_data <- expr_mat[, win_samples]
-  cat(str(win_data))
+  select_data <- expr_mat[, selected_samples, drop = FALSE]
   # Target gene means, NAs removed
-  obs_val <- mean(rowMeans(win_data[setbp1_targets, , drop=FALSE], na.rm = TRUE))
+  obs_val <- mean(rowMeans(select_data[setbp1_targets, , drop=FALSE], na.rm = TRUE))
   
   cat("\nFinding null distribution...\n")
   # Null distribution
   null_dist <- replicate(n_perm, {
     rand_genes <- sample(all_genes, length(setbp1_targets))
     # Random gene means, NAs removed
-    mean(rowMeans(win_data[rand_genes, , drop=FALSE], na.rm = TRUE))
+    mean(rowMeans(select_data[rand_genes, , drop=FALSE], na.rm = TRUE))
   })
   
   cat("\nCalculating p-value and z-scores... \n")
@@ -151,6 +157,7 @@ for (win in windows) {
   z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
   
   stats_results <- rbind(stats_results, data.frame(
+    region = reg,
     window = win,
     observed = obs_val,
     p_value = p_val,
@@ -164,16 +171,17 @@ cat("\n\nPermutation loop finished.\n")
 # Ensure windows are in chronological order for the plot
 stats_results$window <- factor(stats_results$window, levels = windows)
 
-ggplot(stats_results, aes(x = window, y = z_score, fill = p_value < 0.05)) +
-  geom_bar(stat = "identity", color = "black") +
-  geom_text(aes(label = ifelse(p_value < 0.05, "*", "")), vjust = -0.5, size = 8) +
-  scale_fill_manual(values = c("grey70", "firebrick3"), name = "Significant (p < 0.05)") +
+ggplot(stats_results, aes(x = window, y = z_score, group = region, color = region)) +
+  geom_line(size = 1) +
+  geom_point(aes(shape = p_value < 0.05), size = 3) +
+  facet_wrap(~region) +
+  scale_shape_manual(values = c(1, 19), name = "p < 0.05") +
   theme_minimal() +
-  labs(title = "Gene Set Enrichment Across Brain Development",
-       subtitle = "Red bars indicate windows of significant dysregulation",
-       x = "Developmental Window",
+  labs(title = "Regional Trajectories of Gene Set Enrichment",
+       subtitle = "Looking for the 2-5 year 'Secondary Signal' in specific brain areas",
        y = "Enrichment Z-Score") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ggsave(paste0(outdir, "temporal_exp_trajectory.png"))
 cat("Plot saved to temporal_exp_trajectory.png")
 
