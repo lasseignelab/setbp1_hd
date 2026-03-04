@@ -241,3 +241,4 @@ bin/conda/work/
 bin/conda/work/*
 bin/conda/.nextflow/
 bin/container/*
+results/permutation_analysis/aggregate_gene_exp_mat.csv
