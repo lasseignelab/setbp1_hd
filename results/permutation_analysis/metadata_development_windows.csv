@@ -66,6 +66,25 @@ column_num,donor_id,donor_name,age,gender,structure_id,structure_acronym,structu
 229,263195015,H376.V.53,37 pcw,M,10333,STR,striatum,37,NA,NA,Late_Prenatal
 234,263195015,H376.V.53,37 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),37,NA,NA,Late_Prenatal
 236,263195015,H376.V.53,37 pcw,M,10185,VFC,ventrolateral prefrontal cortex,37,NA,NA,Late_Prenatal
+238,12296,H376.VI.50,4 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,4,NA,Infancy
+239,12296,H376.VI.50,4 mos,M,10333,STR,striatum,NA,4,NA,Infancy
+241,12296,H376.VI.50,4 mos,M,10657,CBC,cerebellar cortex,NA,4,NA,Infancy
+246,12296,H376.VI.50,4 mos,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,4,NA,Infancy
+251,12889,H376.VI.51,4 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,4,NA,Infancy
+252,12889,H376.VI.51,4 mos,M,10185,VFC,ventrolateral prefrontal cortex,NA,4,NA,Infancy
+258,12890,H376.VI.52,4 mos,M,10333,STR,striatum,NA,4,NA,Infancy
+259,12890,H376.VI.52,4 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,4,NA,Infancy
+263,12890,H376.VI.52,4 mos,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,4,NA,Infancy
+268,12890,H376.VI.52,4 mos,M,10657,CBC,cerebellar cortex,NA,4,NA,Infancy
+270,12890,H376.VI.52,4 mos,M,10185,VFC,ventrolateral prefrontal cortex,NA,4,NA,Infancy
+273,12977,H376.VII.51,10 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,10,NA,Infancy
+276,12977,H376.VII.51,10 mos,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,10,NA,Infancy
+277,12977,H376.VII.51,10 mos,M,10657,CBC,cerebellar cortex,NA,10,NA,Infancy
+284,12830,H376.VIII.51,1 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,1,Infancy
+286,12830,H376.VIII.51,1 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,1,Infancy
+290,12830,H376.VIII.51,1 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,1,Infancy
+291,12830,H376.VIII.51,1 yrs,F,10657,CBC,cerebellar cortex,NA,NA,1,Infancy
+296,12830,H376.VIII.51,1 yrs,F,10333,STR,striatum,NA,NA,1,Infancy
 297,12979,H376.VIII.53,2 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,2,Childhood
 303,12979,H376.VIII.53,2 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,2,Childhood
 304,12979,H376.VIII.53,2 yrs,F,10657,CBC,cerebellar cortex,NA,NA,2,Childhood

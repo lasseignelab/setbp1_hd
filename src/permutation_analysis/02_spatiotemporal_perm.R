@@ -105,7 +105,7 @@ cols_meta <- cols_meta %>%
     !is.na(weeks)  & weeks >= 16 & weeks <= 19 ~ "Mid_Prenatal",
     !is.na(weeks)  & weeks >= 21 & weeks <= 37 ~ "Late_Prenatal",
     # Increased window to capture rapid synaptogenesis and increase sample size
-    !is.na(months) & months >= 4 & years <= 1 ~ "Infancy",
+    !is.na(months) | !is.na(years) & years <= 1 ~ "Infancy",
     # Increased window to capture synaptic pruning and increase sample size
     !is.na(years)  & years >= 2   & years <= 16  ~ "Childhood",
     !is.na(years)  & years >= 18                ~ "Adult",
