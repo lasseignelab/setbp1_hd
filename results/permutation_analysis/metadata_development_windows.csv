@@ -47,80 +47,61 @@ column_num,donor_id,donor_name,age,gender,structure_id,structure_acronym,structu
 176,12885,H376.IV.53,19 pcw,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,19,NA,NA,Mid_Prenatal
 181,12885,H376.IV.53,19 pcw,F,10185,VFC,ventrolateral prefrontal cortex,19,NA,NA,Mid_Prenatal
 182,12885,H376.IV.53,19 pcw,F,10333,STR,striatum,19,NA,NA,Mid_Prenatal
-184,12365,H376.IV.51,21 pcw,F,10657,CBC,cerebellar cortex,21,NA,NA,Critical_Late_Prenatal
-186,12886,H376.IV.54,21 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,21,NA,NA,Critical_Late_Prenatal
-188,12886,H376.IV.54,21 pcw,M,10333,STR,striatum,21,NA,NA,Critical_Late_Prenatal
-190,12886,H376.IV.54,21 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),21,NA,NA,Critical_Late_Prenatal
-193,12886,H376.IV.54,21 pcw,M,10185,VFC,ventrolateral prefrontal cortex,21,NA,NA,Critical_Late_Prenatal
-197,12886,H376.IV.54,21 pcw,M,10657,CBC,cerebellar cortex,21,NA,NA,Critical_Late_Prenatal
-205,12288,H376.IV.50,24 pcw,M,10333,STR,striatum,24,NA,NA,Critical_Late_Prenatal
-209,12288,H376.IV.50,24 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),24,NA,NA,Critical_Late_Prenatal
-211,12288,H376.IV.50,24 pcw,M,10185,VFC,ventrolateral prefrontal cortex,24,NA,NA,Critical_Late_Prenatal
-213,12288,H376.IV.50,24 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,24,NA,NA,Critical_Late_Prenatal
-214,12288,H376.IV.50,24 pcw,M,10657,CBC,cerebellar cortex,24,NA,NA,Critical_Late_Prenatal
-217,12949,H376.V.52,26 pcw,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),26,NA,NA,Critical_Late_Prenatal
-220,12295,H376.V.50,35 pcw,F,10657,CBC,cerebellar cortex,35,NA,NA,Critical_Late_Prenatal
-221,12295,H376.V.50,35 pcw,F,10185,VFC,ventrolateral prefrontal cortex,35,NA,NA,Critical_Late_Prenatal
-226,263195015,H376.V.53,37 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,37,NA,NA,Critical_Late_Prenatal
-228,263195015,H376.V.53,37 pcw,M,10657,CBC,cerebellar cortex,37,NA,NA,Critical_Late_Prenatal
-229,263195015,H376.V.53,37 pcw,M,10333,STR,striatum,37,NA,NA,Critical_Late_Prenatal
-234,263195015,H376.V.53,37 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),37,NA,NA,Critical_Late_Prenatal
-236,263195015,H376.V.53,37 pcw,M,10185,VFC,ventrolateral prefrontal cortex,37,NA,NA,Critical_Late_Prenatal
-238,12296,H376.VI.50,4 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,4,NA,Infancy
-239,12296,H376.VI.50,4 mos,M,10333,STR,striatum,NA,4,NA,Infancy
-241,12296,H376.VI.50,4 mos,M,10657,CBC,cerebellar cortex,NA,4,NA,Infancy
-246,12296,H376.VI.50,4 mos,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,4,NA,Infancy
-251,12889,H376.VI.51,4 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,4,NA,Infancy
-252,12889,H376.VI.51,4 mos,M,10185,VFC,ventrolateral prefrontal cortex,NA,4,NA,Infancy
-258,12890,H376.VI.52,4 mos,M,10333,STR,striatum,NA,4,NA,Infancy
-259,12890,H376.VI.52,4 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,4,NA,Infancy
-263,12890,H376.VI.52,4 mos,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,4,NA,Infancy
-268,12890,H376.VI.52,4 mos,M,10657,CBC,cerebellar cortex,NA,4,NA,Infancy
-270,12890,H376.VI.52,4 mos,M,10185,VFC,ventrolateral prefrontal cortex,NA,4,NA,Infancy
-273,12977,H376.VII.51,10 mos,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,10,NA,Infancy
-276,12977,H376.VII.51,10 mos,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,10,NA,Infancy
-277,12977,H376.VII.51,10 mos,M,10657,CBC,cerebellar cortex,NA,10,NA,Infancy
-284,12830,H376.VIII.51,1 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,1,Secondary_Childhood
-286,12830,H376.VIII.51,1 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,1,Secondary_Childhood
-290,12830,H376.VIII.51,1 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,1,Secondary_Childhood
-291,12830,H376.VIII.51,1 yrs,F,10657,CBC,cerebellar cortex,NA,NA,1,Secondary_Childhood
-296,12830,H376.VIII.51,1 yrs,F,10333,STR,striatum,NA,NA,1,Secondary_Childhood
-297,12979,H376.VIII.53,2 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,2,Secondary_Childhood
-303,12979,H376.VIII.53,2 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,2,Secondary_Childhood
-304,12979,H376.VIII.53,2 yrs,F,10657,CBC,cerebellar cortex,NA,NA,2,Secondary_Childhood
-308,12979,H376.VIII.53,2 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,2,Secondary_Childhood
-309,12836,H376.VIII.52,3 yrs,F,10333,STR,striatum,NA,NA,3,Secondary_Childhood
-310,12836,H376.VIII.52,3 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Secondary_Childhood
-313,12836,H376.VIII.52,3 yrs,F,10657,CBC,cerebellar cortex,NA,NA,3,Secondary_Childhood
-315,12836,H376.VIII.52,3 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Secondary_Childhood
-321,12980,H376.VIII.54,3 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,3,Secondary_Childhood
-324,12980,H376.VIII.54,3 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Secondary_Childhood
-327,12980,H376.VIII.54,3 yrs,M,10657,CBC,cerebellar cortex,NA,NA,3,Secondary_Childhood
-330,12980,H376.VIII.54,3 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Secondary_Childhood
-335,12298,H376.VIII.50,4 yrs,M,10333,STR,striatum,NA,NA,4,Secondary_Childhood
-336,12298,H376.VIII.50,4 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,4,Secondary_Childhood
-338,12298,H376.VIII.50,4 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,4,Secondary_Childhood
-339,12298,H376.VIII.50,4 yrs,M,10657,CBC,cerebellar cortex,NA,NA,4,Secondary_Childhood
-345,12841,H376.IX.51,8 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,8,Late_Childhood
-347,12841,H376.IX.51,8 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,8,Late_Childhood
-351,12841,H376.IX.51,8 yrs,M,10657,CBC,cerebellar cortex,NA,NA,8,Late_Childhood
-353,12841,H376.IX.51,8 yrs,M,10333,STR,striatum,NA,NA,8,Late_Childhood
-355,12841,H376.IX.51,8 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,8,Late_Childhood
-357,12981,H376.IX.52,8 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,8,Late_Childhood
-358,12981,H376.IX.52,8 yrs,M,10657,CBC,cerebellar cortex,NA,NA,8,Late_Childhood
-360,12981,H376.IX.52,8 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,8,Late_Childhood
-366,12981,H376.IX.52,8 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,8,Late_Childhood
-368,12289,H376.IX.50,11 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,11,Late_Childhood
-371,12289,H376.IX.50,11 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,11,Late_Childhood
-376,12289,H376.IX.50,11 yrs,F,10657,CBC,cerebellar cortex,NA,NA,11,Late_Childhood
-381,12289,H376.IX.50,11 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,11,Late_Childhood
-382,12831,H376.X.51,13 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,13,Late_Childhood
-384,12831,H376.X.51,13 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,13,Late_Childhood
-387,12831,H376.X.51,13 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,13,Late_Childhood
-388,12831,H376.X.51,13 yrs,F,10657,CBC,cerebellar cortex,NA,NA,13,Late_Childhood
-397,12831,H376.X.51,13 yrs,F,10333,STR,striatum,NA,NA,13,Late_Childhood
-399,12299,H376.X.50,15 yrs,M,10657,CBC,cerebellar cortex,NA,NA,15,Late_Childhood
-400,12299,H376.X.50,15 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,15,Late_Childhood
+184,12365,H376.IV.51,21 pcw,F,10657,CBC,cerebellar cortex,21,NA,NA,Late_Prenatal
+186,12886,H376.IV.54,21 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,21,NA,NA,Late_Prenatal
+188,12886,H376.IV.54,21 pcw,M,10333,STR,striatum,21,NA,NA,Late_Prenatal
+190,12886,H376.IV.54,21 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),21,NA,NA,Late_Prenatal
+193,12886,H376.IV.54,21 pcw,M,10185,VFC,ventrolateral prefrontal cortex,21,NA,NA,Late_Prenatal
+197,12886,H376.IV.54,21 pcw,M,10657,CBC,cerebellar cortex,21,NA,NA,Late_Prenatal
+205,12288,H376.IV.50,24 pcw,M,10333,STR,striatum,24,NA,NA,Late_Prenatal
+209,12288,H376.IV.50,24 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),24,NA,NA,Late_Prenatal
+211,12288,H376.IV.50,24 pcw,M,10185,VFC,ventrolateral prefrontal cortex,24,NA,NA,Late_Prenatal
+213,12288,H376.IV.50,24 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,24,NA,NA,Late_Prenatal
+214,12288,H376.IV.50,24 pcw,M,10657,CBC,cerebellar cortex,24,NA,NA,Late_Prenatal
+217,12949,H376.V.52,26 pcw,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),26,NA,NA,Late_Prenatal
+220,12295,H376.V.50,35 pcw,F,10657,CBC,cerebellar cortex,35,NA,NA,Late_Prenatal
+221,12295,H376.V.50,35 pcw,F,10185,VFC,ventrolateral prefrontal cortex,35,NA,NA,Late_Prenatal
+226,263195015,H376.V.53,37 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,37,NA,NA,Late_Prenatal
+228,263195015,H376.V.53,37 pcw,M,10657,CBC,cerebellar cortex,37,NA,NA,Late_Prenatal
+229,263195015,H376.V.53,37 pcw,M,10333,STR,striatum,37,NA,NA,Late_Prenatal
+234,263195015,H376.V.53,37 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),37,NA,NA,Late_Prenatal
+236,263195015,H376.V.53,37 pcw,M,10185,VFC,ventrolateral prefrontal cortex,37,NA,NA,Late_Prenatal
+297,12979,H376.VIII.53,2 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,2,Childhood
+303,12979,H376.VIII.53,2 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,2,Childhood
+304,12979,H376.VIII.53,2 yrs,F,10657,CBC,cerebellar cortex,NA,NA,2,Childhood
+308,12979,H376.VIII.53,2 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,2,Childhood
+309,12836,H376.VIII.52,3 yrs,F,10333,STR,striatum,NA,NA,3,Childhood
+310,12836,H376.VIII.52,3 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Childhood
+313,12836,H376.VIII.52,3 yrs,F,10657,CBC,cerebellar cortex,NA,NA,3,Childhood
+315,12836,H376.VIII.52,3 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Childhood
+321,12980,H376.VIII.54,3 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,3,Childhood
+324,12980,H376.VIII.54,3 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Childhood
+327,12980,H376.VIII.54,3 yrs,M,10657,CBC,cerebellar cortex,NA,NA,3,Childhood
+330,12980,H376.VIII.54,3 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Childhood
+335,12298,H376.VIII.50,4 yrs,M,10333,STR,striatum,NA,NA,4,Childhood
+336,12298,H376.VIII.50,4 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,4,Childhood
+338,12298,H376.VIII.50,4 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,4,Childhood
+339,12298,H376.VIII.50,4 yrs,M,10657,CBC,cerebellar cortex,NA,NA,4,Childhood
+345,12841,H376.IX.51,8 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,8,Childhood
+347,12841,H376.IX.51,8 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,8,Childhood
+351,12841,H376.IX.51,8 yrs,M,10657,CBC,cerebellar cortex,NA,NA,8,Childhood
+353,12841,H376.IX.51,8 yrs,M,10333,STR,striatum,NA,NA,8,Childhood
+355,12841,H376.IX.51,8 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,8,Childhood
+357,12981,H376.IX.52,8 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,8,Childhood
+358,12981,H376.IX.52,8 yrs,M,10657,CBC,cerebellar cortex,NA,NA,8,Childhood
+360,12981,H376.IX.52,8 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,8,Childhood
+366,12981,H376.IX.52,8 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,8,Childhood
+368,12289,H376.IX.50,11 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,11,Childhood
+371,12289,H376.IX.50,11 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,11,Childhood
+376,12289,H376.IX.50,11 yrs,F,10657,CBC,cerebellar cortex,NA,NA,11,Childhood
+381,12289,H376.IX.50,11 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,11,Childhood
+382,12831,H376.X.51,13 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,13,Childhood
+384,12831,H376.X.51,13 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,13,Childhood
+387,12831,H376.X.51,13 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,13,Childhood
+388,12831,H376.X.51,13 yrs,F,10657,CBC,cerebellar cortex,NA,NA,13,Childhood
+397,12831,H376.X.51,13 yrs,F,10333,STR,striatum,NA,NA,13,Childhood
+399,12299,H376.X.50,15 yrs,M,10657,CBC,cerebellar cortex,NA,NA,15,Childhood
+400,12299,H376.X.50,15 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,15,Childhood
 408,12984,H376.X.53,18 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,18,Adult
 409,12984,H376.X.53,18 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,18,Adult
 410,12984,H376.X.53,18 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,18,Adult

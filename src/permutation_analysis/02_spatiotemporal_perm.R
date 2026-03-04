@@ -103,10 +103,11 @@ cols_meta <- cols_meta %>%
   mutate(dev_window = case_when(
            !is.na(weeks)  & weeks >= 8  & weeks <= 13 ~ "Early_Prenatal",
     !is.na(weeks)  & weeks >= 16 & weeks <= 19 ~ "Mid_Prenatal",
-    !is.na(weeks)  & weeks >= 21 & weeks <= 37 ~ "Critical_Late_Prenatal",
-    !is.na(months) & months >= 4 & months <= 10 ~ "Infancy",
-    !is.na(years)  & years >= 1   & years <= 4  ~ "Secondary_Childhood",
-    !is.na(years)  & years >= 8   & years <= 15 ~ "Late_Childhood",
+    !is.na(weeks)  & weeks >= 21 & weeks <= 37 ~ "Late_Prenatal",
+    # Increased window to capture rapid synaptogenesis and increase sample size
+    !is.na(months) & months >= 4 & years <= 1 ~ "Infancy",
+    # Increased window to capture synaptic pruning and increase sample size
+    !is.na(years)  & years >= 2   & years <= 16  ~ "Childhood",
     !is.na(years)  & years >= 18                ~ "Adult",
     TRUE ~ "Other" # Catches anything that doesn't fit
          )) %>%
@@ -174,12 +175,11 @@ stats_results$window <- factor(stats_results$window, levels = windows)
 
 ggplot(stats_results, aes(x = window, y = z_score, group = region, color = region)) +
   geom_line(size = 1) +
-  geom_point(aes(shape = p_value < 0.05), size = 3) +
+  geom_point(aes(shape = p_value < 0.05), size = 3.5) +
   facet_wrap(~region) +
   scale_shape_manual(values = c(1, 19), name = "p < 0.05") +
   theme_minimal() +
   labs(title = "Regional Trajectories of Gene Set Enrichment",
-       subtitle = "Looking for the 2-5 year 'Secondary Signal' in specific brain areas",
        y = "Enrichment Z-Score") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
