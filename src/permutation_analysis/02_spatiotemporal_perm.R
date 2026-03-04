@@ -140,7 +140,7 @@ write_csv(cols_meta, paste0(outdir, "metadata_development_windows.csv"))
 set.seed(123)  
 n_perm <- 5000  
 all_genes <- rownames(expr_mat)
-gene_results <- data.frame()
+gene_results <- data.frame(row.names = setbp1_targets)
 stats_results <- data.frame()
 
 # Calculating average expression for every gene for different windows
@@ -181,7 +181,7 @@ for (win in windows) {
   p_val <- sum(null_dist >= obs_val) / n_perm
   z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
   
-  gene_results <- rbind(gene_results, gene_means)
+  gene_results <- cbind(gene_results, gene_means)
 
   stats_results <- rbind(stats_results, data.frame(
     # region = reg,
