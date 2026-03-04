@@ -36,6 +36,13 @@ expr_raw <- read_csv(paste0(indir, "brainspan/expression_matrix.csv"), col_names
 rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
 cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
 print(paste0("Unique samples in BrainSpan: ", length(unique(cols_meta$donor_id))))
+n_ages <- distinct(cols_meta, donor_id, age)
+print(n_ages, n = nrow(n_ages))
+n_ages %>%
+# add_count(age, donor_id) %>%
+ggplot(aes(y = age)) +
+geom_bar()
+ggsave(paste0(outdir, "brainspan_age_donor_counts.png"))
 
 # GTEx (rows = genes, cols = samples, col 1 = row_num)
 # GCT files have 2 lines of header metadata before the actual table
