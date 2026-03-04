@@ -81,11 +81,28 @@ if (!all(row_nums_expr == rows_meta$row_num)) {
 expr_raw_mat <- as.matrix(expr_raw[,-1])
 cat("Expression matrix dimensions (genes x samples):", 
     paste(dim(expr_raw_mat), collapse = " x "), "\n")
-# Transform and scale
+
+# Transform, rm zero variance genes, and scale
 log_matrix <- log2(expr_raw_mat + 1)
-expr_mat <- t(scale(t(log_matrix)))
-rownames(expr_mat) <- rows_meta$gene_symbol
+gene_sds <- apply(log_matrix, 1, sd)
+valid_genes <- gene_sds > 0
+
+cat("Removing", sum(!valid_genes), "genes with zero variance.\n")
+
+log_matrix_filtered <- log_matrix[valid_genes, ]
+rows_meta_filtered <- rows_meta[valid_genes, ]
+
+expr_mat <- t(scale(t(log_matrix_filtered)))
+rownames(expr_mat) <- rows_meta_filtered$gene_symbol
 colnames(expr_mat) <- cols_meta$column_num
+
+# Double check for any remaining NAs
+if (any(is.na(expr_mat))) {
+    cat("Warning: NAs still present. Replacing NAs with 0.\n")
+    expr_mat[is.na(expr_mat)] <- 0
+}
+
+cat("Final matrix dimensions:", paste(dim(expr_mat), collapse = " x "), "\n")
 
 # Filter SETBP1 targets for genes in brainspan data
 setbp1_targets <- intersect(setbp1_targets, rownames(expr_mat))
