@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
   library(readr)
   library(ggplot2)
   library(tidyverse)
-  library(readxl)
+  library(vroom)
 })
 ###### SET UP ######
 # create parser object
@@ -32,14 +32,33 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Loading in downloaded daa
 # BrainSpan
+expr_raw <- read_csv(paste0(indir, "brainspan/expression_matrix.csv"), col_names = FALSE)
 rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
 cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
+print(paste0("Unique samples in BrainSpan: ", length(unique(cols_meta$donor_id))))
 
 # GTEx (rows = genes, cols = samples, col 1 = row_num)
-gtex_raw_expression <- read_csv("expression_matrix.csv", col_names = FALSE)
+# GCT files have 2 lines of header metadata before the actual table
+load_gct <- function(path) {
+  vroom(path, skip = 2, col_types = c(Name = "c", Description = "c", .default = "d"))
+}
+
+# Example: Loading Developmental GTEx TPMs
+# gtex_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"))
+dgtex_tpm <- read_delim(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"))
+print(paste0("Unique samples in dGTEx: ", length(unique(dgtex_tpm$SUBJECT_ID))))
+
+# 3. Log2 Transformation for your Permutation Test
+# We add a pseudocount of 1 to avoid log(0)
+# gtex_log_tpm <- gtex_tpm %>%
+#   column_to_rownames("Name") %>%
+#   select(-Description) %>%
+#   mutate(across(everything(), ~ log2(.x + 1)))
+# gtex_raw_expression <- read_csv("expression_matrix.csv", col_names = FALSE)
 
 # SETBP1 targets
-setbp1_targets <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets <- unique(setbp1_targets_table$Target)
 # setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
 # setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
 
@@ -57,8 +76,9 @@ cat("Expression matrix dimensions (genes x samples):",
     paste(dim(expr_mat), collapse = " x "), "\n")
 rownames(expr_mat) <- rows_meta$gene_symbol
 colnames(expr_mat) <- cols_meta$column_num
+cat(str(expr_mat))
 
-write_csv(expr_mat, paste0(outdir, "aggregate_gene_exp_mat.csv"))
+write_csv(as.data.frame(expr_mat), paste0(outdir, "aggregate_gene_exp_mat.csv"))
 
 # Converts BrainSpan age into years relative to birth (e.g., 8 pcw = 8 post-conception weeks = negative years; 4 mos = 4 months post-natal = 4/12 years; 1 yrs = 1 year after birth)
 parse_age_to_years <- function(age_str) {
@@ -111,8 +131,8 @@ gene_stats <- tibble(
   gene_symbol = rownames(expr_mat),
   prenatal_mean = prenatal_means,
   postnatal_mean = postnatal_means,
-  prenatal_minus_postnatal = prenatal_minus_postnatal,
-  disease_mean = disease_means
+  prenatal_minus_postnatal = prenatal_minus_postnatal#,
+  # disease_mean = disease_means
 )
 ## Filter out genes with all-NAs or degenerate values
 gene_stats <- gene_stats %>%
@@ -131,8 +151,8 @@ if (length(setbp1_stats) < 5) {
   warning("Very few SETBP1 targets found in BrainSpan; results may be unstable.")
 }
 ## Stats vector for future use
-stats_vector <- gene_stats$prenatal_minus_postnatal
-names(stats_vector) <- gene_stats$gene_symbol
+stat_vec <- gene_stats$prenatal_minus_postnatal
+names(stat_vec) <- gene_stats$gene_symbol
 
 ## Creating observed Stat for SETBP1 targets for permutation analyses
 obs_stat <- mean(stat_vec[setbp1_stats], na.rm = TRUE)
@@ -143,7 +163,7 @@ cat("Observed mean (prenatal - postnatal) for SETBP1 targets:", obs_stat, "\n\n"
 set.seed(123)  
 n_perm <- 5000  
 set_size <- length(setbp1_stats)
-all_genes <- gene_universe
+all_genes <- setdiff(gene_stats$gene_symbol, setbp1_targets)
 perm_stats <- numeric(n_perm)
 
 for (i in seq_len(n_perm)) {
@@ -197,7 +217,7 @@ median_stats_vector <- gene_stats_med$diff_median
 names(median_stats_vector) <- gene_stats_med$gene_symbol
 
 ## Median Observed Stat
-median_obs_stat <- median(median_stats_vector[setbp1_targets_use], na.rm = TRUE)
+median_obs_stat <- median(median_stats_vector[setbp1_stats], na.rm = TRUE)
 
 # Permutation test for median
 set.seed(123)
