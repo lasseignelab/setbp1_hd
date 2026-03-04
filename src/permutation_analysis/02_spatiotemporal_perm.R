@@ -164,7 +164,8 @@ for (win in windows) {
     z_score = z_score
   ))
 }
-write_csv(stats_results, paste0("temporal_window_perm_stats.csv"))
+}
+write_csv(stats_results, paste0(outdir, "temporal_window_perm_stats.csv"))
 cat("\n\nPermutation loop finished.\n")
 
 # Plot for testing purposes
