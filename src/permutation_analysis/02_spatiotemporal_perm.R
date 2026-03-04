@@ -37,7 +37,6 @@ rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
 cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
 print(paste0("Unique samples in BrainSpan: ", length(unique(cols_meta$donor_id))))
 n_ages <- distinct(cols_meta, donor_id, age)
-print(n_ages, n = nrow(n_ages))
 n_ages %>%
 # add_count(age, donor_id) %>%
 ggplot(aes(y = age)) +
@@ -79,9 +78,12 @@ row_nums_expr <- expr_raw[[1]]
 if (!all(row_nums_expr == rows_meta$row_num)) {
   stop("Row numbers in expression_matrix.csv and rows_metadata.csv do not align.")
 }
-expr_mat <- as.matrix(expr_raw[,-1])
+expr_raw_mat <- as.matrix(expr_raw[,-1])
 cat("Expression matrix dimensions (genes x samples):", 
-    paste(dim(expr_mat), collapse = " x "), "\n")
+    paste(dim(expr_raw_mat), collapse = " x "), "\n")
+# Transform and scale
+log_matrix <- log2(expr_raw_mat + 1)
+expr_mat <- t(scale(t(log_matrix)))
 rownames(expr_mat) <- rows_meta$gene_symbol
 colnames(expr_mat) <- cols_meta$column_num
 
