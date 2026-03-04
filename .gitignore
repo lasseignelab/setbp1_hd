@@ -241,3 +241,6 @@ bin/conda/work/
 bin/conda/work/*
 bin/conda/.nextflow/
 bin/container/*
+Rplots.pdf
+src/lint_and_style.sh
+megalinter-reports

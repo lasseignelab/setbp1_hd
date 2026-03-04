@@ -52,6 +52,42 @@ read_deg <- function(dataset_name) {
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
 
+# function to calculate performance metrics of signature by validation genes
+calculate_sig_performance <- function(sig_genes, true_genes, universe_genes) {
+  # Standardize inputs
+  sig_genes <- unique(sig_genes)
+  true_genes <- unique(true_genes)
+
+  # Contingency Table Components
+  tp <- length(intersect(sig_genes, true_genes)) # True Positives
+  fp <- length(setdiff(sig_genes, true_genes)) # False Positives
+  fn <- length(setdiff(true_genes, sig_genes)) # False Negatives
+  tn <- length(universe_genes) - (tp + fp + fn) # True Negatives
+
+  # Metrics
+  precision <- ifelse((tp + fp) == 0, 0, tp / (tp + fp))
+  recall <- ifelse((tp + fn) == 0, 0, tp / (tp + fn))
+  f1 <- ifelse((precision + recall) == 0, 0,
+    2 * (precision * recall) / (precision + recall)
+  )
+
+  # Statistical enrichment (Hypergeometric test)
+  p_val <- phyper(tp - 1, length(true_genes),
+    length(universe_genes) - length(true_genes),
+    length(sig_genes),
+    lower.tail = FALSE
+  )
+
+  data.frame(
+    Precision = precision,
+    Recall = recall,
+    F1_Score = f1,
+    P_Value = p_val,
+    TP = tp,
+    FP = fp
+  )
+}
+
 # start timer
 ptm <- proc.time()
 
@@ -63,12 +99,16 @@ shaw_degs <- read_deg("shaw")
 tanaka_degs <- bind_rows(read_deg("tanaka1"), read_deg("tanaka2"))
 wong_fibro <- read_excel(paste0(
   indir, "wong/SourceData/SourceData6_forFIg5c_DEG.xlsx"
-), sheet = 3, skip = 1)
+), sheet = 3, skip = 1) %>%
+  select(gene = ensemblID, logFC = log2FoldChange, gene_name = symbol) %>%
+  mutate(contrast = "fibro")
+
 
 wong_neu <- read_excel(paste0(
   indir, "wong/SourceData/SourceData10_forFig7b_DEG.xlsx"
 ), sheet = 3, skip = 1) %>%
-  rename("ensemblID" = `...1`)
+  select(gene = `...1`, logFC = log2FoldChange, gene_name = symbol) %>%
+  mutate(contrast = "neu")
 
 ###### FIND CONSENSUS DEGS ######
 unique(cardo_degs$contrast)
@@ -90,9 +130,6 @@ consensus_degs <- combined_degs %>%
 consensus_degs
 table(consensus_degs$contrast)
 
-# save consensus DEGs
-write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
-
 # long format for plotting
 consensus_long <- consensus_degs %>%
   select(gene, gene_name, contrast, dataset, logFC, adj.P.Val, se_logFC) %>%
@@ -101,6 +138,10 @@ consensus_long <- consensus_degs %>%
     names_to = "metric",
     values_to = "value"
   )
+
+# save consensus DEGs
+write_csv(consensus_degs, paste0(outdir, "consensus_degs_unfiltered.csv"))
+write_csv(consensus_long, paste0(outdir, "consensus_degs_unfiltered_long.csv"))
 
 consensus_wide <- consensus_long %>%
   distinct() %>%
@@ -202,6 +243,7 @@ composite_scores <- freq_degs %>%
 write_csv(
   composite_scores, paste0(outdir, "composite_aggregate_all_scores_degs.csv")
 )
+
 ###### FILTER AND SAVE SIGNATURES ######
 
 # save majority/high freq signature
@@ -260,6 +302,17 @@ compare_sigs <- top_freq %>%
   pivot_wider(names_from = method, values_from = value, values_fill = 0) %>%
   column_to_rownames(var = "gene")
 
+# plot DEGs across data sets for signature genes
+dataset_sig_degs <- consensus_wide %>%
+  select(gene, gene_name, contains("_logFC")) %>%
+  inner_join(
+    composite_scores %>%
+      select(gene),
+    by = "gene"
+  ) %>%
+  select(!contains("se_logFC")) %>%
+  distinct()
+
 png(
   paste0(
     outdir, "upset_plot_compare_sigs.png"
@@ -279,77 +332,114 @@ tanaka_genes <- gorth(
 valid_degs <- tanaka_degs %>%
   inner_join(tanaka_genes, by = c("gene" = "input_ensg")) %>%
   select(
-    symbol = ortholog_name,
-    ensemblID = ortholog_ensg,
-    log2FoldChange = logFC,
+    gene = ortholog_ensg,
+    logFC,
     padj = adj.P.Val, contrast, dataset
   ) %>%
-  distinct() %>%
-  bind_rows(wong_fibro) %>%
+  bind_rows(wong_fibro, wong_neu) %>%
   mutate(
-    contrast = ifelse(is.na(contrast), "fibroblasts", contrast),
+    contrast = coalesce(contrast, "unknown"),
+    dataset = coalesce(dataset, "wong")
   ) %>%
-  bind_rows(wong_neu) %>%
-  mutate(
-    contrast = ifelse(is.na(contrast), "neurons", contrast),
-    dataset = ifelse(is.na(dataset), "wong", dataset)
-  ) %>%
-  filter(!is.na(ensemblID))
+  filter(!is.na(gene))
 write_csv(valid_degs, paste0(outdir, "validation_datasets_DEGs.csv"))
 
-# plot DEGs across data sets for signature genes
-dataset_sig_degs <- consensus_wide %>%
-  select(gene, contains("_logFC")) %>%
-  inner_join(composite_scores, by = "gene") %>%
-  select(gene, contains("_logFC")) %>%
-  select(!contains("se_logFC")) %>%
-  distinct()
-dataset_sig_degs
-
 valid_degs_wide <- valid_degs %>%
-  select(
-    gene = ensemblID,
-    gene_name = symbol,
-    logFC = log2FoldChange,
-    contrast, dataset
-  ) %>%
   unite("contrast_dataset", contrast, dataset) %>%
-  distinct() %>%
+  distinct(gene, contrast_dataset, .keep_all = TRUE) %>%
+  select(gene, gene_name, contrast_dataset, logFC) %>%
   pivot_wider(
     names_from = contrast_dataset, values_from = logFC, values_fill = 0
   ) %>%
-  right_join(dataset_sig_degs, by = "gene") %>%
+  # Use full_join to keep everything from both sides
+  full_join(dataset_sig_degs, by = "gene", suffix = c(".valid", ".sig")) %>%
   mutate(
-    across(3:length(.), ~ replace_na(.x, 0)),
-    gene_name = ifelse(is.na(gene_name), "", gene_name)
-  )
-print(n = 20, valid_degs_wide %>% select(!gene) %>% arrange(neurons_wong))
+    # Merge the two name columns: if valid name is missing, use sig name
+    gene_name = coalesce(gene_name.valid, gene_name.sig),
+    # Clean up numeric NAs (for genes missing in one of the sets)
+    across(where(is.numeric), ~ replace_na(.x, 0))
+  ) %>%
+  # Remove the temporary suffix columns
+  select(-gene_name.valid, -gene_name.sig) %>%
+  relocate(gene_name, .after = gene) %>%
+  group_by(gene) %>%
+  slice_max(
+    order_by = rowSums(across(where(is.numeric))),
+    n = 1,
+    with_ties = FALSE
+  ) %>%
+  ungroup()
+
 write_csv(
   valid_degs_wide, paste0(outdir, "validation_datasets_consensus_DEGs.csv")
 )
 
-# save
-pdf(paste0(outdir, "validation_degs_full.pdf"), width = 10, height = 22)
+# --- create column annotations --- #
+mat_cols <- colnames(valid_degs_wide)[3:ncol(valid_degs_wide)]
+
+# define groups
+col_groups <- case_when(
+  grepl("_cardo_logFC$", mat_cols) ~ "cardo",
+  grepl("_shaw_logFC$", mat_cols) ~ "shaw",
+  mat_cols == "meta_logFC" ~ "meta",
+  TRUE ~ "validation"
+)
+
+# set colors by group
+col_anno_colors <- c(
+  "cardo"      = "#984EA3", # Purple
+  "shaw"       = "#377EB8", # Blue
+  "meta"       = "#4DAF4A", # Green
+  "validation" = "black" # Black
+)
+
+# create column annotation object
+column_ha <- HeatmapAnnotation(
+  Source = col_groups,
+  col = list(Source = col_anno_colors),
+  show_annotation_name = FALSE
+)
+
+# color scale for logFC
+max_lfc <- max(abs(meta_stats$meta_logFC))
+col_fun <- circlize::colorRamp2(
+  c(-max_lfc, 0, max_lfc), c("blue", "white", "red")
+)
+
+# prepare Matrix
+plot_mat <- as.matrix(valid_degs_wide[, 3:ncol(valid_degs_wide)])
+rownames(plot_mat) <- valid_degs_wide$gene
+
+# plot
+pdf(paste0(outdir, "heatmap_all_degs_validation.pdf"), width = 10, height = 20)
 Heatmap(
-  as.matrix(
-    valid_degs_wide[, 3:length(valid_degs_wide)]
-  ),
-  row_labels = valid_degs_wide$gene_name
+  plot_mat,
+  name = "Log2FC",
+  top_annotation = column_ha, # Add the new column annotation here
+  row_labels = valid_degs_wide$gene_name,
+  col = col_fun,
+  cluster_columns = TRUE,
+  show_row_dend = FALSE,
+  row_names_gp = gpar(fontsize = 6),
+  border = TRUE
 )
 dev.off()
 
+# --- create row (gene) annotations --- #
 ### gene functional pathway annotations ###
-target_ids <- c(
-  "GO:0030900", # forebrain dev
-  "REAC:R-HSA-5653656", # Reactome: PI3K/AKT Signaling
-  "KEGG:04064", # NF-kappa B signaling
-  "KEGG:03320", # PPAR signaling
-  "KEGG:04010", # MAPK signaling
-  "KEGG:04310" # KEGG: Wnt signaling pathway
+pathway_map <- list(
+  "Forebrain_Dev" = "GO:0030900", # forebrain dev
+  "PI3K_AKT" = "REAC:R-HSA-5653656", # Reactome: PI3K/AKT Signaling
+  "NF-kappa_B" = "KEGG:04064", # NF-kappa B signaling
+  "PPAR" = "KEGG:03320", # PPAR signaling
+  "MAPK" = "KEGG:04010", # MAPK signaling
+  "Wnt" = "KEGG:04310" # KEGG: Wnt signaling pathway
 )
 
+target_pathway_ids <- unlist(pathway_map)
+
 pathway_df <- gconvert(
-  query = target_ids,
+  query = target_pathway_ids,
   organism = "hsapiens",
   target = "HGNC",
   mthreshold = Inf,
@@ -375,20 +465,7 @@ valid_degs_min <- valid_degs_wide %>%
   filter(rowSums(select(., 3:4)) != 0) %>%
   filter(gene_name %in% pathways$GeneSymbol)
 
-### prepare Heatmap parameters ###
-
 # define row annotation based on established pathways
-pathway_map <- list(
-  "Forebrain_Dev" = "GO:0030900", # forebrain dev
-  "PI3K_AKT" = "REAC:R-HSA-5653656", # Reactome: PI3K/AKT Signaling
-  "NF-kappa_B" = "KEGG:04064", # NF-kappa B signaling
-  "PPAR" = "KEGG:03320", # PPAR signaling
-  "MAPK" = "KEGG:04010", # MAPK signaling
-  "Wnt" = "KEGG:04310" # KEGG: Wnt signaling pathway
-)
-
-target_pathway_ids <- unlist(pathway_map)
-
 pathways_pivoted <- pathways %>%
   distinct() %>%
   filter(STANDARD_NAME %in% target_pathway_ids) %>%
@@ -409,7 +486,7 @@ if (length(missing_cols) > 0) {
 pathways_wide <- valid_degs_wide %>%
   rename("GeneSymbol" = gene_name) %>%
   left_join(pathways_pivoted, by = "GeneSymbol") %>%
-  mutate(across(everything(), ~ replace_na(., 0))) %>%
+  mutate(across(where(is.numeric), ~ replace_na(., 0))) %>%
   # assign a single, prioritized pathway using case_when
   mutate(
     Pathway = case_when(
@@ -428,34 +505,25 @@ pathways_wide <- valid_degs_wide %>%
   select(GeneSymbol, Pathway, all_of(target_pathway_ids))
 str(pathways_wide)
 
-# define the correct binary column names
-binary_col_names <- unlist(names(pathway_map)) # Use the IDs as column names
+# filter pathways for genes in plot matrix
+plot_annotation <- pathways_wide %>%
+  filter(row.names(.) %in% valid_degs_min$gene) %>%
+  select(Pathway)
 
-# set colors
-unique_pathways <- unique(pathways_wide$Pathway)
+# Define a distinct color for each pathway
+unique_pathways <- unique(plot_annotation$Pathway)
 pathway_colors <- setNames(
-  colorRampPalette(
-    RColorBrewer::brewer.pal(12, "Set3")
-  )(length(unique_pathways)),
-  unique_pathways
+  c(RColorBrewer::brewer.pal(
+    min(length(unique_pathways), 8), "Set1"
+  ), "#D3D3D3"),
+  c(unique_pathways, "Other")
 )
 
-binary_colors <- c("0" = "white", "1" = "gray70")
-binary_color_list <- rep(list(binary_colors), length(binary_col_names))
-names(binary_color_list) <- binary_col_names
-
-# creat gene row annotation
+# create row annotation
 gene_ha <- rowAnnotation(
-  df = pathways_wide %>% filter(row.names(.) %in% valid_degs_min$gene),
-  col = binary_color_list,
-  width = unit(7, "cm"),
-  annotation_name_side = "top"
-)
-
-# color scale for logFC
-max_lfc <- max(abs(meta_stats$meta_logFC))
-col_fun <- circlize::colorRamp2(
-  c(-max_lfc, 0, max_lfc), c("blue", "white", "red")
+  Pathway = plot_annotation$Pathway,
+  col = list(Pathway = pathway_colors),
+  show_annotation_name = TRUE
 )
 
 ### plot heatmap ###
@@ -486,13 +554,11 @@ heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
 
   annotation_df <- gene_data %>%
     filter(row.names(.) %in% genes) %>%
-    select(all_of(names(target_pathway_ids)))
+    select(Pathway)
 
   gene_ha <- rowAnnotation(
-    df = annotation_df %>% select(all_of(binary_col_names)),
-    col = binary_color_list,
-    width = unit(7, "cm"),
-    annotation_name_side = "top"
+    Pathway = annotation_df$Pathway,
+    col = list(Pathway = pathway_colors)
   )
 
   # create plot
@@ -505,6 +571,7 @@ heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
     cluster_rows = TRUE,
     cluster_columns = TRUE,
     right_annotation = gene_ha,
+    top_annotation = column_ha,
     border = TRUE,
     column_title = paste0(title, "-Based SETBP1-HD Consensus Signature")
   )
@@ -529,7 +596,7 @@ hm_list <- lapply(seq_along(sig_list), function(sig) {
 
 # save all plots to one PDF
 pdf(
-  paste0(outdir, "heatmap_all_sigs_validation.pdf"),
+  paste0(outdir, "heatmap_validation_annotation_by_sig.pdf"),
   width = 10, height = 18
 )
 for (plot in hm_list) {
@@ -537,56 +604,11 @@ for (plot in hm_list) {
 }
 dev.off()
 
-### COMPARE DEGs ACROSS CONTRASTS + DATA SETS ###
-compare_contrasts <- consensus_long %>%
-  select(gene_name, contrast) %>%
-  distinct() %>%
-  mutate(value = 1) %>%
-  pivot_wider(
-    names_from = contrast, values_from = value, values_fill = 0
-  ) %>%
-  distinct() %>%
-  column_to_rownames(var = "gene_name")
-
-# set colors for upset plot
-contrast_dataset_map <- consensus_long %>%
-  distinct(contrast, dataset) %>%
-  bind_rows(
-    data.frame(
-      dataset = c("Tanaka"),
-      contrast = c("Tanaka_DEG")
-    )
-  )
-
-dataset_colors <- c(
-  "cardo" = "orange",
-  "shaw" = "steelblue",
-  "Tanaka" = "gray90"
-)
-
-png(
-  paste0(
-    outdir, "upset_plot_compare_datasets.png"
-  ),
-  width = 30, height = 20, units = "cm", res = 300
-)
-upset(compare_contrasts,
-  set.metadata = list(data = contrast_dataset_map, plots = list(
-    list(
-      type = "matrix_rows",
-      column = "dataset",
-      assign = 10,
-      colors = dataset_colors
-    )
-  ))
-)
-dev.off()
-
 ### RRA and Meta Analysis Volcano Plot ###
 lfc_th <- 0.1 # logFC threshold
 pval_th <- -log10(0.05) # p-value threshold
 
-plot_data <- rra %>%
+rra_meta <- rra %>%
   inner_join(meta_stats, by = c("Name" = "gene")) %>%
   mutate(
     RRA_pval = -log10(Score),
@@ -596,101 +618,81 @@ plot_data <- rra %>%
       TRUE ~ "Non-Significant/Inconsistent"
     )
   )
-table(plot_data$Direction)
+table(rra_meta$Direction)
+
+# filter RRA-meta consensus signature
+rra_meta_filt <- rra_meta %>%
+  filter(Direction != "Non-Significant/Inconsistent")
+
 # save as meta-analysis labeled RRA signature
 write_csv(
-  plot_data, paste0(outdir, "RRA_meta_consensus_signature.csv")
+  rra_meta, paste0(outdir, "RRA_meta_DEGs.csv")
 )
-core_genes_label <- plot_data %>%
-  slice_max(RRA_pval, n = 10)
-
-volcano_plot <- ggplot(plot_data, aes(x = meta_logFC, y = RRA_pval)) +
-  geom_point(aes(color = Direction), alpha = 0.6, size = 2) +
-  scale_color_manual(values = c(
-    "Upregulated" = "firebrick3",
-    "Downregulated" = "dodgerblue3",
-    "Non-Significant/Inconsistent" = "gray50"
-  )) +
-  # horizontal threshold line for RRA significance
-  geom_hline(
-    yintercept = pval_th, linetype = "dashed", color = "black"
-  ) +
-  # vertical threshold lines for logFC magnitude
-  geom_vline(
-    xintercept = c(-lfc_th, lfc_th),
-    linetype = "dashed",
-    color = "black"
-  ) +
-  labs(
-    title = "Consensus SETBP1-HD Signature: MA logFC vs. RRA Consistency",
-    x = "MA Aggregate logFC (Magnitude)",
-    y = "-log10(RobustRankAggregate P-value)",
-    color = "Consensus Status"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-# add text labels for top genes
-labeled_volcano_plot <- volcano_plot +
-  ggrepel::geom_text_repel(
-    data = core_genes_label,
-    aes(label = gene_name),
-    size = 3.5,
-    box.padding = 0.5,
-    point.padding = 0.5,
-    segment.color = "grey50"
-  )
-ggsave(paste0(outdir, "RRAp_metalogFC_volcano.png"),
-  dpi = 300, height = 30, width = 26, units = "cm"
+write_csv(
+  rra_meta_filt, paste0(outdir, "RRA_meta_consensus_signature.csv")
 )
+
+# compare RRA alone to RRA-meta
+excluded <- setdiff(rra_results$gene_name, rra_meta_filt$gene_name)
+excluded_genes <- rra_meta %>%
+  filter(gene_name %in% excluded)
+
+rra_meta_exc <- heatmap_by_method(
+  valid_degs_wide,
+  excluded_genes$Name,
+  pathways_wide,
+  title = "RRA Genes Excluded by Meta logFC Threshold"
+)
+# save all plots to one PDF
+pdf(
+  paste0(outdir, "heatmap_rra_meta_excluded.pdf"),
+  width = 10, height = 18
+)
+print(rra_meta_exc)
+dev.off()
+
 
 ###### ORA OF CONSENSUS SIGNATURES ######
 # run ORA for each signature
 ora_all <- gost(sig_list, sources = c("GO", "KEGG", "WP"), evcodes = TRUE)
 results_df <- ora_all$result
 
-# prep data for plotting
-plot_df <- results_df %>%
-  filter(significant == TRUE) %>%
-  filter(term_size < 400) %>%
-  mutate(
-    neg_log10_p = -log10(p_value),
-    # Simplify term names for better readability
-    term_name = gsub("Homo sapiens ", "", term_name)
-  )
+write_csv(results_df, paste0(outdir, "ORA_signatures_results.csv"))
 
-# Create the comparative dot plot
-ggplot(plot_df, aes(x = query, y = reorder(term_name, neg_log10_p))) +
-  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
-  scale_color_viridis_c(name = "-log10(p-value)") +
-  labs(
-    x = "Query Condition",
-    y = "Enriched Term",
-    size = "Gene Overlap Size"
-  ) +
-  theme_minimal() +
-  theme(axis.text.y = element_text(size = 8)) +
-  facet_grid(source ~ ., scales = "free_y", space = "free_y")
-ggsave(paste0(outdir, "ORA_comparison_dotplot.png"),
-  dpi = 300, height = 30, width = 26, units = "cm"
+##### SIGNATURE PERFORMANCE VS VALIDATION SET #####
+# background genes (all possible DEGs for signature)
+background_g <- unique(c(
+  cardo_degs$gene_name, shaw_degs$gene_name
+))
+print(paste0("Number of background genes: ", length(background_g)))
+
+true_positives <- unique(c(
+  pathways$GeneSymbol,
+  tanaka_genes$ortholog_name,
+  wong_neu$gene_name, wong_fibro$gene_name
+))
+print(paste0("Number of validation 'TP' genes: ", length(true_positives)))
+
+sig_list <- list(
+  Composite = c(composite_signature)$gene_name,
+  RRA = c(rra_results)$gene_name,
+  Meta = c(meta_a)$gene_name,
+  Freq = c(top_freq)$gene_name
 )
 
-plot_df %>%
-  group_by(query, source) %>%
-  summarise(
-    n_significant_terms = n(),
-    .groups = "drop"
-  ) %>%
-  ggplot(aes(x = query, y = n_significant_terms, fill = source)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  labs(
-    x = "Query Condition",
-    y = "Count of Significant Terms",
-    fill = "Data Source"
-  ) +
-  theme_classic()
-ggsave(paste0(outdir, "ORA_term_counts_barplot.png"),
-  dpi = 300, height = 22, width = 18, units = "cm"
+# calculate scores for each signature
+performance_results <- map_df(names(sig_list), function(name) {
+  calculate_sig_performance(sig_list[[name]], true_positives, background_g) %>%
+    mutate(Signature = name)
+}) %>%
+  select(Signature, everything()) %>%
+  arrange(desc(F1_Score))
+
+print(paste0("Performance metrics for signatures vs validation genes: "))
+print(performance_results)
+
+write_csv(
+  performance_results, paste0(outdir, "signature_performance_metrics.csv")
 )
 
 #### END ####
