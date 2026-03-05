@@ -242,3 +242,6 @@ bin/conda/work/*
 bin/conda/.nextflow/
 bin/container/*
 results/permutation_analysis/aggregate_gene_exp_mat.csv
+Rplots.pdf
+src/lint_and_style.sh
+megalinter-reports
