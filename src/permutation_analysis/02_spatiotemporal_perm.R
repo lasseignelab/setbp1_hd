@@ -63,8 +63,8 @@ print(paste0("Unique samples in dGTEx: ", length(unique(dgtex_tpm$SUBJECT_ID))))
 # gtex_raw_expression <- read_csv("expression_matrix.csv", col_names = FALSE)
 
 # SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
-setbp1_targets <- unique(setbp1_targets_table$Target)
+setbp1_targets_table <- read_csv(paste0(indir, "setbp1_target_pathways.csv"))
+setbp1_targets <- unique(setbp1_targets_table$GeneSymbol)
 # setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
 # setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
 

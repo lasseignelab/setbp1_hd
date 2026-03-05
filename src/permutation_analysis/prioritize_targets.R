@@ -36,13 +36,40 @@ setbp1_targets <- unique(setbp1_targets_table$Target)
 # setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
 # setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
 
-# PAN-GO for target prioritization
-pango <- vroom(paste0(indir, "pango_annotations.zip"))
-cat(str(pango))
+### gene functional pathway annotations ###
+pathway_map <- list(
+  "Chromatin_organization" = "GO:0006325",
+  "Chromatin_binding" = "GO:0003682",
+  "Prostaglandin_receptor_activity" = "GO:0004955",
+  "Synapse_assembly" = "GO:0007416",
+  "Gene_expression" = "GO:0010467",
+  "Translation" = "GO:0006412",
+  "Translation_regulator_activity" = "GO:0045182",
+  "Mitochondrion" = "GO:0005739",
+  "Mitochondrion_organization" = "GO:0007005"
+)
 
-setbp1_pango <- filter(pango, gene_symbol %in% setbp1_targets)
-cat(str(setbp1_pango))
-terms_of_interest <- c("translation", "chromatin regulation", "mitochondria")
- 
+target_pathway_ids <- unlist(pathway_map) 
 
+pathway_df <- gconvert(
+  query = target_pathway_ids,
+  organism = "hsapiens",
+  target = "HGNC",
+  mthreshold = Inf,
+  filter_na = TRUE
+)
+cat(str(pathway_df))
+
+setbp1_pathways <- pathway_df %>%
+  dplyr::select(input, target) %>%
+  rename("STANDARD_NAME" = input, "GeneSymbol" = target) %>%
+  filter(!is.na(GeneSymbol)) %>%
+  filter(GeneSymbol %in% setbp1_targets)
+
+write_csv(setbp1_pathways, paste0(indir, "setbp1_target_pathways.csv"))
+
+print(str(setbp1_pathways))
+print(unique(stringr::str_sort(setbp1_pathways$GeneSymbol)))
+
+# terms_of_interest <- c("translation", "chromatin regulation", "mitochondria")
 
