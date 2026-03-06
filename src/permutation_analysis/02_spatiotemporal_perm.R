@@ -43,35 +43,13 @@ ggplot(aes(y = age)) +
 geom_bar()
 ggsave(paste0(outdir, "brainspan_age_donor_counts.png"))
 
-# GTEx (rows = genes, cols = samples, col 1 = row_num)
-# GCT files have 2 lines of header metadata before the actual table
-load_gct <- function(path) {
-  vroom(path, skip = 2, col_types = c(Name = "c", Description = "c", .default = "d"))
-}
-
-# Example: Loading Developmental GTEx TPMs
-# gtex_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"))
-dgtex_tpm <- read_delim(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"))
-print(paste0("Unique samples in dGTEx: ", length(unique(dgtex_tpm$SUBJECT_ID))))
-
-# 3. Log2 Transformation for your Permutation Test
-# We add a pseudocount of 1 to avoid log(0)
-# gtex_log_tpm <- gtex_tpm %>%
-#   column_to_rownames("Name") %>%
-#   select(-Description) %>%
-#   mutate(across(everything(), ~ log2(.x + 1)))
-# gtex_raw_expression <- read_csv("expression_matrix.csv", col_names = FALSE)
-
 # SETBP1 targets
 setbp1_targets_table <- read_csv(paste0(indir, "setbp1_target_pathways.csv"))
 setbp1_targets <- unique(setbp1_targets_table$GeneSymbol)
-# setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
-# setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
 
 # Keeping track of downloaded genes
 cat("Loaded", nrow(rows_meta), "genes and", nrow(cols_meta), "samples.\n")
 cat("Number of SETBP1 target names read:", length(setbp1_targets), "\n\n")
-
 
 # Creating Expression Matrix
 row_nums_expr <- expr_raw[[1]]
@@ -226,60 +204,3 @@ ggplot(stats_results, aes(x = window, y = z_score, fill = p_value < 0.05)) +
 ggsave(paste0(outdir, "temporal_exp_trajectory.png"))
 cat("Plot saved to temporal_exp_trajectory.png")
 
-# # Median based permutation tests to confirm SETBP1 targets, as a whole, display pre-natal upregulated gene expression
-#
-# # Data Cleaning
-# ## Medians of each row, separated by prenatal/postnatal windo
-# prenatal_medians  <- apply(expr_mat[, prenatal_idx, drop = FALSE], 1, median, na.rm = TRUE)
-# postnatal_medians <- apply(expr_mat[, postnatal_idx, drop = FALSE], 1, median, na.rm = TRUE)
-# prenatal_minus_postnatal_med <- prenatal_medians - postnatal_medians
-#
-# ## Gene stats median table 
-# gene_stats_med <- tibble(
-#   gene_symbol = rownames(expr_mat),
-#   diff_median = prenatal_minus_postnatal_med
-# ) %>% filter(!is.na(diff_median))
-# write_csv(gene_stats_med, paste0(outdir, "prenatal_postnatal_gene_median.csv"))
-#
-# ## Median Vector List
-# median_stats_vector <- gene_stats_med$diff_median
-# names(median_stats_vector) <- gene_stats_med$gene_symbol
-#
-# ## Median Observed Stat
-# median_obs_stat <- median(median_stats_vector[setbp1_stats], na.rm = TRUE)
-#
-# # Permutation test for median
-# set.seed(123)
-# perm_stats_med <- numeric(n_perm)
-#
-# for (i in seq_len(n_perm)) {
-#   # Pick random genes
-#   rand_genes <- sample(names(median_stats_vector), size = set_size, replace = FALSE)
-#   perm_stats_med[i] <- median(median_stats_vector[rand_genes], na.rm = TRUE)
-# }
-#
-# p_emp_med <- (sum(perm_stats_med >= median_obs_stat) + 1) / (n_perm + 1)
-# z_score_med <- (median_obs_stat - mean(perm_stats_med)) / sd(perm_stats_med)
-#
-# # Print the results
-# cat("=== Median-based Results ===\n")
-# cat("Observed Median:", median_obs_stat, "\n")
-# cat("Empirical p-value:", p_emp_med, "\n")
-# cat("Z-score:", z_score_med, "\n")
-#
-#
-# # Check how many unique values are in your random trials
-# cat("Unique values in perm_stats_med:", length(unique(perm_stats_med)), "\n")
-#
-# # Plot the Median results
-# ## NOTE: Red line may not show up on graph due to x-axis stopping at 0
-# png(paste0("histogram_median_perm.png"), width = 20, height = 15, units = "cm", res = 300)
-# hist(perm_stats_med, breaks = 50,
-#      main = "Median-based Null Distribution",
-#      xlab = "Median (prenatal - postnatal) of random sets",
-#      col = "lightblue")
-# abline(v = median_obs_stat, col = "red", lwd = 2)
-# legend("topright", legend = c("Observed SETBP1 Median"), lwd = 2, col = "red")
-# dev.off()
-#
-#
