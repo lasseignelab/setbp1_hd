@@ -244,3 +244,6 @@ bin/container/*
 bin/docker/
 src/lint_and_style.sh
 src/lint_and_style.sh
+Rplots.pdf
+src/lint_and_style.sh
+megalinter-reports
