@@ -295,50 +295,50 @@ column_num,donor_id,donor_name,age,gender,structure_id,structure_acronym,structu
 294,12830,H376.VIII.51,1 yrs,F,10294,HIP,hippocampus (hippocampal formation),NA,NA,1,Infancy
 295,12830,H376.VIII.51,1 yrs,F,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,1,Infancy
 296,12830,H376.VIII.51,1 yrs,F,10333,STR,striatum,NA,NA,1,Infancy
-297,12979,H376.VIII.53,2 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,2,Childhood
-298,12979,H376.VIII.53,2 yrs,F,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,2,Childhood
-299,12979,H376.VIII.53,2 yrs,F,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",NA,NA,2,Childhood
-300,12979,H376.VIII.53,2 yrs,F,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",NA,NA,2,Childhood
-301,12979,H376.VIII.53,2 yrs,F,10398,MD,mediodorsal nucleus of thalamus,NA,NA,2,Childhood
-302,12979,H376.VIII.53,2 yrs,F,10173,DFC,dorsolateral prefrontal cortex,NA,NA,2,Childhood
-303,12979,H376.VIII.53,2 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,2,Childhood
-304,12979,H376.VIII.53,2 yrs,F,10657,CBC,cerebellar cortex,NA,NA,2,Childhood
-305,12979,H376.VIII.53,2 yrs,F,10294,HIP,hippocampus (hippocampal formation),NA,NA,2,Childhood
-306,12979,H376.VIII.53,2 yrs,F,10194,OFC,orbital frontal cortex,NA,NA,2,Childhood
-307,12979,H376.VIII.53,2 yrs,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",NA,NA,2,Childhood
-308,12979,H376.VIII.53,2 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,2,Childhood
-309,12836,H376.VIII.52,3 yrs,F,10333,STR,striatum,NA,NA,3,Childhood
-310,12836,H376.VIII.52,3 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Childhood
-311,12836,H376.VIII.52,3 yrs,F,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,3,Childhood
-312,12836,H376.VIII.52,3 yrs,F,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",NA,NA,3,Childhood
-313,12836,H376.VIII.52,3 yrs,F,10657,CBC,cerebellar cortex,NA,NA,3,Childhood
-314,12836,H376.VIII.52,3 yrs,F,10361,AMY,amygdaloid complex,NA,NA,3,Childhood
-315,12836,H376.VIII.52,3 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Childhood
-316,12836,H376.VIII.52,3 yrs,F,10163,M1C,"primary motor cortex (area M1, area 4)",NA,NA,3,Childhood
-317,12836,H376.VIII.52,3 yrs,F,10236,A1C,primary auditory cortex (core),NA,NA,3,Childhood
-318,12836,H376.VIII.52,3 yrs,F,10398,MD,mediodorsal nucleus of thalamus,NA,NA,3,Childhood
-319,12836,H376.VIII.52,3 yrs,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",NA,NA,3,Childhood
-320,12980,H376.VIII.54,3 yrs,M,10194,OFC,orbital frontal cortex,NA,NA,3,Childhood
-321,12980,H376.VIII.54,3 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,3,Childhood
-322,12980,H376.VIII.54,3 yrs,M,10163,M1C,"primary motor cortex (area M1, area 4)",NA,NA,3,Childhood
-323,12980,H376.VIII.54,3 yrs,M,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",NA,NA,3,Childhood
-324,12980,H376.VIII.54,3 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Childhood
-325,12980,H376.VIII.54,3 yrs,M,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,3,Childhood
-326,12980,H376.VIII.54,3 yrs,M,10236,A1C,primary auditory cortex (core),NA,NA,3,Childhood
-327,12980,H376.VIII.54,3 yrs,M,10657,CBC,cerebellar cortex,NA,NA,3,Childhood
-328,12980,H376.VIII.54,3 yrs,M,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",NA,NA,3,Childhood
-329,12980,H376.VIII.54,3 yrs,M,10361,AMY,amygdaloid complex,NA,NA,3,Childhood
-330,12980,H376.VIII.54,3 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Childhood
-331,12980,H376.VIII.54,3 yrs,M,10173,DFC,dorsolateral prefrontal cortex,NA,NA,3,Childhood
-332,12980,H376.VIII.54,3 yrs,M,10294,HIP,hippocampus (hippocampal formation),NA,NA,3,Childhood
-333,12980,H376.VIII.54,3 yrs,M,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",NA,NA,3,Childhood
-334,12298,H376.VIII.50,4 yrs,M,10361,AMY,amygdaloid complex,NA,NA,4,Childhood
-335,12298,H376.VIII.50,4 yrs,M,10333,STR,striatum,NA,NA,4,Childhood
-336,12298,H376.VIII.50,4 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,4,Childhood
-337,12298,H376.VIII.50,4 yrs,M,10173,DFC,dorsolateral prefrontal cortex,NA,NA,4,Childhood
-338,12298,H376.VIII.50,4 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,4,Childhood
-339,12298,H376.VIII.50,4 yrs,M,10657,CBC,cerebellar cortex,NA,NA,4,Childhood
-340,12298,H376.VIII.50,4 yrs,M,10398,MD,mediodorsal nucleus of thalamus,NA,NA,4,Childhood
+297,12979,H376.VIII.53,2 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,2,Early_Childhood
+298,12979,H376.VIII.53,2 yrs,F,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,2,Early_Childhood
+299,12979,H376.VIII.53,2 yrs,F,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",NA,NA,2,Early_Childhood
+300,12979,H376.VIII.53,2 yrs,F,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",NA,NA,2,Early_Childhood
+301,12979,H376.VIII.53,2 yrs,F,10398,MD,mediodorsal nucleus of thalamus,NA,NA,2,Early_Childhood
+302,12979,H376.VIII.53,2 yrs,F,10173,DFC,dorsolateral prefrontal cortex,NA,NA,2,Early_Childhood
+303,12979,H376.VIII.53,2 yrs,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,2,Early_Childhood
+304,12979,H376.VIII.53,2 yrs,F,10657,CBC,cerebellar cortex,NA,NA,2,Early_Childhood
+305,12979,H376.VIII.53,2 yrs,F,10294,HIP,hippocampus (hippocampal formation),NA,NA,2,Early_Childhood
+306,12979,H376.VIII.53,2 yrs,F,10194,OFC,orbital frontal cortex,NA,NA,2,Early_Childhood
+307,12979,H376.VIII.53,2 yrs,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",NA,NA,2,Early_Childhood
+308,12979,H376.VIII.53,2 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,2,Early_Childhood
+309,12836,H376.VIII.52,3 yrs,F,10333,STR,striatum,NA,NA,3,Early_Childhood
+310,12836,H376.VIII.52,3 yrs,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Early_Childhood
+311,12836,H376.VIII.52,3 yrs,F,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,3,Early_Childhood
+312,12836,H376.VIII.52,3 yrs,F,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",NA,NA,3,Early_Childhood
+313,12836,H376.VIII.52,3 yrs,F,10657,CBC,cerebellar cortex,NA,NA,3,Early_Childhood
+314,12836,H376.VIII.52,3 yrs,F,10361,AMY,amygdaloid complex,NA,NA,3,Early_Childhood
+315,12836,H376.VIII.52,3 yrs,F,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Early_Childhood
+316,12836,H376.VIII.52,3 yrs,F,10163,M1C,"primary motor cortex (area M1, area 4)",NA,NA,3,Early_Childhood
+317,12836,H376.VIII.52,3 yrs,F,10236,A1C,primary auditory cortex (core),NA,NA,3,Early_Childhood
+318,12836,H376.VIII.52,3 yrs,F,10398,MD,mediodorsal nucleus of thalamus,NA,NA,3,Early_Childhood
+319,12836,H376.VIII.52,3 yrs,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",NA,NA,3,Early_Childhood
+320,12980,H376.VIII.54,3 yrs,M,10194,OFC,orbital frontal cortex,NA,NA,3,Early_Childhood
+321,12980,H376.VIII.54,3 yrs,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,NA,NA,3,Early_Childhood
+322,12980,H376.VIII.54,3 yrs,M,10163,M1C,"primary motor cortex (area M1, area 4)",NA,NA,3,Early_Childhood
+323,12980,H376.VIII.54,3 yrs,M,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",NA,NA,3,Early_Childhood
+324,12980,H376.VIII.54,3 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,3,Early_Childhood
+325,12980,H376.VIII.54,3 yrs,M,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,3,Early_Childhood
+326,12980,H376.VIII.54,3 yrs,M,10236,A1C,primary auditory cortex (core),NA,NA,3,Early_Childhood
+327,12980,H376.VIII.54,3 yrs,M,10657,CBC,cerebellar cortex,NA,NA,3,Early_Childhood
+328,12980,H376.VIII.54,3 yrs,M,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",NA,NA,3,Early_Childhood
+329,12980,H376.VIII.54,3 yrs,M,10361,AMY,amygdaloid complex,NA,NA,3,Early_Childhood
+330,12980,H376.VIII.54,3 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,3,Early_Childhood
+331,12980,H376.VIII.54,3 yrs,M,10173,DFC,dorsolateral prefrontal cortex,NA,NA,3,Early_Childhood
+332,12980,H376.VIII.54,3 yrs,M,10294,HIP,hippocampus (hippocampal formation),NA,NA,3,Early_Childhood
+333,12980,H376.VIII.54,3 yrs,M,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",NA,NA,3,Early_Childhood
+334,12298,H376.VIII.50,4 yrs,M,10361,AMY,amygdaloid complex,NA,NA,4,Early_Childhood
+335,12298,H376.VIII.50,4 yrs,M,10333,STR,striatum,NA,NA,4,Early_Childhood
+336,12298,H376.VIII.50,4 yrs,M,10185,VFC,ventrolateral prefrontal cortex,NA,NA,4,Early_Childhood
+337,12298,H376.VIII.50,4 yrs,M,10173,DFC,dorsolateral prefrontal cortex,NA,NA,4,Early_Childhood
+338,12298,H376.VIII.50,4 yrs,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),NA,NA,4,Early_Childhood
+339,12298,H376.VIII.50,4 yrs,M,10657,CBC,cerebellar cortex,NA,NA,4,Early_Childhood
+340,12298,H376.VIII.50,4 yrs,M,10398,MD,mediodorsal nucleus of thalamus,NA,NA,4,Early_Childhood
 341,12841,H376.IX.51,8 yrs,M,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",NA,NA,8,Childhood
 342,12841,H376.IX.51,8 yrs,M,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",NA,NA,8,Childhood
 343,12841,H376.IX.51,8 yrs,M,10225,IPC,posteroventral (inferior) parietal cortex,NA,NA,8,Childhood
