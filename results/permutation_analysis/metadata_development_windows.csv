@@ -74,50 +74,50 @@ column_num,donor_id,donor_name,age,gender,structure_id,structure_acronym,structu
 73,13060,H376.IIB.52,12 pcw,F,10294,HIP,hippocampus (hippocampal formation),12,NA,NA,Early_Prenatal
 74,13060,H376.IIB.52,12 pcw,F,10225,IPC,posteroventral (inferior) parietal cortex,12,NA,NA,Early_Prenatal
 75,13060,H376.IIB.52,12 pcw,F,10236,A1C,primary auditory cortex (core),12,NA,NA,Early_Prenatal
-76,12820,H376.IIIA.50,13 pcw,M,10333,STR,striatum,13,NA,NA,Early_Prenatal
-77,12820,H376.IIIA.50,13 pcw,M,10163,M1C,"primary motor cortex (area M1, area 4)",13,NA,NA,Early_Prenatal
-78,12820,H376.IIIA.50,13 pcw,M,10361,AMY,amygdaloid complex,13,NA,NA,Early_Prenatal
-79,12820,H376.IIIA.50,13 pcw,M,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",13,NA,NA,Early_Prenatal
-80,12820,H376.IIIA.50,13 pcw,M,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",13,NA,NA,Early_Prenatal
-81,12820,H376.IIIA.50,13 pcw,M,10236,A1C,primary auditory cortex (core),13,NA,NA,Early_Prenatal
-82,12820,H376.IIIA.50,13 pcw,M,10294,HIP,hippocampus (hippocampal formation),13,NA,NA,Early_Prenatal
-83,12820,H376.IIIA.50,13 pcw,M,10185,VFC,ventrolateral prefrontal cortex,13,NA,NA,Early_Prenatal
-84,12820,H376.IIIA.50,13 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,13,NA,NA,Early_Prenatal
-85,12820,H376.IIIA.50,13 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),13,NA,NA,Early_Prenatal
-86,12820,H376.IIIA.50,13 pcw,M,10194,OFC,orbital frontal cortex,13,NA,NA,Early_Prenatal
-87,12820,H376.IIIA.50,13 pcw,M,10225,IPC,posteroventral (inferior) parietal cortex,13,NA,NA,Early_Prenatal
-88,12820,H376.IIIA.50,13 pcw,M,10173,DFC,dorsolateral prefrontal cortex,13,NA,NA,Early_Prenatal
-89,12820,H376.IIIA.50,13 pcw,M,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",13,NA,NA,Early_Prenatal
-90,12834,H376.IIIA.51,13 pcw,F,10333,STR,striatum,13,NA,NA,Early_Prenatal
-91,12834,H376.IIIA.51,13 pcw,F,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",13,NA,NA,Early_Prenatal
-92,12834,H376.IIIA.51,13 pcw,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",13,NA,NA,Early_Prenatal
-93,12834,H376.IIIA.51,13 pcw,F,10361,AMY,amygdaloid complex,13,NA,NA,Early_Prenatal
-94,12834,H376.IIIA.51,13 pcw,F,10225,IPC,posteroventral (inferior) parietal cortex,13,NA,NA,Early_Prenatal
-95,12834,H376.IIIA.51,13 pcw,F,10656,CB,cerebellum,13,NA,NA,Early_Prenatal
-96,12834,H376.IIIA.51,13 pcw,F,10173,DFC,dorsolateral prefrontal cortex,13,NA,NA,Early_Prenatal
-97,12834,H376.IIIA.51,13 pcw,F,10194,OFC,orbital frontal cortex,13,NA,NA,Early_Prenatal
-98,12834,H376.IIIA.51,13 pcw,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),13,NA,NA,Early_Prenatal
-99,12834,H376.IIIA.51,13 pcw,F,10236,A1C,primary auditory cortex (core),13,NA,NA,Early_Prenatal
-100,12834,H376.IIIA.51,13 pcw,F,10294,HIP,hippocampus (hippocampal formation),13,NA,NA,Early_Prenatal
-101,12834,H376.IIIA.51,13 pcw,F,10163,M1C,"primary motor cortex (area M1, area 4)",13,NA,NA,Early_Prenatal
-102,12834,H376.IIIA.51,13 pcw,F,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",13,NA,NA,Early_Prenatal
-103,12834,H376.IIIA.51,13 pcw,F,10398,MD,mediodorsal nucleus of thalamus,13,NA,NA,Early_Prenatal
-104,12834,H376.IIIA.51,13 pcw,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,13,NA,NA,Early_Prenatal
-105,12834,H376.IIIA.51,13 pcw,F,10185,VFC,ventrolateral prefrontal cortex,13,NA,NA,Early_Prenatal
-106,12888,H376.IIIA.52,13 pcw,M,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",13,NA,NA,Early_Prenatal
-107,12888,H376.IIIA.52,13 pcw,M,10173,DFC,dorsolateral prefrontal cortex,13,NA,NA,Early_Prenatal
-108,12888,H376.IIIA.52,13 pcw,M,10656,CB,cerebellum,13,NA,NA,Early_Prenatal
-109,12888,H376.IIIA.52,13 pcw,M,10361,AMY,amygdaloid complex,13,NA,NA,Early_Prenatal
-110,12888,H376.IIIA.52,13 pcw,M,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",13,NA,NA,Early_Prenatal
-111,12888,H376.IIIA.52,13 pcw,M,10294,HIP,hippocampus (hippocampal formation),13,NA,NA,Early_Prenatal
-112,12888,H376.IIIA.52,13 pcw,M,10225,IPC,posteroventral (inferior) parietal cortex,13,NA,NA,Early_Prenatal
-113,12888,H376.IIIA.52,13 pcw,M,10236,A1C,primary auditory cortex (core),13,NA,NA,Early_Prenatal
-114,12888,H376.IIIA.52,13 pcw,M,10185,VFC,ventrolateral prefrontal cortex,13,NA,NA,Early_Prenatal
-115,12888,H376.IIIA.52,13 pcw,M,10333,STR,striatum,13,NA,NA,Early_Prenatal
-116,12888,H376.IIIA.52,13 pcw,M,10194,OFC,orbital frontal cortex,13,NA,NA,Early_Prenatal
-117,12888,H376.IIIA.52,13 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,13,NA,NA,Early_Prenatal
-118,12888,H376.IIIA.52,13 pcw,M,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",13,NA,NA,Early_Prenatal
-119,12888,H376.IIIA.52,13 pcw,M,10163,M1C,"primary motor cortex (area M1, area 4)",13,NA,NA,Early_Prenatal
+76,12820,H376.IIIA.50,13 pcw,M,10333,STR,striatum,13,NA,NA,Mid_Prenatal
+77,12820,H376.IIIA.50,13 pcw,M,10163,M1C,"primary motor cortex (area M1, area 4)",13,NA,NA,Mid_Prenatal
+78,12820,H376.IIIA.50,13 pcw,M,10361,AMY,amygdaloid complex,13,NA,NA,Mid_Prenatal
+79,12820,H376.IIIA.50,13 pcw,M,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",13,NA,NA,Mid_Prenatal
+80,12820,H376.IIIA.50,13 pcw,M,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",13,NA,NA,Mid_Prenatal
+81,12820,H376.IIIA.50,13 pcw,M,10236,A1C,primary auditory cortex (core),13,NA,NA,Mid_Prenatal
+82,12820,H376.IIIA.50,13 pcw,M,10294,HIP,hippocampus (hippocampal formation),13,NA,NA,Mid_Prenatal
+83,12820,H376.IIIA.50,13 pcw,M,10185,VFC,ventrolateral prefrontal cortex,13,NA,NA,Mid_Prenatal
+84,12820,H376.IIIA.50,13 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,13,NA,NA,Mid_Prenatal
+85,12820,H376.IIIA.50,13 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),13,NA,NA,Mid_Prenatal
+86,12820,H376.IIIA.50,13 pcw,M,10194,OFC,orbital frontal cortex,13,NA,NA,Mid_Prenatal
+87,12820,H376.IIIA.50,13 pcw,M,10225,IPC,posteroventral (inferior) parietal cortex,13,NA,NA,Mid_Prenatal
+88,12820,H376.IIIA.50,13 pcw,M,10173,DFC,dorsolateral prefrontal cortex,13,NA,NA,Mid_Prenatal
+89,12820,H376.IIIA.50,13 pcw,M,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",13,NA,NA,Mid_Prenatal
+90,12834,H376.IIIA.51,13 pcw,F,10333,STR,striatum,13,NA,NA,Mid_Prenatal
+91,12834,H376.IIIA.51,13 pcw,F,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",13,NA,NA,Mid_Prenatal
+92,12834,H376.IIIA.51,13 pcw,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",13,NA,NA,Mid_Prenatal
+93,12834,H376.IIIA.51,13 pcw,F,10361,AMY,amygdaloid complex,13,NA,NA,Mid_Prenatal
+94,12834,H376.IIIA.51,13 pcw,F,10225,IPC,posteroventral (inferior) parietal cortex,13,NA,NA,Mid_Prenatal
+95,12834,H376.IIIA.51,13 pcw,F,10656,CB,cerebellum,13,NA,NA,Mid_Prenatal
+96,12834,H376.IIIA.51,13 pcw,F,10173,DFC,dorsolateral prefrontal cortex,13,NA,NA,Mid_Prenatal
+97,12834,H376.IIIA.51,13 pcw,F,10194,OFC,orbital frontal cortex,13,NA,NA,Mid_Prenatal
+98,12834,H376.IIIA.51,13 pcw,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),13,NA,NA,Mid_Prenatal
+99,12834,H376.IIIA.51,13 pcw,F,10236,A1C,primary auditory cortex (core),13,NA,NA,Mid_Prenatal
+100,12834,H376.IIIA.51,13 pcw,F,10294,HIP,hippocampus (hippocampal formation),13,NA,NA,Mid_Prenatal
+101,12834,H376.IIIA.51,13 pcw,F,10163,M1C,"primary motor cortex (area M1, area 4)",13,NA,NA,Mid_Prenatal
+102,12834,H376.IIIA.51,13 pcw,F,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",13,NA,NA,Mid_Prenatal
+103,12834,H376.IIIA.51,13 pcw,F,10398,MD,mediodorsal nucleus of thalamus,13,NA,NA,Mid_Prenatal
+104,12834,H376.IIIA.51,13 pcw,F,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,13,NA,NA,Mid_Prenatal
+105,12834,H376.IIIA.51,13 pcw,F,10185,VFC,ventrolateral prefrontal cortex,13,NA,NA,Mid_Prenatal
+106,12888,H376.IIIA.52,13 pcw,M,10209,S1C,"primary somatosensory cortex (area S1, areas 3,1,2)",13,NA,NA,Mid_Prenatal
+107,12888,H376.IIIA.52,13 pcw,M,10173,DFC,dorsolateral prefrontal cortex,13,NA,NA,Mid_Prenatal
+108,12888,H376.IIIA.52,13 pcw,M,10656,CB,cerebellum,13,NA,NA,Mid_Prenatal
+109,12888,H376.IIIA.52,13 pcw,M,10361,AMY,amygdaloid complex,13,NA,NA,Mid_Prenatal
+110,12888,H376.IIIA.52,13 pcw,M,10252,ITC,"inferolateral temporal cortex (area TEv, area 20)",13,NA,NA,Mid_Prenatal
+111,12888,H376.IIIA.52,13 pcw,M,10294,HIP,hippocampus (hippocampal formation),13,NA,NA,Mid_Prenatal
+112,12888,H376.IIIA.52,13 pcw,M,10225,IPC,posteroventral (inferior) parietal cortex,13,NA,NA,Mid_Prenatal
+113,12888,H376.IIIA.52,13 pcw,M,10236,A1C,primary auditory cortex (core),13,NA,NA,Mid_Prenatal
+114,12888,H376.IIIA.52,13 pcw,M,10185,VFC,ventrolateral prefrontal cortex,13,NA,NA,Mid_Prenatal
+115,12888,H376.IIIA.52,13 pcw,M,10333,STR,striatum,13,NA,NA,Mid_Prenatal
+116,12888,H376.IIIA.52,13 pcw,M,10194,OFC,orbital frontal cortex,13,NA,NA,Mid_Prenatal
+117,12888,H376.IIIA.52,13 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,13,NA,NA,Mid_Prenatal
+118,12888,H376.IIIA.52,13 pcw,M,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",13,NA,NA,Mid_Prenatal
+119,12888,H376.IIIA.52,13 pcw,M,10163,M1C,"primary motor cortex (area M1, area 4)",13,NA,NA,Mid_Prenatal
 120,12287,H376.IIIB.50,16 pcw,M,10185,VFC,ventrolateral prefrontal cortex,16,NA,NA,Mid_Prenatal
 121,12287,H376.IIIB.50,16 pcw,M,10194,OFC,orbital frontal cortex,16,NA,NA,Mid_Prenatal
 122,12287,H376.IIIB.50,16 pcw,M,10243,STC,posterior (caudal) superior temporal cortex (area 22c),16,NA,NA,Mid_Prenatal
@@ -214,10 +214,10 @@ column_num,donor_id,donor_name,age,gender,structure_id,structure_acronym,structu
 213,12288,H376.IV.50,24 pcw,M,10278,MFC,anterior (rostral) cingulate (medial prefrontal) cortex,24,NA,NA,Mid_Prenatal
 214,12288,H376.IV.50,24 pcw,M,10657,CBC,cerebellar cortex,24,NA,NA,Mid_Prenatal
 215,12288,H376.IV.50,24 pcw,M,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",24,NA,NA,Mid_Prenatal
-216,12948,H376.V.51,25 pcw,F,10236,A1C,primary auditory cortex (core),25,NA,NA,Mid_Prenatal
-217,12949,H376.V.52,26 pcw,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),26,NA,NA,Mid_Prenatal
-218,12949,H376.V.52,26 pcw,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",26,NA,NA,Mid_Prenatal
-219,12949,H376.V.52,26 pcw,F,10173,DFC,dorsolateral prefrontal cortex,26,NA,NA,Mid_Prenatal
+216,12948,H376.V.51,25 pcw,F,10236,A1C,primary auditory cortex (core),25,NA,NA,Late_Prenatal
+217,12949,H376.V.52,26 pcw,F,10243,STC,posterior (caudal) superior temporal cortex (area 22c),26,NA,NA,Late_Prenatal
+218,12949,H376.V.52,26 pcw,F,10269,V1C,"primary visual cortex (striate cortex, area V1/17)",26,NA,NA,Late_Prenatal
+219,12949,H376.V.52,26 pcw,F,10173,DFC,dorsolateral prefrontal cortex,26,NA,NA,Late_Prenatal
 220,12295,H376.V.50,35 pcw,F,10657,CBC,cerebellar cortex,35,NA,NA,Late_Prenatal
 221,12295,H376.V.50,35 pcw,F,10185,VFC,ventrolateral prefrontal cortex,35,NA,NA,Late_Prenatal
 222,263195015,H376.V.53,37 pcw,M,10236,A1C,primary auditory cortex (core),37,NA,NA,Late_Prenatal

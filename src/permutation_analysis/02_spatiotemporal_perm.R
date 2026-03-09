@@ -98,9 +98,9 @@ cols_meta <- cols_meta %>%
     years  = as.numeric(str_extract(age, "\\d+")) * ifelse(grepl("yrs", age), 1, NA) 
     ) %>%
   mutate(dev_window = case_when(
-           !is.na(weeks)  & weeks >= 8  & weeks <= 13 ~ "Early_Prenatal",
-    !is.na(weeks)  & weeks >= 16 & weeks <= 19 ~ "Mid_Prenatal",
-    !is.na(weeks)  & weeks >= 21 & weeks <= 37 ~ "Late_Prenatal",
+           !is.na(weeks)  & weeks <= 12 ~ "Early_Prenatal",
+    !is.na(weeks)  & weeks >= 13 & weeks <= 24 ~ "Mid_Prenatal",
+    !is.na(weeks)  & weeks >= 25 & weeks <= 40 ~ "Late_Prenatal",
     # Increased window to capture rapid synaptogenesis and increase sample size
     !is.na(months) | !is.na(years) & years <= 1 ~ "Infancy",
     # Increased window to capture synaptic pruning and increase sample size
@@ -112,6 +112,15 @@ cols_meta <- cols_meta %>%
 
 cat("Sample number by age window:", table(cols_meta$dev_window))
 write_csv(cols_meta, paste0(outdir, "metadata_development_windows.csv"))
+
+cols_meta %>%
+  distinct(age, donor_id, dev_window) %>%
+  ggplot(aes(y = reorder(age, dev_window))) +
+  geom_bar() +
+  facet_wrap(~ dev_window)
+
+ggsave(paste0(outdir, "brainspan_metadata_donors_by_age.png"))
+
 
 # Permutation analyses 
 ## NOTE: n_perm can be changed
