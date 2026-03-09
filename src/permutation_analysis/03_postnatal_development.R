@@ -1,3 +1,5 @@
+# Increase the connection buffer to 10MB
+Sys.setenv("VROOM_CONNECTION_SIZE" = 10000000)
 ##### Permuation Analysis of SETBP1 Targets #####
 ## GOAL: To determine the presence and/or directional bias of SETBP1 targets toward pre-natal or post-natal window.
 ## RESULTS: SETBP1 targets are robustly up-regulated during pre-natal window (i.e., early brain development)
@@ -9,6 +11,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(tidyverse)
   library(vroom)
+  library(patchwork)
 })
 ###### SET UP ######
 # create parser object
@@ -30,254 +33,192 @@ outdir <- args$outdir
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
-# Loading in downloaded daa
-# BrainSpan
-expr_raw <- read_csv(paste0(indir, "brainspan/expression_matrix.csv"), col_names = FALSE)
-rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
-cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
-print(paste0("Unique samples in BrainSpan: ", length(unique(cols_meta$donor_id))))
-n_ages <- distinct(cols_meta, donor_id, age)
-n_ages %>%
-# add_count(age, donor_id) %>%
-ggplot(aes(y = age)) +
-geom_bar()
-ggsave(paste0(outdir, "brainspan_age_donor_counts.png"))
-
-# GTEx (rows = genes, cols = samples, col 1 = row_num)
-# GCT files have 2 lines of header metadata before the actual table
+# Load helper to skip GCT headers
 load_gct <- function(path) {
   vroom(path, skip = 2, col_types = c(Name = "c", Description = "c", .default = "d"))
 }
 
-# Example: Loading Developmental GTEx TPMs
-# gtex_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"))
-dgtex_tpm <- read_delim(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"))
-print(paste0("Unique samples in dGTEx: ", length(unique(dgtex_tpm$SUBJECT_ID))))
+# Load Metadata
+cat("\nLoading adult gtex metadata...\n")
+adult_meta <- vroom(paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SampleAttributesDS.txt"))
+adult_pheno <- vroom(paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SubjectPhenotypesDS.txt"))
 
-# 3. Log2 Transformation for your Permutation Test
-# We add a pseudocount of 1 to avoid log(0)
-# gtex_log_tpm <- gtex_tpm %>%
-#   column_to_rownames("Name") %>%
-#   select(-Description) %>%
-#   mutate(across(everything(), ~ log2(.x + 1)))
-# gtex_raw_expression <- read_csv("expression_matrix.csv", col_names = FALSE)
+cat("\nLoading developmental gtex metadata...\n")
+dev_meta   <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"))
+dev_pheno <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Subject_Phenotypes_Dataset_DS_open.txt"))
 
-# SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
-setbp1_targets <- unique(setbp1_targets_table$Target)
-# setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
-# setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
+# --- 1. Process Adult GTEx Metadata ---
+# Extract SUBJID from SAMPID (e.g., GTEX-1117F-0226 -> GTEX-1117F)
+adult_meta_clean <- adult_meta %>%
+  mutate(SUBJID = sub("^([^-]+-[^-]+)-.*", "\\1", SAMPID)) %>%
+  left_join(adult_pheno, by = "SUBJID") %>% # Join age/sex from phenotype file
+  select(SAMPID, SUBJID, AGE, SEX, SMTSD) %>%
+  mutate(Dataset = "Adult_GTEx")
 
-# Keeping track of downloaded genes
-cat("Loaded", nrow(rows_meta), "genes and", nrow(cols_meta), "samples.\n")
-cat("Number of SETBP1 target names read:", length(setbp1_targets), "\n\n")
-
-
-# Creating Expression Matrix
-row_nums_expr <- expr_raw[[1]]
-if (!all(row_nums_expr == rows_meta$row_num)) {
-  stop("Row numbers in expression_matrix.csv and rows_metadata.csv do not align.")
-}
-expr_raw_mat <- as.matrix(expr_raw[,-1])
-cat("Expression matrix dimensions (genes x samples):", 
-    paste(dim(expr_raw_mat), collapse = " x "), "\n")
-
-# Transform, rm zero variance genes, and scale
-log_matrix <- log2(expr_raw_mat + 1)
-gene_sds <- apply(log_matrix, 1, sd)
-valid_genes <- gene_sds > 0
-
-cat("Removing", sum(!valid_genes), "genes with zero variance.\n")
-
-log_matrix_filtered <- log_matrix[valid_genes, ]
-rows_meta_filtered <- rows_meta[valid_genes, ]
-
-expr_mat <- t(scale(t(log_matrix_filtered)))
-rownames(expr_mat) <- rows_meta_filtered$gene_symbol
-colnames(expr_mat) <- cols_meta$column_num
-
-# Double check for any remaining NAs
-if (any(is.na(expr_mat))) {
-    cat("Warning: NAs still present. Replacing NAs with 0.\n")
-    expr_mat[is.na(expr_mat)] <- 0
-}
-
-cat("Final matrix dimensions:", paste(dim(expr_mat), collapse = " x "), "\n")
-
-# Filter SETBP1 targets for genes in brainspan data
-setbp1_targets <- intersect(setbp1_targets, rownames(expr_mat))
-
-# # Brain regions of interest for SETBP1-HD
-# target_regions <- c("STR", "CBC", "VFC", "MFC", "STC")
-
-# Converts BrainSpan age into years relative to birth (e.g., 8 pcw = 8 post-conception weeks = negative years; 4 mos = 4 months post-natal = 4/12 years; 1 yrs = 1 year after birth)
-# Defining age windows and defining disease window (i.e., timeframe relevant for testing purposes); SETBP1 clinical developmental window = 0 to 2 years
-cols_meta <- cols_meta %>%
+# --- 2. Process Developmental GTEx Metadata ---
+# dGTEx usually already has SUBJECT_ID, we just rename for consistency
+# Update dev_meta_clean to decode AGECOHORT
+dev_meta_clean <- dev_meta %>%
+  left_join(dev_pheno, by = "SUBJECT_ID") %>%
+  rename(SUBJID = SUBJECT_ID, SAMPID = SAMPLE_ID) %>%
   mutate(
-    # Exctract numbers, then convert to numeric
-    weeks  = as.numeric(str_extract(age, "\\d+")) * ifelse(grepl("pcw", age), 1, NA),
-    months = as.numeric(str_extract(age, "\\d+")) * ifelse(grepl("mos", age), 1, NA),
-    years  = as.numeric(str_extract(age, "\\d+")) * ifelse(grepl("yrs", age), 1, NA) 
-    ) %>%
-  mutate(dev_window = case_when(
-           !is.na(weeks)  & weeks >= 8  & weeks <= 13 ~ "Early_Prenatal",
-    !is.na(weeks)  & weeks >= 16 & weeks <= 19 ~ "Mid_Prenatal",
-    !is.na(weeks)  & weeks >= 21 & weeks <= 37 ~ "Late_Prenatal",
-    # Increased window to capture rapid synaptogenesis and increase sample size
-    !is.na(months) | !is.na(years) & years <= 1 ~ "Infancy",
-    # Increased window to capture synaptic pruning and increase sample size
-    !is.na(years)  & years >= 2   & years <= 16  ~ "Childhood",
-    !is.na(years)  & years >= 18                ~ "Adult",
-    TRUE ~ "Other" # Catches anything that doesn't fit
-         )) #%>%
-         # filter(structure_acronym %in% target_regions, dev_window != "Other")
+    # Decoding the dGTEx Age Cohorts
+    AGE = case_when(
+      AGECOHORT == 1 ~ "0-2",
+      AGECOHORT == 2 ~ "2-8",
+      AGECOHORT == 3 ~ "8-13",
+      AGECOHORT == 4 ~ "13-18",
+      TRUE ~ "Unknown"
+    ),
+    Dataset = "dGTEx"
+  ) %>%
+  select(SAMPID, SUBJID, AGE, SEX, SMTSD, Dataset)
 
-cat("Sample number by age window:", table(cols_meta$dev_window))
-write_csv(cols_meta, paste0(outdir, "metadata_development_windows.csv"))
+# --- 3. Combine into Master Metadata ---
+master_meta <- bind_rows(adult_meta_clean, dev_meta_clean)
 
-# Permutation analyses 
-## NOTE: n_perm can be changed
-set.seed(123)  
-n_perm <- 5000  
-all_genes <- rownames(expr_mat)
-gene_results <- data.frame(row.names = setbp1_targets)
-stats_results <- data.frame()
+# --- 4. Final Cleanup: Uniform Age and Sex Labels ---
+# GTEx Adult uses "1" for Male, "2" for Female; dGTEx might use strings.
+donor_census <- master_meta %>%
+  mutate(
+    SEX_Label = case_when(
+      SEX %in% c(1, "1", "Male", "M") ~ "Male",
+      SEX %in% c(2, "2", "Female", "F") ~ "Female",
+      TRUE ~ "Unknown"
+    )
+  )
 
-# Calculating average expression for every gene for different windows
-windows <- unique(cols_meta$dev_window)
+# Verify the merge
+table(donor_census$Dataset, donor_census$SEX_Label)
 
-# for (reg in target_regions) {
-for (win in windows) {
-# Samples in each window + region combo
-  cat("\nRunning permutation for: \n", win)
-  selected_samples <- cols_meta %>% 
-      filter(
-      # structure_acronym == reg, 
-      dev_window == win
-      ) %>% 
-      pull(column_num) %>% as.character()
-  
-  # Ensure those samples exist in the expression matrix
-    selected_samples <- intersect(selected_samples, colnames(expr_mat))
-  if(length(selected_samples) < 2) next # Skip windows with insufficient data
-  
-  cat("\nFinding observation stat...\n")
-  # Observed statistic (mean of gene set in this window)
-  select_data <- expr_mat[, selected_samples, drop = FALSE]
-  # Target gene means, NAs removed
-  gene_means <- rowMeans(select_data[setbp1_targets, , drop=FALSE], na.rm = TRUE)
-  obs_val <- mean(gene_means)
-  
-  cat("\nFinding null distribution...\n")
-  # Null distribution
-  null_dist <- replicate(n_perm, {
-    rand_genes <- sample(all_genes, length(setbp1_targets))
-    # Random gene means, NAs removed
-    mean(rowMeans(select_data[rand_genes, , drop=FALSE], na.rm = TRUE))
-  })
-  
-  cat("\nCalculating p-value and z-scores... \n")
-  # Calculate P-value and Enrichment Score (Z-score)
-  p_val <- sum(null_dist >= obs_val) / n_perm
-  z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
-  
-  gene_results <- cbind(gene_results, gene_means)
+## Metadata Exploration ##
+# --- Plot 1: Number of Donors per Age Group ---
 
-  stats_results <- rbind(stats_results, data.frame(
-    # region = reg,
-    window = win,
-    observed = obs_val,
-    p_value = p_val,
-    z_score = z_score
-  ))
-}
-# }
-write_csv(gene_results, paste0(outdir, "temporal_window_gene_means.csv"))
-write_csv(stats_results, paste0(outdir, "temporal_window_perm_stats.csv"))
-cat("\n\nPermutation loop finished.\n")
-
-# Plot for testing purposes
-# Ensure windows are in chronological order for the plot
-stats_results$window <- factor(stats_results$window, levels = windows)
-
-# ggplot(stats_results, aes(x = window, y = z_score, group = region, color = region)) +
-#   geom_line(size = 1) +
-#   geom_point(aes(shape = p_value < 0.05), size = 3.5) +
-#   facet_wrap(~region) +
-#   scale_shape_manual(values = c(1, 19), name = "p < 0.05") +
-#   theme_minimal() +
-#   labs(title = "Regional Trajectories of Gene Set Enrichment",
-#        y = "Enrichment Z-Score") +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-#
-ggplot(stats_results, aes(x = window, y = z_score, fill = p_value < 0.05)) +
-  geom_bar(stat = "identity", color = "black") +
-  geom_text(aes(label = ifelse(p_value < 0.05, "*", "")), vjust = -0.5, size = 8) +
-  scale_fill_manual(values = c("grey70", "firebrick3"), name = "Significant (p < 0.05)") +
+# Plotting the age distribution
+cat("Plotting age distribution of gtex donors...")
+p1 <- ggplot(donor_census, aes(x = AGE, fill = Dataset)) +
+  geom_bar(color = "white") +
   theme_minimal() +
-  labs(title = "Gene Set Enrichment Across Brain Development",
-       subtitle = "Red bars indicate windows of significant dysregulation",
-       x = "Developmental Window",
-       y = "Enrichment Z-Score") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  labs(title = "Donor Distribution Across the Lifespan",
+       x = "Age Group / Range",
+       y = "Number of Donors") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Set1")
 
-ggsave(paste0(outdir, "temporal_exp_trajectory.png"))
-cat("Plot saved to temporal_exp_trajectory.png")
+print(p1)
+ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 
-# # Median based permutation tests to confirm SETBP1 targets, as a whole, display pre-natal upregulated gene expression
-#
-# # Data Cleaning
-# ## Medians of each row, separated by prenatal/postnatal windo
-# prenatal_medians  <- apply(expr_mat[, prenatal_idx, drop = FALSE], 1, median, na.rm = TRUE)
-# postnatal_medians <- apply(expr_mat[, postnatal_idx, drop = FALSE], 1, median, na.rm = TRUE)
-# prenatal_minus_postnatal_med <- prenatal_medians - postnatal_medians
-#
-# ## Gene stats median table 
-# gene_stats_med <- tibble(
-#   gene_symbol = rownames(expr_mat),
-#   diff_median = prenatal_minus_postnatal_med
-# ) %>% filter(!is.na(diff_median))
-# write_csv(gene_stats_med, paste0(outdir, "prenatal_postnatal_gene_median.csv"))
-#
-# ## Median Vector List
-# median_stats_vector <- gene_stats_med$diff_median
-# names(median_stats_vector) <- gene_stats_med$gene_symbol
-#
-# ## Median Observed Stat
-# median_obs_stat <- median(median_stats_vector[setbp1_stats], na.rm = TRUE)
-#
-# # Permutation test for median
-# set.seed(123)
-# perm_stats_med <- numeric(n_perm)
-#
-# for (i in seq_len(n_perm)) {
-#   # Pick random genes
-#   rand_genes <- sample(names(median_stats_vector), size = set_size, replace = FALSE)
-#   perm_stats_med[i] <- median(median_stats_vector[rand_genes], na.rm = TRUE)
-# }
-#
-# p_emp_med <- (sum(perm_stats_med >= median_obs_stat) + 1) / (n_perm + 1)
-# z_score_med <- (median_obs_stat - mean(perm_stats_med)) / sd(perm_stats_med)
-#
-# # Print the results
-# cat("=== Median-based Results ===\n")
-# cat("Observed Median:", median_obs_stat, "\n")
-# cat("Empirical p-value:", p_emp_med, "\n")
-# cat("Z-score:", z_score_med, "\n")
-#
-#
-# # Check how many unique values are in your random trials
-# cat("Unique values in perm_stats_med:", length(unique(perm_stats_med)), "\n")
-#
-# # Plot the Median results
-# ## NOTE: Red line may not show up on graph due to x-axis stopping at 0
-# png(paste0("histogram_median_perm.png"), width = 20, height = 15, units = "cm", res = 300)
-# hist(perm_stats_med, breaks = 50,
-#      main = "Median-based Null Distribution",
-#      xlab = "Median (prenatal - postnatal) of random sets",
-#      col = "lightblue")
-# abline(v = median_obs_stat, col = "red", lwd = 2)
-# legend("topright", legend = c("Observed SETBP1 Median"), lwd = 2, col = "red")
-# dev.off()
-#
-#
+
+# 1. Load Matrices
+cat("Loading adult gtex counts...")
+adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct.gz"))
+cat("Loading developmental gtex counts...")
+dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"))
+
+# 2. Clean Gene IDs (remove .version) and Join
+# We keep only genes present in both datasets
+cat("Filter for genes in both data sets...")
+
+adult_tpm$Name <- sub("\\..*", "", adult_tpm$Name)
+dev_tpm$Name   <- sub("\\..*", "", dev_tpm$Name)
+
+common_genes <- intersect(adult_tpm$Name, dev_tpm$Name)
+
+cat("Combining adult and dev gene counts...")
+combined_mat <- inner_join(
+  adult_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
+  dev_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
+  by = "Name"
+) %>% column_to_rownames("Name")
+
+# 3. Log Transformation
+combined_mat <- log2(combined_mat + 1)
+
+# --- Plot 2: SETBP1 Target Trajectory ---
+# 1. Calculate the mean expression of your targets for every sample
+# Ensure combined_mat is your Log2(TPM+1) matrix
+target_means <- colMeans(combined_mat[intersect(my_gene_set, rownames(combined_mat)), ], na.rm = TRUE)
+
+# 2. Create a data frame for plotting
+plot_data <- data.frame(
+  SAMPID = names(target_means),
+  Mean_Expression = target_means
+) %>%
+  mutate(Stage = case_when(
+    SAMPID %in% dev_cols ~ "Developmental/Pediatric",
+    SAMPID %in% adult_cols ~ "Adult",
+    TRUE ~ "Other"
+  )) %>%
+  filter(Stage != "Other")
+
+# 3. Boxplot comparison
+p2 <- ggplot(plot_data, aes(x = Stage, y = Mean_Expression, fill = Stage)) +
+  geom_violin(alpha = 0.3) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  theme_classic() +
+  labs(title = "SETBP1 Target Expression: Dev vs. Adult",
+       subtitle = "Integrated GTEx + dGTEx Brain Samples",
+       y = "Mean Log2(TPM+1)") +
+  scale_fill_manual(values = c("Adult" = "#2c3e50", "Developmental/Pediatric" = "#e74c3c"))
+
+print(p2)
+
+# Map samples to specific brain regions (SMTSD in GTEx)
+region_data <- bind_rows(
+  adult_meta %>% select(SAMPID, SMTSD),
+  dev_meta %>% select(SAMPID, SMTSD)
+)
+
+plot_data_region <- plot_data %>%
+  inner_join(region_data, by = "SAMPID")
+
+ggplot(plot_data_region, aes(x = reorder(SMTSD, Mean_Expression), y = Mean_Expression, fill = Stage)) +
+  geom_boxplot() +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "SETBP1 Target Expression by Brain Region",
+       x = "",
+       y = "Mean Log2(TPM+1)")
+
+ggsave(paste0(outdir, "gtex_metadata_brain_regions.png"))
+
+# Identify Brain Samples
+# Note: GTEx uses SMTS (Tissue) and SMTSD (Detailed Tissue)
+adult_brain_ids <- adult_meta %>% filter(SMTS == "Brain") %>% pull(SAMPID)
+dev_brain_ids   <- dev_meta %>% filter(grepl("Brain", SMTS)) %>% pull(SAMPID)
+
+# Ensure the IDs exist in our matrix
+adult_cols <- intersect(adult_brain_ids, colnames(combined_mat))
+dev_cols   <- intersect(dev_brain_ids, colnames(combined_mat))
+
+run_stage_permutation <- function(matrix_data, target_genes, stage_cols, n_reps = 10000) {
+  
+  # Subset matrix to the specific stage
+  stage_mat <- as.matrix(matrix_data[, stage_cols])
+  all_genes <- rownames(stage_mat)
+  
+  # 1. Observed Stat (Mean expression of your genes in this stage)
+  # We take mean across genes, then mean across samples
+  obs_stat <- mean(colMeans(stage_mat[intersect(target_genes, all_genes), , drop=FALSE]))
+  
+  # 2. Permutation Loop
+  null_dist <- numeric(n_reps)
+  set.seed(123)
+  n_target <- length(intersect(target_genes, all_genes))
+  
+  for(i in 1:n_reps) {
+    rand_genes <- sample(all_genes, n_target)
+    null_dist[i] <- mean(colMeans(stage_mat[rand_genes, , drop=FALSE]))
+  }
+  
+  p_val <- sum(null_dist >= obs_stat) / n_reps
+  return(list(obs = obs_stat, p = p_val, null = null_dist))
+}
+
+# Execute for both stages
+adult_results <- run_stage_permutation(combined_mat, my_gene_set, adult_cols)
+write_csv(adult_results, paste0("gtex_adult_permutations.csv"))
+
+dev_results   <- run_stage_permutation(combined_mat, my_gene_set, dev_cols)
+write_csv(dev_results, paste0("devgtex_adult_permutations.csv"))
+
