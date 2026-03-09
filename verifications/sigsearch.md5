@@ -1,0 +1,17 @@
+
+Files included:
+c5e96d307e54af8317aa10251dd5a3cd  ./results/signature_reversion/approved_drugs_res.csv
+1e7b3d494581de5706145a0411330394  ./results/signature_reversion/approveddrugs_target_exp_heatmap.png
+e77674b57978d1b3b31fd707cabdd4ce  ./results/signature_reversion/brain_drugs_filtered.csv
+47c25f467d4b56692db122fdd7499520  ./results/signature_reversion/drug_target_degs.csv
+5ffef7142b2514dbcb2c09a7c44841f3  ./results/signature_reversion/lincs_anno_braincell_results.rds
+e9e8c81ffc8ca832520d1478fbcf2fa9  ./results/signature_reversion/lincs_braincells_results.csv
+c787e744307c1ce8058ae17ad8b8628b  ./results/signature_reversion/lincs_results.rds
+66494598e652600a2d0b4710ab72b2eb  ./results/signature_reversion/setbp1_drug_targets.csv
+684eceb357c7e0a28fecde3776459bce  ./results/signature_reversion/target_exp_contrasts.png
+469cfe1555069d9d0000c4aa0ce25077  ./results/signature_reversion/target_exp_heatmap.png
+
+Combined MD5 checksum:
+55bf096749b657d1c40c1f4b2a9b5bf1
+
+Ran from: /data/user/lizzyr/setbp1_hd
