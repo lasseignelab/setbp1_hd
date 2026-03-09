@@ -73,13 +73,6 @@ rows_meta_filtered <- rows_meta[valid_genes, ]
 expr_mat <- t(scale(t(log_matrix_filtered)))
 rownames(expr_mat) <- rows_meta_filtered$gene_symbol
 colnames(expr_mat) <- cols_meta$column_num
-
-# Double check for any remaining NAs
-if (any(is.na(expr_mat))) {
-    cat("Warning: NAs still present. Replacing NAs with 0.\n")
-    expr_mat[is.na(expr_mat)] <- 0
-}
-
 cat("Final matrix dimensions:", paste(dim(expr_mat), collapse = " x "), "\n")
 
 # Filter SETBP1 targets for genes in brainspan data
@@ -146,6 +139,7 @@ for (win in windows) {
   
   # Ensure those samples exist in the expression matrix
     selected_samples <- intersect(selected_samples, colnames(expr_mat))
+
   if(length(selected_samples) < 2) next # Skip windows with insufficient data
   
   cat("\nFinding observation stat...\n")
@@ -164,26 +158,37 @@ for (win in windows) {
   })
   
   cat("\nCalculating p-value and z-scores... \n")
-  # Calculate P-value and Enrichment Score (Z-score)
-  p_val <- sum(null_dist >= obs_val) / n_perm
-  z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
+  # Calculate One-Sided P-values
+  p_val_enrichment <- sum(null_dist >= obs_val) / n_perm
+  p_val_depletion  <- sum(null_dist <= obs_val) / n_perm
   
-  gene_results <- cbind(gene_results, gene_means)
+  # Calculate Two-Sided P-value (Recommended)
+  p_val_two_sided <- 2 * min(p_val_enrichment, p_val_depletion)
+  
+  # Calculate Z-score
+  z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
 
+  # Fix dataframe binding issue
+  gene_results[[win]] <- gene_means
+  
   stats_results <- rbind(stats_results, data.frame(
-    # region = reg,
     window = win,
     observed = obs_val,
-    p_value = p_val,
-    z_score = z_score
+    z_score = z_score,
+    p_val_enrichment = p_val_enrichment,
+    p_val_depletion = p_val_depletion,
+    p_val_two_sided = p_val_two_sided
   ))
 }
 # }
-rownames(gene_results) <- setbp1_targets
-colnames(gene_results) <- windows
-write_csv(gene_results, paste0(outdir, "temporal_window_gene_means.csv"))
+# Apply FDR correction for multiple hypotheses
+stats_results$p_val_adj <- p.adjust(stats_results$p_val_two_sided, method = "fdr")
+print(stats_results)
 write_csv(stats_results, paste0(outdir, "temporal_window_perm_stats.csv"))
-cat("\n\nPermutation loop finished.\n")
+
+rownames(gene_results) <- setbp1_targets
+write_csv(gene_results, paste0(outdir, "temporal_window_gene_means.csv"))
+cat("\n\nPermutations complete, results saved. \n")
 
 # Plot for testing purposes
 # Ensure windows are in chronological order for the plot
@@ -199,9 +204,9 @@ stats_results$window <- factor(stats_results$window, levels = windows)
 #        y = "Enrichment Z-Score") +
 #   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 #
-ggplot(stats_results, aes(x = window, y = z_score, fill = p_value < 0.05)) +
+ggplot(stats_results, aes(x = window, y = z_score, fill = p_val_adj < 0.05)) +
   geom_bar(stat = "identity", color = "black") +
-  geom_text(aes(label = ifelse(p_value < 0.05, "*", "")), vjust = -0.5, size = 8) +
+  geom_text(aes(label = ifelse(p_val_adj < 0.05, "*", "")), vjust = -0.5, size = 8) +
   scale_fill_manual(values = c("grey70", "firebrick3"), name = "Significant (p < 0.05)") +
   theme_minimal() +
   labs(title = "Gene Set Enrichment Across Brain Development",
