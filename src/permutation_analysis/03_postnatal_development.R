@@ -1,5 +1,5 @@
-# Increase the connection buffer to 10MB
-Sys.setenv("VROOM_CONNECTION_SIZE" = 10000000)
+# Increase the connection buffer to 16MB
+Sys.setenv("VROOM_CONNECTION_SIZE" = 16000000)
 ##### Permuation Analysis of SETBP1 Targets #####
 ## GOAL: To determine the presence and/or directional bias of SETBP1 targets toward pre-natal or post-natal window.
 ## RESULTS: SETBP1 targets are robustly up-regulated during pre-natal window (i.e., early brain development)
@@ -11,6 +11,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(tidyverse)
   library(vroom)
+  library(data.table)
   library(patchwork)
 })
 ###### SET UP ######
@@ -35,7 +36,12 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Load helper to skip GCT headers
 load_gct <- function(path) {
-  vroom(path, skip = 2, col_types = c(Name = "c", Description = "c", .default = "d"))
+  # skip = 2 to bypass the GCT header
+  # header = TRUE to get the column names correctly
+  df <- fread(path, skip = 2, header = TRUE, sep = "\t", check.names = FALSE)
+  
+  # Convert to tibble if you prefer the tidyverse look
+  return(as_tibble(df))
 }
 
 # Load Metadata
@@ -47,12 +53,16 @@ cat("\nLoading developmental gtex metadata...\n")
 dev_meta   <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"))
 dev_pheno <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Subject_Phenotypes_Dataset_DS_open.txt"))
 
+# SETBP1 targets
+setbp1_targets_table <- read_csv(paste0(indir, "setbp1_target_pathways.csv"))
+setbp1_targets <- unique(setbp1_targets_table$GeneSymbol)
+
 # --- 1. Process Adult GTEx Metadata ---
 # Extract SUBJID from SAMPID (e.g., GTEX-1117F-0226 -> GTEX-1117F)
 adult_meta_clean <- adult_meta %>%
   mutate(SUBJID = sub("^([^-]+-[^-]+)-.*", "\\1", SAMPID)) %>%
   left_join(adult_pheno, by = "SUBJID") %>% # Join age/sex from phenotype file
-  select(SAMPID, SUBJID, AGE, SEX, SMTSD) %>%
+  select(SAMPID, SUBJID, AGE, SEX, SMTS, SMTSD) %>%
   mutate(Dataset = "Adult_GTEx")
 
 # --- 2. Process Developmental GTEx Metadata ---
@@ -72,7 +82,7 @@ dev_meta_clean <- dev_meta %>%
     ),
     Dataset = "dGTEx"
   ) %>%
-  select(SAMPID, SUBJID, AGE, SEX, SMTSD, Dataset)
+  select(SAMPID, SUBJID, AGE, SEX, SMTS, SMTSD, Dataset)
 
 # --- 3. Combine into Master Metadata ---
 master_meta <- bind_rows(adult_meta_clean, dev_meta_clean)
@@ -111,7 +121,7 @@ ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 
 # 1. Load Matrices
 cat("Loading adult gtex counts...")
-adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct.gz"))
+adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_median_tpm.gct.gz"))
 cat("Loading developmental gtex counts...")
 dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"))
 
@@ -137,22 +147,25 @@ combined_mat <- log2(combined_mat + 1)
 # --- Plot 2: SETBP1 Target Trajectory ---
 # 1. Calculate the mean expression of your targets for every sample
 # Ensure combined_mat is your Log2(TPM+1) matrix
-target_means <- colMeans(combined_mat[intersect(my_gene_set, rownames(combined_mat)), ], na.rm = TRUE)
+target_means <- colMeans(combined_mat[intersect(setbp1_targets, rownames(combined_mat)), ], na.rm = TRUE)
+cat("\ntarget_means: \n", str(target_means))
 
 # 2. Create a data frame for plotting
 plot_data <- data.frame(
   SAMPID = names(target_means),
   Mean_Expression = target_means
 ) %>%
-  mutate(Stage = case_when(
-    SAMPID %in% dev_cols ~ "Developmental/Pediatric",
-    SAMPID %in% adult_cols ~ "Adult",
-    TRUE ~ "Other"
-  )) %>%
-  filter(Stage != "Other")
+left_join(donor_census, by = "SAMPID")
+#  mutate(Stage = case_when(
+#    SAMPID %in% dev_meta_clean ~ "Developmental/Pediatric",
+#    SAMPID %in% adult_meta_clean ~ "Adult",
+#    TRUE ~ "Other"
+#  )) %>%
+#  filter(Stage != "Other")
+cat("\nplot_data: \n", str(plot_data))
 
 # 3. Boxplot comparison
-p2 <- ggplot(plot_data, aes(x = Stage, y = Mean_Expression, fill = Stage)) +
+p2 <- ggplot(plot_data, aes(x = AGE, y = Mean_Expression, fill = Dataset)) +
   geom_violin(alpha = 0.3) +
   geom_boxplot(width = 0.2, outlier.shape = NA) +
   theme_classic() +
@@ -162,17 +175,20 @@ p2 <- ggplot(plot_data, aes(x = Stage, y = Mean_Expression, fill = Stage)) +
   scale_fill_manual(values = c("Adult" = "#2c3e50", "Developmental/Pediatric" = "#e74c3c"))
 
 print(p2)
+ggsave(paste0(outdir, "gtex_stage_exp_boxplot.png"))
 
 # Map samples to specific brain regions (SMTSD in GTEx)
 region_data <- bind_rows(
-  adult_meta %>% select(SAMPID, SMTSD),
-  dev_meta %>% select(SAMPID, SMTSD)
+  adult_meta_clean %>% select(SAMPID, SMTSD),
+  dev_meta_clean %>% select(SAMPID, SMTSD)
 )
+cat("Plotting expression by brain region...")
 
 plot_data_region <- plot_data %>%
-  inner_join(region_data, by = "SAMPID")
+   filter(SAMPID %in% region_data$SAMPID)
+#  inner_join(region_data, by = "SAMPID")
 
-ggplot(plot_data_region, aes(x = reorder(SMTSD, Mean_Expression), y = Mean_Expression, fill = Stage)) +
+ggplot(plot_data_region, aes(x = reorder(SMTSD, Mean_Expression), y = Mean_Expression, fill = AGE)) +
   geom_boxplot() +
   coord_flip() +
   theme_minimal() +
@@ -184,14 +200,15 @@ ggsave(paste0(outdir, "gtex_metadata_brain_regions.png"))
 
 # Identify Brain Samples
 # Note: GTEx uses SMTS (Tissue) and SMTSD (Detailed Tissue)
-adult_brain_ids <- adult_meta %>% filter(SMTS == "Brain") %>% pull(SAMPID)
-dev_brain_ids   <- dev_meta %>% filter(grepl("Brain", SMTS)) %>% pull(SAMPID)
+adult_brain_ids <- adult_meta_clean %>% filter(SMTS == "Brain") %>% pull(SAMPID)
+dev_brain_ids   <- dev_meta_clean %>% filter(grepl("Brain", SMTS)) %>% pull(SAMPID)
 
 # Ensure the IDs exist in our matrix
 adult_cols <- intersect(adult_brain_ids, colnames(combined_mat))
 dev_cols   <- intersect(dev_brain_ids, colnames(combined_mat))
 
-run_stage_permutation <- function(matrix_data, target_genes, stage_cols, n_reps = 10000) {
+cat("Running permutations...")
+run_stage_permutation <- function(matrix_data, target_genes, stage_cols, n_reps = 1000) {
   
   # Subset matrix to the specific stage
   stage_mat <- as.matrix(matrix_data[, stage_cols])
@@ -216,9 +233,10 @@ run_stage_permutation <- function(matrix_data, target_genes, stage_cols, n_reps 
 }
 
 # Execute for both stages
-adult_results <- run_stage_permutation(combined_mat, my_gene_set, adult_cols)
-write_csv(adult_results, paste0("gtex_adult_permutations.csv"))
+adult_results <- run_stage_permutation(combined_mat, setbp1_targets, adult_cols)
+write_rds(adult_results, paste0("gtex_adult_permutations.rds"))
 
-dev_results   <- run_stage_permutation(combined_mat, my_gene_set, dev_cols)
-write_csv(dev_results, paste0("devgtex_adult_permutations.csv"))
+dev_results   <- run_stage_permutation(combined_mat, setbp1_targets, dev_cols)
+write_rds(dev_results, paste0("devgtex_adult_permutations.rds"))
 
+cat("Permutations complete! Results saved.")
