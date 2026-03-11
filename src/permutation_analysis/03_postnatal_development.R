@@ -124,6 +124,8 @@ cat("Loading adult gtex counts...")
 adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_median_tpm.gct.gz"))
 cat("Loading developmental gtex counts...")
 dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"))
+cat("/nAdult gtex count data: /n", str(adult_tpm))
+cat("/nDev gtex count data: /n", str(dev_tpm))
 
 # 2. Clean Gene IDs (remove .version) and Join
 # We keep only genes present in both datasets
@@ -133,21 +135,29 @@ adult_tpm$Name <- sub("\\..*", "", adult_tpm$Name)
 dev_tpm$Name   <- sub("\\..*", "", dev_tpm$Name)
 
 common_genes <- intersect(adult_tpm$Name, dev_tpm$Name)
+cat("/nTotal genes in common: /n", length(unique(common_genes)))
 
 cat("Combining adult and dev gene counts...")
 combined_mat <- inner_join(
   adult_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
   dev_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
   by = "Name"
-) %>% column_to_rownames("Name")
+) %>% 
+column_to_rownames("Name") %>%
+mutate(across(everything(),  ~ log2(.x + 1)))
+cat("/nCombined adult/dev gene counts: /n", str(combined_mat))
 
 # 3. Log Transformation
-combined_mat <- log2(combined_mat + 1)
+# combined_mat <- log2(combined_mat + 1)
 
 # --- Plot 2: SETBP1 Target Trajectory ---
 # 1. Calculate the mean expression of your targets for every sample
 # Ensure combined_mat is your Log2(TPM+1) matrix
-target_means <- colMeans(combined_mat[intersect(setbp1_targets, rownames(combined_mat)), ], na.rm = TRUE)
+# target_means <- colMeans(combined_mat[intersect(setbp1_targets, rownames(combined_mat)), ], na.rm = TRUE)
+target_means <- combined_mat %>%
+filter(row.names(.) %in% setbp1_targets) %>%
+rowwise() %>%
+summarise(mean(c_across(everything())))
 cat("\ntarget_means: \n", str(target_means))
 
 # 2. Create a data frame for plotting
@@ -234,9 +244,9 @@ run_stage_permutation <- function(matrix_data, target_genes, stage_cols, n_reps 
 
 # Execute for both stages
 adult_results <- run_stage_permutation(combined_mat, setbp1_targets, adult_cols)
-write_rds(adult_results, paste0("gtex_adult_permutations.rds"))
+write_rds(adult_results, paste0(outdir, "gtex_adult_permutations.rds"))
 
 dev_results   <- run_stage_permutation(combined_mat, setbp1_targets, dev_cols)
-write_rds(dev_results, paste0("devgtex_adult_permutations.rds"))
+write_rds(dev_results, paste0(outdir, "devgtex_adult_permutations.rds"))
 
 cat("Permutations complete! Results saved.")
