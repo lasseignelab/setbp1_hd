@@ -33,11 +33,20 @@ outdir <- args$outdir
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Load helper to skip GCT headers
-load_gct <- function(path) {
-  # skip = 2 to bypass the GCT header, header = TRUE to get crrest column names
-  df <- fread(path, skip = 2, header = TRUE, sep = "\t", check.names = FALSE)
+load_gct <- function(path, valid_sampids = NULL) {
+  # Read just the header (0 rows) to get column names quickly
+  header <- names(data.table::fread(path, skip = 2, nrows = 0, header = TRUE, sep = "\t"))
   
-  # Convert to tibble if you prefer the tidyverse look
+  if (!is.null(valid_sampids)) {
+    # Keep gene info columns plus any matching sample IDs found in this specific file
+    keep_cols <- intersect(header, c("Name", "Description", valid_sampids))
+  } else {
+    keep_cols <- header
+  }
+  
+  # Load ONLY the selected columns
+  df <- data.table::fread(path, skip = 2, header = TRUE, sep = "\t", 
+                          check.names = FALSE, select = keep_cols)
   return(as_tibble(df))
 }
 
@@ -65,11 +74,15 @@ dev_pheno <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Subject_Phen
 setbp1_targets_table <- read_csv(paste0(indir, "setbp1_target_pathways.csv"))
 setbp1_targets <- unique(setbp1_targets_table$GeneSymbol)
 
+# Define Phenotypically Relevant Tissues (Whitlock et al. 2024)
+relevant_tissues <- c("Brain", "Muscle", "Heart", "Kidney", "Bladder", 
+                      "Lung", "Small Intestine", "Stomach", "Esophagus", 
+                      "Bone Marrow", "Blood")
+
 # Extract SUBJID from SAMPID (e.g., GTEX-1117F-0226 -> GTEX-1117F)
 adult_meta_clean <- adult_meta %>%
   mutate(SUBJID = sub("^([^-]+-[^-]+)-.*", "\\1", SAMPID)) %>%
   left_join(adult_pheno, by = "SUBJID") %>% # Join age/sex from phenotype file
-  # Map Adult tissues to match Median TPM column names
   mutate(Tissue_Key = standardize_tissue(SMTSD)) %>%
   select(SAMPID, SUBJID, AGE, SEX, SMTS, SMTSD, Tissue_Key) %>%
   mutate(Dataset = "Adult_GTEx")
@@ -92,16 +105,24 @@ dev_meta_clean <- dev_meta %>%
   ) %>%
   select(SAMPID, SUBJID, AGE, SEX, SMTS, SMTSD, Tissue_Key, Dataset)
 
+# Combine metadata and filter for relevant tissues
 donor_census <- bind_rows(adult_meta_clean, dev_meta_clean) %>%
+  filter(grepl(paste(relevant_tissues, collapse="|"), SMTS, ignore.case = TRUE)) %>%
   mutate(
 SEX_Label = case_when(
 SEX %in% c(1, "1") ~ "Male", 
 SEX %in% c(2, "2") ~ "Female", 
 TRUE ~ "Unknown")
 )
+cat("\nRelevant tissues found in metadata: ", unique(donor_census$SMTS))
 
 # Verify the merge
-table(donor_census$Dataset, donor_census$SEX_Label)
+cat("\nVerify donor census metadata merge: \n", 
+table(donor_census$Dataset, donor_census$SEX_Label))
+
+# Specific samples to parse from TPM data
+valid_samples <- donor_census$SAMPID
+cat("\nSamples to parse from TPM data: \n", str(valid_samples))
 
 ## Metadata Exploration ##
 # Plotting the age distribution
@@ -119,11 +140,12 @@ print(p1)
 ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 
 
-# Load Matrices
-cat("Loading adult gtex counts...")
-adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_median_tpm.gct.gz"))
-cat("Loading developmental gtex counts...")
-dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"))
+# Load TPM Matrices
+cat("\nLoading adult gtex counts...")
+adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct.gz"), valid_sampids = valid_samples)
+cat("\nLoading developmental gtex counts...")
+dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"), valid_sampids = valid_samples)
+
 cat("\nAdult gtex count data: \n", str(adult_tpm))
 cat("\nDev gtex count data: \n", str(dev_tpm))
 
@@ -140,16 +162,6 @@ dev_tpm$Name   <- sub("\\..*", "", dev_tpm$Name)
 common_genes <- intersect(adult_tpm$Name, dev_tpm$Name)
 cat("\nTotal genes in common: \n", length(unique(common_genes)))
 
-# Calculate median exp for dGTEx to match adult median TPM
-dev_median <- dev_tpm %>%
-  filter(Name %in% common_genes) %>%
-  select(-Description) %>%
-  tidyr::pivot_longer(-Name, names_to = "SAMPID", values_to = "TPM") %>%
-  left_join(dev_meta_clean %>% select(SAMPID, Tissue_Key), by = "SAMPID") %>%
-  group_by(Name, Tissue_Key) %>%
-  summarise(Median_TPM = median(TPM, na.rm = TRUE), .groups = "drop") %>%
-  tidyr::pivot_wider(names_from = Tissue_Key, values_from = Median_TPM)
-
 cat("\nCheck adult GTEx colnames match the dGTEx tissue keys...")
 print(colnames(adult_tpm))
 print(unique(dev_meta_clean$Tissue_Key))
@@ -157,7 +169,7 @@ print(unique(dev_meta_clean$Tissue_Key))
 cat("\nCombining adult and dev gene counts...")
 combined_mat <- inner_join(
   adult_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
-  dev_median,
+  dev_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
   by = "Name"
 ) %>% 
 column_to_rownames("Name") %>%
