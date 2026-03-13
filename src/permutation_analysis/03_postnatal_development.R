@@ -1,5 +1,5 @@
 # Increase the connection buffer to 16MB
-Sys.setenv("VROOM_CONNECTION_SIZE" = 16000000)
+Sys.setenv("VROOM_CONNECTION_SIZE" = 32000000)
 ##### Permuation Analysis of SETBP1 Targets #####
 ## GOAL: To determine the presence and/or directional bias of SETBP1 targets in postnatal age windows.
 
@@ -34,19 +34,22 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Load helper to skip GCT headers
 load_gct <- function(path, valid_sampids = NULL) {
-  # Read just the header (0 rows) to get column names quickly
-  header <- names(data.table::fread(path, skip = 2, nrows = 0, header = TRUE, sep = "\t"))
+  # Use gunzip -c to stream the uncompressed data directly into fread
+  cmd_str <- paste("gunzip -c", path)
+  
+  # 1. Safely read just the header
+  header <- names(fread(cmd = cmd_str, skip = 2, nrows = 0, sep = "\t", quote = "", nThread = 2))
   
   if (!is.null(valid_sampids)) {
-    # Keep gene info columns plus any matching sample IDs found in this specific file
     keep_cols <- intersect(header, c("Name", "Description", valid_sampids))
   } else {
     keep_cols <- header
   }
   
-  # Load ONLY the selected columns
-  df <- data.table::fread(path, skip = 2, header = TRUE, sep = "\t", 
-                          check.names = FALSE, select = keep_cols)
+  # 2. Extract only the needed columns
+  cat("Extracting", length(keep_cols), "columns...\n")
+  df <- fread(cmd = cmd_str, skip = 2, select = keep_cols, sep = "\t", quote = "")
+  
   return(as_tibble(df))
 }
 
@@ -129,6 +132,7 @@ cat("\nSamples to parse from TPM data: \n", str(valid_samples))
 cat("\nPlotting age distribution of gtex donors...")
 p1 <- ggplot(donor_census, aes(x = AGE, fill = Dataset)) +
   geom_bar(color = "white") +
+  scale_y_continuous(trans = "log2") +
   theme_minimal() +
   labs(title = "Donor Distribution Across the Lifespan",
        x = "Age Group / Range",
@@ -141,12 +145,10 @@ ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 
 
 # Load TPM Matrices
-cat("\nLoading adult gtex counts...")
 adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct.gz"), valid_sampids = valid_samples)
-cat("\nLoading developmental gtex counts...")
-dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"), valid_sampids = valid_samples)
-
 cat("\nAdult gtex count data: \n", str(adult_tpm))
+
+dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"), valid_sampids = valid_samples)
 cat("\nDev gtex count data: \n", str(dev_tpm))
 
 # Update tissue names
@@ -163,45 +165,45 @@ common_genes <- intersect(adult_tpm$Name, dev_tpm$Name)
 cat("\nTotal genes in common: \n", length(unique(common_genes)))
 
 cat("\nCheck adult GTEx colnames match the dGTEx tissue keys...")
-print(colnames(adult_tpm))
 print(unique(dev_meta_clean$Tissue_Key))
 
 cat("\nCombining adult and dev gene counts...")
-combined_mat <- inner_join(
+consolidated_mat <- inner_join(
   adult_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
-  dev_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
+  dev_tpm %>% filter(Name %in% common_genes), # %>% select(-Description),
   by = "Name"
 ) %>% 
 column_to_rownames("Name") %>%
-mutate(across(everything(),  ~ log2(.x + 1)))
-cat("/nCombined adult/dev gene counts: /n", str(combined_mat))
+mutate(across(where(is.numeric),  ~ log2(.x + 1)))
+# mutate(across(everything(),  ~ log2(.x + 1)))
+cat("\nCombined adult/dev gene counts: \n", str(consolidated_mat))
 
 # Create a mapping table from the original data
-gene_map <- dev_tpm %>% 
-  select(Name, Description) %>%
-  mutate(Name = sub("\\..*", "", Name)) %>%
-  distinct()
+# gene_map <- dev_tpm %>% 
+#  select(Name, Description) %>%
+#  distinct()
 
 # Update combined_mat to use Symbols (Description)
-combined_mat_symbols <- combined_mat %>%
+combined_mat_symbols <- consolidated_mat %>%
   rownames_to_column("Ensembl_ID") %>%
-  left_join(gene_map, by = c("Ensembl_ID" = "Name")) %>%
+#  left_join(gene_map, by = c("Ensembl_ID" = "Name")) %>%
   filter(!is.na(Description)) %>%
   # Handle potential duplicate symbols by taking the first
   distinct(Description, .keep_all = TRUE) %>% 
   column_to_rownames("Description") %>%
   select(-Ensembl_ID)
 
-cat("\n[Fix] Matrix row names are now symbols. First few:",
-head(rownames(combined_mat_symbols)))
+cat("\n[Fix] Matrix row names are now symbols. First few:\n")
+head(rownames(combined_mat_symbols))
 
 # Consolidate duplicate columns by averaging them
 # This handles the .x and .y issue
-consolidated_mat <- combined_mat_symbols %>%
-  as.matrix()
+# consolidated_mat <- combined_mat_symbols %>%
+#  as.matrix()
 
 # Rename columns to remove .x and .y
-colnames(consolidated_mat) <- sub("\\.[xy]$", "", colnames(consolidated_mat))
+# colnames(consolidated_mat) <- sub("\\.[xy]$", "", colnames(consolidated_mat))
+cat("\nCheck colnames of consolidated mat: \n", head(colnames(consolidated_mat)))
 
 # Average columns with the same name
 consolidated_mat <- sapply(unique(colnames(consolidated_mat)), function(col) {
@@ -215,7 +217,7 @@ consolidated_mat <- sapply(unique(colnames(consolidated_mat)), function(col) {
 cat("\n[Fix] Consolidated columns. Total unique tissues:", ncol(consolidated_mat))
 
 # Calculate the mean expression of your targets for every sample
-target_genes_present <- intersect(setbp1_targets, rownames(consolidated_mat))
+target_genes_present <- intersect(setbp1_targets, rownames(combined_mat_symbols))
 cat("\n[Success] Found", length(target_genes_present), "targets in the matrix.")
 
 # Calculate means: result is a named numeric vector
@@ -349,9 +351,9 @@ cat("\n==========================================\n")
 
 # Execute for both stages
 # adult_results <- run_stage_permutation(combined_mat, setbp1_targets, adult_cols)
-# write_rds(adult_results, paste0(outdir, "gtex_adult_permutations.rds"))
+write_rds(adult_res, paste0(outdir, "gtex_adult_permutations.rds"))
 
 # dev_results   <- run_stage_permutation(combined_mat, setbp1_targets, dev_cols)
-# write_rds(dev_results, paste0(outdir, "devgtex_adult_permutations.rds"))
+write_rds(dev_res, paste0(outdir, "devgtex_adult_permutations.rds"))
 
 # cat("Permutations complete! Results saved.")

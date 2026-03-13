@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --ntasks=1
+#SBATCH --ntasks=3
 #SBATCH --mem-per-cpu=64G
 #SBATCH --partition=short
 
