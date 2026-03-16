@@ -114,13 +114,8 @@ TRUE ~ "Unknown")
 )
 cat("\nRelevant tissues found in metadata: ", unique(donor_census$SMTS))
 
-# Verify the merge
-cat("\nVerify donor census metadata merge: \n", 
-table(donor_census$Dataset, donor_census$SEX_Label))
-
 # Specific samples to parse from TPM data
 valid_samples <- donor_census$SAMPID
-cat("\nSamples to parse from TPM data: \n", str(valid_samples))
 
 ## Metadata Exploration ##
 # Plotting the age distribution
@@ -143,7 +138,7 @@ ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
 cat("\nAdult gtex count data: \n", str(adult_tpm))
 
-dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
+dev_tpm <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
 cat("\nDev gtex count data: \n", str(dev_tpm))
 
 # Update tissue names
@@ -159,19 +154,22 @@ dev_tpm$Name   <- sub("\\..*", "", dev_tpm$Name)
 common_genes <- intersect(adult_tpm$Name, dev_tpm$Name)
 cat("\nTotal genes in common: \n", length(unique(common_genes)))
 
-cat("\nCheck adult GTEx colnames match the dGTEx tissue keys...")
-print(unique(dev_meta_clean$Tissue_Key))
-
 cat("\nCombining adult and dev gene counts...")
 consolidated_mat <- inner_join(
   adult_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
   dev_tpm %>% filter(Name %in% common_genes), # %>% select(-Description),
   by = "Name"
 ) %>% 
-column_to_rownames("Name") %>%
-mutate(across(where(is.numeric),  ~ log2(.x + 1)))
+column_to_rownames("Name") # %>%
+# mutate(across(where(is.numeric),  ~ log2(.x + 1)))
 # mutate(across(everything(),  ~ log2(.x + 1)))
-cat("\nCombined adult/dev gene counts: \n", str(consolidated_mat))
+cat("\nCombined adult/dev gene counts structure: \n")
+(str(consolidated_mat))
+
+# Cleanup R environment
+rm(adult_tpm)
+rm(dev_tpm)
+gc()
 
 # Create a mapping table from the original data
 # gene_map <- dev_tpm %>% 
@@ -186,169 +184,103 @@ combined_mat_symbols <- consolidated_mat %>%
   # Handle potential duplicate symbols by taking the first
   distinct(Description, .keep_all = TRUE) %>% 
   column_to_rownames("Description") %>%
-  select(-Ensembl_ID)
+  select(-Ensembl_ID) %>%
+  as.matrix()
 
-cat("\n[Fix] Matrix row names are now symbols. First few:\n")
-head(rownames(combined_mat_symbols))
+# Log transform, filter zero-var genes, and row-scale
+log_matrix <- log2(combined_mat_symbols + 1)
+gene_sds <- apply(log_matrix, 1, sd, na.rm = TRUE)
+valid_genes <- gene_sds > 0
+log_matrix_filtered <- log_matrix[valid_genes, ]
 
-# Consolidate duplicate columns by averaging them
-# This handles the .x and .y issue
-# consolidated_mat <- combined_mat_symbols %>%
-#  as.matrix()
+# Row-scale the matrix (Mean = 0, Variance = 1 per gene)
+expr_mat <- t(scale(t(log_matrix_filtered)))
 
-# Rename columns to remove .x and .y
-# colnames(consolidated_mat) <- sub("\\.[xy]$", "", colnames(consolidated_mat))
-cat("\nCheck colnames of consolidated mat: \n", head(colnames(consolidated_mat)))
+# Find SETBP1 targets in combined, filtered matrix
+setbp1_targets <- intersect(setbp1_targets, rownames(expr_mat))
+cat("\n[Success] Found", length(setbp1_targets), "targets in the matrix.")
 
-# Average columns with the same name
-consolidated_mat <- sapply(unique(colnames(consolidated_mat)), function(col) {
-  if (sum(colnames(consolidated_mat) == col) > 1) {
-    rowMeans(consolidated_mat[, colnames(consolidated_mat) == col, drop=FALSE])
-  } else {
-    consolidated_mat[, colnames(consolidated_mat) == col]
-  }
-})
+# Set tissue and spatio-temporal groups
+analysis_groups <- donor_census %>%
+  filter(SAMPID %in% colnames(expr_mat)) %>%
+  group_by(SMTS, AGE) %>%
+  summarise(Samples = list(SAMPID), N = n(), .groups = "drop") %>%
+  filter(N >= 2) # Ensure we have at least 2 samples per test
 
-cat("\n[Fix] Consolidated columns. Total unique tissues:", ncol(consolidated_mat))
+# Permutation analysis
+all_genes <- rownames(expr_mat)
+n_perm <- 1000 
+stats_results <- data.frame()
+set.seed(123)
 
-# Calculate the mean expression of your targets for every sample
-target_genes_present <- intersect(setbp1_targets, rownames(combined_mat_symbols))
-cat("\n[Success] Found", length(target_genes_present), "targets in the matrix.")
-
-# Calculate means: result is a named numeric vector
-target_means <- colMeans(consolidated_mat[target_genes_present, , drop = FALSE], na.rm = TRUE)
-cat("\ntarget_means: \n", str(target_means))
-
-# Create a data frame for plotting
-plot_data <- data.frame(
-  Tissue_Key = names(target_means),
-  Mean_Expression = as.numeric(target_means)
-) %>%
-left_join(
-donor_census %>% 
-select(Tissue_Key, Dataset, AGE, SMTS, SMTSD) %>% 
-distinct(), by = "Tissue_Key"
-)
-cat("\nplot_data: \n", str(plot_data))
-
-# Boxplot comparison
-p2 <- ggplot(plot_data, aes(x = AGE, y = Mean_Expression, fill = Dataset)) +
-  geom_violin(alpha = 0.3) +
-  geom_boxplot(width = 0.2, outlier.shape = NA) +
-  theme_classic() +
-  labs(title = "SETBP1 Target Expression: Dev vs. Adult",
-       subtitle = "Integrated GTEx + dGTEx Brain Samples",
-       y = "Mean Log2(TPM+1)") +
-  scale_fill_manual(values = c("Adult" = "#2c3e50", "Developmental/Pediatric" = "#e74c3c"))
-
-print(p2)
-ggsave(paste0(outdir, "gtex_stage_exp_boxplot.png"))
-
-# Map samples to specific brain regions (SMTSD in GTEx)
-region_data <- bind_rows(
-  adult_meta_clean %>% select(SAMPID, SMTSD),
-  dev_meta_clean %>% select(SAMPID, SMTSD)
-)
-cat("Plotting expression by brain region...")
-
-# Filter for brain tissues
-plot_data_brain <- plot_data %>%
-  filter(SMTS == "Brain") %>%
-  filter(!is.na(Mean_Expression) & !is.nan(Mean_Expression))
-
-ggplot(
-plot_data_brain, aes(
-x = reorder(SMTSD, Mean_Expression), y = Mean_Expression, fill = AGE)
-) +
-  geom_boxplot() +
-  coord_flip() +
-  theme_minimal() +
-  labs(title = "SETBP1 Target Expression by Brain Region",
-       subtitle = "Median Expression per Tissue/Age Group",
-       x = "Brain Region",
-       y = "Mean Log2(TPM+1)")
-
-ggsave(paste0(outdir, "gtex_metadata_brain_regions.png"))
-
-# Identify Brain Samples
-# SMTS = Tissue and SMTSD = Detailed Tissue
-adult_brain_ids <- adult_meta_clean %>% 
-filter(SMTS == "Brain") %>% 
-pull(SAMPID)
-dev_brain_ids   <- dev_meta_clean %>% 
-filter(grepl("Brain", SMTS)) %>% 
-pull(SAMPID)
-
-# Ensure the IDs exist in our matrix
-adult_cols <- intersect(adult_brain_ids, colnames(combined_mat))
-dev_cols   <- intersect(dev_brain_ids, colnames(combined_mat))
-
-cat("Running permutations...")
-run_median_permutation <- function(matrix_data, target_genes, tissue_colnames, n_reps = 1000) {
+for(i in 1:nrow(analysis_groups)) {
+  grp_tissue <- analysis_groups$SMTS[i]
+  grp_age <- analysis_groups$AGE[i]
+  selected_samples <- unlist(analysis_groups$Samples[i])
   
-# Filter matrix for the specific tissues (e.g., all columns starting with "Brain")
-  # Use drop=FALSE to maintain matrix structure even if only 1 tissue matches
-  sub_mat <- as.matrix(matrix_data[, tissue_colnames, drop = FALSE])
-  all_genes <- rownames(sub_mat)
+  cat("\nRunning permutations for:", grp_tissue, "| Age:", grp_age, "( N =", length(selected_samples), ")\n")
   
-  # Observed Statistic: 
-  valid_targets <- intersect(target_genes, all_genes)
-  n_target <- length(valid_targets)
+  select_data <- expr_mat[, selected_samples, drop = FALSE]
   
-  if(n_target == 0) return(list(obs = NA, p = NA, message = "No genes found"))
+  # Observed statistic
+  obs_val <- mean(rowMeans(select_data[setbp1_targets, , drop = FALSE], na.rm = TRUE), na.rm = TRUE)
+  cat("\nStructure of obs values: ", str(obs_val))
   
-  obs_stat <- mean(rowMeans(sub_mat[valid_targets, , drop = FALSE]))
+  # Null distribution
+  null_dist <- replicate(n_perm, {
+    rand_genes <- sample(all_genes, length(setbp1_targets))
+    mean(rowMeans(select_data[rand_genes, , drop = FALSE], na.rm = TRUE), na.rm = TRUE)
+  })
   
-  # Permutation Loop
-  null_dist <- numeric(n_reps)
-  set.seed(123)
+  # Two-Sided P-values & Z-scores
+  p_val_enrichment <- sum(null_dist >= obs_val) / n_perm
+  p_val_depletion  <- sum(null_dist <= obs_val) / n_perm
+  p_val_two_sided <- 2 * min(p_val_enrichment, p_val_depletion)
+  z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
   
-  for(i in 1:n_reps) {
-    rand_genes <- sample(all_genes, n_target)
-    null_dist[i] <- mean(rowMeans(sub_mat[rand_genes, , drop = FALSE]))
-  }
-  
-  # Calculate P-value
-  p_val <- sum(null_dist >= obs_stat) / n_reps
-  
-  return(list(obs = obs_stat, p = p_val, null = null_dist, n = n_target))
+  stats_results <- rbind(stats_results, data.frame(
+    Tissue = grp_tissue,
+    Age = grp_age,
+    N_Samples = length(selected_samples),
+    Observed = obs_val,
+    Z_Score = z_score,
+    P_Value = p_val_two_sided
+  ))
 }
 
-# Identify Brain columns for Adult and Dev
-brain_cols <- colnames(consolidated_mat)[grepl("Brain", colnames(consolidated_mat))]
+# Apply FDR Correction
+stats_results$FDR <- p.adjust(stats_results$P_Value, method = "fdr")
+print(head(stats_results[order(stats_results$Z_Score, decreasing = TRUE), ]))
 
-# Ensure these columns actually exist in the combined matrix
-adult_brain_cols <- intersect(brain_cols, adult_meta_clean$Tissue_Key)
-dev_brain_cols   <- intersect(brain_cols, dev_meta_clean$Tissue_Key)
+write_csv(stats_results, paste0(outdir, "postnatal_gtex_permutation_results.csv"))
 
-cat("\n[Permutation] Testing", length(adult_brain_cols), "Adult brain tissues and", 
-    length(dev_brain_cols), "Dev brain tissues.")
+## HEATMAP ##
+# Order the Age column chronologically so the x-axis flows naturally
+stats_results$Age <- factor(stats_results$Age, 
+                            levels = c("0-2", "2-8", "8-13", "13-18", "Adult", "Unknown"))
 
-# Run Tests
-adult_res <- run_median_permutation(consolidated_mat, setbp1_targets, adult_brain_cols)
-dev_res <- run_median_permutation(consolidated_mat, setbp1_targets, dev_brain_cols)
+# Filter out 'Unknown' ages
+plot_data <- subset(stats_results, Age != "Unknown")
 
-# Clean Output Summary
-cat("\n==========================================")
-cat("\nPERMUTATION TEST RESULTS (SETBP1 Targets)")
-cat("\n==========================================")
-cat("\nADULT BRAIN:")
-cat("\n  Observed Mean Exp:", round(adult_res$obs, 4))
-cat("\n  Empirical P-value:", adult_res$p)
-cat("\n  Significant?     :", ifelse(adult_res$p < 0.05, "YES", "NO"))
+# Generate the Heatmap
+ggplot(plot_data, aes(x = Age, y = Tissue, fill = Z_Score)) +
+  geom_tile(color = "white", size = 0.5) +
+  # Add significance stars for FDR < 0.05
+  geom_text(aes(label = ifelse(FDR < 0.05, "*", "")), 
+            color = "black", size = 6, vjust = 0.7) +
+  # Diverging color palette: Blue (depleted) -> White (0) -> Red (enriched)
+  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", midpoint = 0, 
+                       name = "Z-Score\n(Enrichment)") +
+  theme_minimal(base_size = 14) +
+  labs(title = "SETBP1 Target Expression Across Tissues and Development",
+       x = "Age Bracket",
+       y = "Tissue") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank() # Removes grid lines for a cleaner tile look
+  )
 
-cat("\n\nDEVELOPMENTAL BRAIN:")
-cat("\n  Observed Mean Exp:", round(dev_res$obs, 4))
-cat("\n  Empirical P-value:", dev_res$p)
-cat("\n  Significant?     :", ifelse(dev_res$p < 0.05, "YES", "NO"))
-cat("\n==========================================\n")
+ggsave(paste0(outdir, "SETBP1_target_exp_gtex_heatmap.png"))
 
+cat("Heatmap saved. Finished!")
 
-# Execute for both stages
-# adult_results <- run_stage_permutation(combined_mat, setbp1_targets, adult_cols)
-write_rds(adult_res, paste0(outdir, "gtex_adult_permutations.rds"))
-
-# dev_results   <- run_stage_permutation(combined_mat, setbp1_targets, dev_cols)
-write_rds(dev_res, paste0(outdir, "devgtex_adult_permutations.rds"))
-
-# cat("Permutations complete! Results saved.")
