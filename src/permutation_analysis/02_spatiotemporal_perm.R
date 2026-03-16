@@ -191,30 +191,49 @@ write_csv(gene_results, paste0(outdir, "temporal_window_gene_means.csv"))
 cat("\n\nPermutations complete, results saved. \n")
 
 # Plot for testing purposes
-# Ensure windows are in chronological order for the plot
-stats_results$window <- factor(stats_results$window, levels = windows)
+# Define a lookup table for descriptive labels and chronological order
+window_metadata <- data.frame(
+  window = c("Early_Prenatal", "Mid_Prenatal", "Late_Prenatal", "Infancy", "Early_Childhood", "Childhood", "Adult"),
+  label = c("Early Prenatal\n(8-12 pcw)", 
+            "Mid Prenatal\n(13-24 pcw)", 
+            "Late Prenatal\n(25-40 pcw)", 
+            "Infancy\n(0-1 yr)", 
+            "Early Childhood\n(2-5 yrs)", 
+            "Childhood\n(6-16 yrs)", 
+            "Adult\n(18+ yrs)"),
+  order = 1:7
+)
 
-# ggplot(stats_results, aes(x = window, y = z_score, group = region, color = region)) +
-#   geom_line(size = 1) +
-#   geom_point(aes(shape = p_value < 0.05), size = 3.5) +
-#   facet_wrap(~region) +
-#   scale_shape_manual(values = c(1, 19), name = "p < 0.05") +
-#   theme_minimal() +
-#   labs(title = "Regional Trajectories of Gene Set Enrichment",
-#        y = "Enrichment Z-Score") +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-#
-ggplot(stats_results, aes(x = window, y = z_score, fill = p_val_adj < 0.05)) +
-  geom_bar(stat = "identity", color = "black") +
-  geom_text(aes(label = ifelse(p_val_adj < 0.05, "*", "")), vjust = -0.5, size = 8) +
-  scale_fill_manual(values = c("grey70", "firebrick3"), name = "Significant (p < 0.05)") +
+# Merge and reorder
+stats_results <- stats_results %>%
+  left_join(window_metadata, by = "window") %>%
+  mutate(label = reorder(label, order)) %>%
+  filter(!is.na(label)) # Remove "Other" if it exists
+
+ggplot(stats_results, aes(x = label, y = z_score, fill = p_val_adj < 0.05)) +
+  # Use geom_col for cleaner bars
+  geom_col(color = "black", width = 0.7) +
+  # Add stars above for positive Z, below for negative Z
+  geom_text(aes(label = ifelse(p_val_adj < 0.05, "*", ""),
+                vjust = ifelse(z_score >= 0, -0.2, 1.2)), 
+            size = 10, fontface = "bold") +
+  # Color scale: Red for significant, Grey for not
+  scale_fill_manual(values = c("FALSE" = "grey80", "TRUE" = "firebrick3"), 
+                    labels = c("Not Significant", "FDR < 0.05"),
+                    name = "Significance") +
+  # Add a zero line
+  geom_hline(yintercept = 0, linetype = "solid", color = "black") +
   theme_minimal() +
-  labs(title = "Gene Set Enrichment Across Brain Development",
-       subtitle = "Red bars indicate windows of significant dysregulation",
-       x = "Developmental Window",
-       y = "Enrichment Z-Score") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  labs(title = "SETBP1 Target Enrichment Trajectory",
+       subtitle = "Z-score > 0: Enrichment | Z-score < 0: Depletion",
+       x = "Developmental Stage (BrainSpan)",
+       y = "Enrichment Z-Score (Permutation Test)") +
+  theme(
+    axis.text.x = element_text(size = 10, face = "bold"),
+    plot.title = element_text(size = 16, face = "bold"),
+    panel.grid.minor = element_blank()
+  )
 
-ggsave(paste0(outdir, "temporal_exp_trajectory.png"))
-cat("Plot saved to temporal_exp_trajectory.png")
+ggsave(paste0(outdir, "SETBP1_temporal_trajectory.png"), width = 10, height = 7)
 
+cat("Plot saved to SETBP1_temporal_trajectory.png")
