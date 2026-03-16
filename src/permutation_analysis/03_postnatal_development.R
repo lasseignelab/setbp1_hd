@@ -34,11 +34,7 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Load helper to skip GCT headers
 load_gct <- function(path, valid_sampids = NULL) {
-  # Use gunzip -c to stream the uncompressed data directly into fread
-  cmd_str <- paste("gunzip -c", path)
-  
-  # 1. Safely read just the header
-  header <- names(fread(cmd = cmd_str, skip = 2, nrows = 0, sep = "\t", quote = "", nThread = 2))
+  header <- names(fread(path, skip = 2, nrows = 0, sep = "\t", quote = "", nThread = 2))
   
   if (!is.null(valid_sampids)) {
     keep_cols <- intersect(header, c("Name", "Description", valid_sampids))
@@ -46,9 +42,8 @@ load_gct <- function(path, valid_sampids = NULL) {
     keep_cols <- header
   }
   
-  # 2. Extract only the needed columns
-  cat("Extracting", length(keep_cols), "columns...\n")
-  df <- fread(cmd = cmd_str, skip = 2, select = keep_cols, sep = "\t", quote = "")
+  cat("Extracting", length(keep_cols), "columns from", basename(path), "...\n")
+  df <- fread(path, skip = 2, select = keep_cols, sep = "\t", quote = "")
   
   return(as_tibble(df))
 }
@@ -145,10 +140,10 @@ ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 
 
 # Load TPM Matrices
-adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct.gz"), valid_sampids = valid_samples)
+adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
 cat("\nAdult gtex count data: \n", str(adult_tpm))
 
-dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct.gz"), valid_sampids = valid_samples)
+dev_tpm   <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
 cat("\nDev gtex count data: \n", str(dev_tpm))
 
 # Update tissue names

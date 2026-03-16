@@ -43,10 +43,11 @@ cap_data_download \
   --source-file-name="brainspan_data.zip" \
   "$BRAINSPAN_URL"
 
-echo "Data download complete. Unzipping files..."
+echo "Data download complete. Unzipping brainspan files..."
 mkdir -p "${CAP_DATA_PATH}/brainspan" 
 unzip -d "${CAP_DATA_PATH}/brainspan" "${CAP_DATA_PATH}/brainspan/brainspan_data.zip"
-gunzip "${CAP_DATA_PATH}gtex/*.gz" 
+echo "Unzipping GTEx files..."
+gunzip "${CAP_DATA_PATH}/gtex/"*.gct.gz
 # Adult GTEx
 # median gene-level TPM by tissue
 # bulk-gex/v11/rna-seq/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_median_tpm.gct.gz
