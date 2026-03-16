@@ -111,8 +111,10 @@ SEX_Label = case_when(
 SEX %in% c(1, "1") ~ "Male", 
 SEX %in% c(2, "2") ~ "Female", 
 TRUE ~ "Unknown")
-)
+) %>%
+filter(!is.na(AGE))
 cat("\nRelevant tissues found in metadata: ", unique(donor_census$SMTS))
+cat("\nAge bins across data include: ", unique(donor_census$AGE))
 
 # Specific samples to parse from TPM data
 valid_samples <- donor_census$SAMPID
@@ -141,9 +143,6 @@ cat("\nAdult gtex count data: \n", str(adult_tpm))
 dev_tpm <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
 cat("\nDev gtex count data: \n", str(dev_tpm))
 
-# Update tissue names
-colnames(adult_tpm) <- standardize_tissue(colnames(adult_tpm))
-
 # Clean Gene IDs (remove .version) and Join
 # Keep only genes present in both datasets
 cat("Filter for genes in both data sets...")
@@ -157,12 +156,10 @@ cat("\nTotal genes in common: \n", length(unique(common_genes)))
 cat("\nCombining adult and dev gene counts...")
 consolidated_mat <- inner_join(
   adult_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
-  dev_tpm %>% filter(Name %in% common_genes), # %>% select(-Description),
+  dev_tpm %>% filter(Name %in% common_genes),
   by = "Name"
 ) %>% 
-column_to_rownames("Name") # %>%
-# mutate(across(where(is.numeric),  ~ log2(.x + 1)))
-# mutate(across(everything(),  ~ log2(.x + 1)))
+column_to_rownames("Name")
 cat("\nCombined adult/dev gene counts structure: \n")
 (str(consolidated_mat))
 
@@ -171,15 +168,9 @@ rm(adult_tpm)
 rm(dev_tpm)
 gc()
 
-# Create a mapping table from the original data
-# gene_map <- dev_tpm %>% 
-#  select(Name, Description) %>%
-#  distinct()
-
 # Update combined_mat to use Symbols (Description)
 combined_mat_symbols <- consolidated_mat %>%
   rownames_to_column("Ensembl_ID") %>%
-#  left_join(gene_map, by = c("Ensembl_ID" = "Name")) %>%
   filter(!is.na(Description)) %>%
   # Handle potential duplicate symbols by taking the first
   distinct(Description, .keep_all = TRUE) %>% 
@@ -206,6 +197,7 @@ analysis_groups <- donor_census %>%
   group_by(SMTS, AGE) %>%
   summarise(Samples = list(SAMPID), N = n(), .groups = "drop") %>%
   filter(N >= 2) # Ensure we have at least 2 samples per test
+cat("\nUnique age groups: \n", unique(donor_census$AGE))
 
 # Permutation analysis
 all_genes <- rownames(expr_mat)
