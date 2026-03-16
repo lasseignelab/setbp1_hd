@@ -122,7 +122,9 @@ valid_samples <- donor_census$SAMPID
 ## Metadata Exploration ##
 # Plotting the age distribution
 cat("\nPlotting age distribution of gtex donors...")
-p1 <- ggplot(donor_census, aes(x = AGE, fill = Dataset)) +
+p1 <- donor_census %>%
+distinct(SAMPID, AGE, Dataset) %>%
+  ggplot(aes(x = AGE, fill = Dataset)) +
   geom_bar(color = "white") +
   scale_y_continuous(trans = "log2") +
   theme_minimal() +
@@ -249,7 +251,7 @@ write_csv(stats_results, paste0(outdir, "postnatal_gtex_permutation_results.csv"
 ## HEATMAP ##
 # Order the Age column chronologically so the x-axis flows naturally
 stats_results$Age <- factor(stats_results$Age, 
-                            levels = c("0-2", "2-8", "8-13", "13-18", "Adult", "Unknown"))
+                            levels = c("0-2", "2-8", "8-13", "13-18", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "Unknown"))
 
 # Filter out 'Unknown' ages
 plot_data <- subset(stats_results, Age != "Unknown")
