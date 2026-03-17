@@ -6,6 +6,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(tidyverse)
   library(vroom)
+  library(viridis)
 })
 ###### SET UP ######
 # create parser object
@@ -41,7 +42,7 @@ window_metadata <- data.frame(
             "Early Childhood\n(2-5 yrs)", 
             "Childhood\n(6-16 yrs)", 
             "Adult\n(18+ yrs)"),
-  order = 1:7
+  order = 7:1
 )
 
 # Merge and reorder
@@ -51,28 +52,31 @@ stats_results <- stats_results %>%
   filter(!is.na(label)) # Remove "Other" if it exists
 
 # Define colors for clarity: Significant = Red, Not Significant = Grey
-sig_colors <- c("TRUE" = "firebrick3", "FALSE" = "grey80")
+sig_alpha <- c("TRUE" = 0.9, "FALSE" = 0.2)
+enrich_colors <- c("TRUE" = viridis(20, option = "magma")[[17]], "FALSE" = viridis(20, option = "magma")[[3]])
 
 ggplot(stats_results, aes(y = label, x = z_score)) +
   geom_segment(aes(y = label, yend = label, x = 0, xend = z_score), 
                color = "grey50", lwd = 1) +
-  geom_point(aes(fill = p_val_adj < 0.05), 
+  geom_point(aes(fill = z_score > 0, alpha = p_val_adj < 0.05), 
              size = 6, shape = 21, color = "black") +
   geom_text(aes(label = ifelse(p_val_adj < 0.05, "*", ""),
-                vjust = ifelse(z_score >= 0, -0.5, 1.5)), 
-            size = 10, fontface = "bold") +
-  scale_fill_manual(values = sig_colors, 
+                hjust = ifelse(z_score >= 0, -1.0, 2.0)), 
+            vjust = 0.75, size = 10, fontface = "bold") +
+  scale_alpha_manual(values = sig_alpha, 
                     labels = c("FALSE" = "Not Significant", "TRUE" = "FDR < 0.05"),
                     name = "Significance") +
-  scale_x_discrete(expand = expansion(add = 1.5)) +
+  scale_fill_manual(values = enrich_colors, 
+                    labels = c("FALSE" = "Depletion", "TRUE" = "Enrichment"),
+                    name = "Z-Score Direction") +
+  scale_x_continuous(expand = expansion(add = 1.5)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
   theme_minimal() +
   labs(title = "SETBP1 Target Enrichment Trajectory",
-       subtitle = "Positive Z = Enrichment | Negative Z = Depletion",
        y = "Developmental Stage (BrainSpan)",
        x = "Enrichment Z-Score") +
   theme(
-    axis.text.y = element_text(size = 10, face = "bold", angle = 45, hjust = 1),
+    axis.text = element_text(size = 10, face = "bold", hjust = 1),
     legend.position = "right"
   )
 

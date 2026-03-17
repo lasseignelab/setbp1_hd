@@ -10,6 +10,6 @@ singularity exec --cleanenv \
                  --containall \
                  -B "${CAP_PROJECT_PATH}" \
                  "${CAP_CONTAINER_PATH}"/lw_dea_0.3.1.sif \
-                  Rscript --vanilla "${CAP_PROJECT_PATH}"/src/permutation_analysis/02_spatiotemporal_perm.R \
+                  Rscript --vanilla "${CAP_PROJECT_PATH}"/src/permutation_analysis/plotting.R \
                   -i "${CAP_DATA_PATH}/" \
                   -o "${CAP_RESULTS_PATH}"/permutation_analysis/
