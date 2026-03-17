@@ -5,8 +5,8 @@ suppressPackageStartupMessages({
   library(readr)
   library(ggplot2)
   library(tidyverse)
-  library(vroom)
   library(viridis)
+  library(cowplot)
 })
 ###### SET UP ######
 # create parser object
@@ -29,8 +29,8 @@ outdir <- args$outdir
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Loading in permutation results
-stats_results <- read_csv(paste0(outdir, "temporal_window_perm_stats.csv"))
-gtex_results <- read_csv(paste0(outdir, "postnatal_gtex_permutation_results.csv"))
+stats_results <- read_csv(paste0(indir, "temporal_window_perm_stats.csv"))
+gtex_results <- read_csv(paste0(indir, "postnatal_gtex_permutation_results.csv"))
 
 # Set up vs down colors
 up_color <- viridis(20, option = "magma")[[17]]
@@ -60,7 +60,7 @@ stats_results <- stats_results %>%
 sig_alpha <- c("TRUE" = 0.9, "FALSE" = 0.2)
 enrich_colors <- c("TRUE" = up_color, "FALSE" = dn_color)
 
-ggplot(stats_results, aes(y = label, x = z_score)) +
+brainspan_lolli <- ggplot(stats_results, aes(y = label, x = z_score)) +
   geom_segment(aes(y = label, yend = label, x = 0, xend = z_score), 
                color = "grey50", lwd = 1) +
   geom_point(aes(fill = z_score > 0, alpha = p_val_adj < 0.05), 
@@ -81,10 +81,11 @@ ggplot(stats_results, aes(y = label, x = z_score)) +
        y = "Developmental Stage (BrainSpan)",
        x = "Enrichment Z-Score") +
   theme(
-    axis.text = element_text(size = 10, face = "bold", hjust = 1),
+    axis.text = element_text(size = 10, face = "bold"),
     legend.position = "right"
   )
 
+brainspan_lolli
 ggsave(paste0(outdir, "SETBP1_temporal_trajectory.png"), width = 10, height = 7)
 
 cat("Plot saved to SETBP1_temporal_trajectory.png")
@@ -98,7 +99,7 @@ gtex_results$Age <- factor(gtex_results$Age,
 plot_data <- subset(gtex_results, Age != "Unknown")
 
 # Generate the Heatmap
-ggplot(plot_data, aes(x = Age, y = Tissue, fill = Z_Score)) +
+gtex_hm <- ggplot(plot_data, aes(x = Age, y = Tissue, fill = Z_Score)) +
   geom_tile(color = "white", size = 0.5) +
   # Add significance stars for FDR < 0.05
   geom_text(aes(label = ifelse(FDR < 0.05, "*", "")), 
@@ -106,15 +107,40 @@ ggplot(plot_data, aes(x = Age, y = Tissue, fill = Z_Score)) +
   # Diverging color palette: Blue (depleted) -> White (0) -> Red (enriched)
   scale_fill_gradient2(low = dn_color, mid = "white", high = up_color, midpoint = 0, 
                        name = "Z-Score\n(Enrichment)") +
-  theme_minimal(base_size = 14) +
-  labs(title = "SETBP1 Target Expression Across Tissues and Development",
+  theme_minimal() +
+  labs(title = "SETBP1 Target Enrichment Across Tissues and Development",
        x = "Age Bracket",
        y = "Tissue") +
   theme(
+    axis.text = element_text(face = "bold"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     panel.grid = element_blank() # Removes grid lines for a cleaner tile look
   )
 
+gtex_hm
 ggsave(paste0(outdir, "SETBP1_target_exp_gtex_heatmap.png"))
 
-cat("GTEx postnatal heatmap saved. Finished!")
+cat("GTEx postnatal heatmap saved.")
+
+#### SUPPLEMENTARY FIGURE 1 ASSEMBLY ####
+png(paste0(outdir, "supplementary_figure_1.png"),
+  width = 350,
+  height = 325,
+  units = "mm",
+  res = 300
+)
+
+cowplot::plot_grid(
+  brainspan_lolli,
+  gtex_hm,
+  labels = "AUTO"
+)
+
+dev.off()
+
+# end timer
+fptm <- proc.time()
+(fptm[3] / 60)
+
+#  session info
+print(sessionInfo())
