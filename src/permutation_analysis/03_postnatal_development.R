@@ -247,34 +247,4 @@ stats_results$FDR <- p.adjust(stats_results$P_Value, method = "fdr")
 print(head(stats_results[order(stats_results$Z_Score, decreasing = TRUE), ]))
 
 write_csv(stats_results, paste0(outdir, "postnatal_gtex_permutation_results.csv"))
-
-## HEATMAP ##
-# Order the Age column chronologically so the x-axis flows naturally
-stats_results$Age <- factor(stats_results$Age, 
-                            levels = c("Pediatric", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "Unknown"))
-
-# Filter out 'Unknown' ages
-plot_data <- subset(stats_results, Age != "Unknown")
-
-# Generate the Heatmap
-ggplot(plot_data, aes(x = Age, y = Tissue, fill = Z_Score)) +
-  geom_tile(color = "white", size = 0.5) +
-  # Add significance stars for FDR < 0.05
-  geom_text(aes(label = ifelse(FDR < 0.05, "*", "")), 
-            color = "black", size = 6, vjust = 0.7) +
-  # Diverging color palette: Blue (depleted) -> White (0) -> Red (enriched)
-  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", midpoint = 0, 
-                       name = "Z-Score\n(Enrichment)") +
-  theme_minimal(base_size = 14) +
-  labs(title = "SETBP1 Target Expression Across Tissues and Development",
-       x = "Age Bracket",
-       y = "Tissue") +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid = element_blank() # Removes grid lines for a cleaner tile look
-  )
-
-ggsave(paste0(outdir, "SETBP1_target_exp_gtex_heatmap.png"))
-
-cat("Heatmap saved. Finished!")
-
+cat("Finished!\nResults saved to: postnatal_gtex_permutation_results.csv")
