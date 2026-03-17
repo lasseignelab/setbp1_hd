@@ -77,7 +77,7 @@ brainspan_lolli <- ggplot(stats_results, aes(y = label, x = z_score)) +
   scale_x_continuous(expand = expansion(add = 1.5)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
   theme_minimal() +
-  labs(title = "SETBP1 Target Enrichment Trajectory",
+  labs(title = "Enrichment Across Prenatal-Postnatal Brain Development",
        y = "Developmental Stage (BrainSpan)",
        x = "Enrichment Z-Score") +
   theme(
@@ -104,17 +104,16 @@ gtex_hm <- ggplot(plot_data, aes(x = Age, y = Tissue, fill = Z_Score)) +
   # Add significance stars for FDR < 0.05
   geom_text(aes(label = ifelse(FDR < 0.05, "*", "")), 
             color = "black", size = 6, vjust = 0.7) +
-  # Diverging color palette: Blue (depleted) -> White (0) -> Red (enriched)
   scale_fill_gradient2(low = dn_color, mid = "white", high = up_color, midpoint = 0, 
                        name = "Z-Score\n(Enrichment)") +
   theme_minimal() +
-  labs(title = "SETBP1 Target Enrichment Across Tissues and Development",
+  labs(title = "Postnatal Enrichment Across Tissues and Development",
        x = "Age Bracket",
-       y = "Tissue") +
+       y = "Tissue (GTEx)") +
   theme(
     axis.text = element_text(face = "bold"),
     axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid = element_blank() # Removes grid lines for a cleaner tile look
+    panel.grid = element_blank()
   )
 
 gtex_hm
@@ -125,7 +124,7 @@ cat("GTEx postnatal heatmap saved.")
 #### SUPPLEMENTARY FIGURE 1 ASSEMBLY ####
 png(paste0(outdir, "supplementary_figure_1.png"),
   width = 350,
-  height = 325,
+  height = 225,
   units = "mm",
   res = 300
 )
