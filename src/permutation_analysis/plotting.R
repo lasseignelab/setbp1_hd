@@ -32,6 +32,10 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 stats_results <- read_csv(paste0(outdir, "temporal_window_perm_stats.csv"))
 gtex_results <- read_csv(paste0(outdir, "postnatal_gtex_permutation_results.csv"))
 
+# Set up vs down colors
+up_color <- viridis(20, option = "magma")[[17]]
+dn_color <-  viridis(20, option = "magma")[[3]]
+
 # Plot for testing purposes
 # Define a lookup table for descriptive labels and chronological order
 window_metadata <- data.frame(
@@ -54,7 +58,7 @@ stats_results <- stats_results %>%
 
 # Define colors for clarity: Significant = Red, Not Significant = Grey
 sig_alpha <- c("TRUE" = 0.9, "FALSE" = 0.2)
-enrich_colors <- c("TRUE" = viridis(20, option = "magma")[[17]], "FALSE" = viridis(20, option = "magma")[[3]])
+enrich_colors <- c("TRUE" = up_color, "FALSE" = dn_color)
 
 ggplot(stats_results, aes(y = label, x = z_score)) +
   geom_segment(aes(y = label, yend = label, x = 0, xend = z_score), 
@@ -100,7 +104,7 @@ ggplot(plot_data, aes(x = Age, y = Tissue, fill = Z_Score)) +
   geom_text(aes(label = ifelse(FDR < 0.05, "*", "")), 
             color = "black", size = 6, vjust = 0.7) +
   # Diverging color palette: Blue (depleted) -> White (0) -> Red (enriched)
-  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", midpoint = 0, 
+  scale_fill_gradient2(low = dn_color, mid = "white", high = up_color, midpoint = 0, 
                        name = "Z-Score\n(Enrichment)") +
   theme_minimal(base_size = 14) +
   labs(title = "SETBP1 Target Expression Across Tissues and Development",
