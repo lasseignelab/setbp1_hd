@@ -210,28 +210,30 @@ stats_results <- stats_results %>%
   mutate(label = reorder(label, order)) %>%
   filter(!is.na(label)) # Remove "Other" if it exists
 
-ggplot(stats_results, aes(x = label, y = z_score, fill = p_val_adj < 0.05)) +
-  # Use geom_col for cleaner bars
-  geom_col(color = "black", width = 0.7) +
-  # Add stars above for positive Z, below for negative Z
+# Define colors for clarity: Significant = Red, Not Significant = Grey
+sig_colors <- c("TRUE" = "firebrick3", "FALSE" = "grey80")
+
+ggplot(stats_results, aes(y = label, x = z_score)) +
+  geom_segment(aes(y = label, yend = label, x = 0, xend = z_score), 
+               color = "grey50", lwd = 1) +
+  geom_point(aes(fill = p_val_adj < 0.05), 
+             size = 6, shape = 21, color = "black") +
   geom_text(aes(label = ifelse(p_val_adj < 0.05, "*", ""),
-                vjust = ifelse(z_score >= 0, -0.2, 1.2)), 
+                vjust = ifelse(z_score >= 0, -0.5, 1.5)), 
             size = 10, fontface = "bold") +
-  # Color scale: Red for significant, Grey for not
-  scale_fill_manual(values = c("FALSE" = "grey80", "TRUE" = "firebrick3"), 
-                    labels = c("Not Significant", "FDR < 0.05"),
+  scale_fill_manual(values = sig_colors, 
+                    labels = c("FALSE" = "Not Significant", "TRUE" = "FDR < 0.05"),
                     name = "Significance") +
-  # Add a zero line
-  geom_hline(yintercept = 0, linetype = "solid", color = "black") +
+  scale_x_discrete(expand = expansion(add = 1.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
   theme_minimal() +
   labs(title = "SETBP1 Target Enrichment Trajectory",
-       subtitle = "Z-score > 0: Enrichment | Z-score < 0: Depletion",
-       x = "Developmental Stage (BrainSpan)",
-       y = "Enrichment Z-Score (Permutation Test)") +
+       subtitle = "Positive Z = Enrichment | Negative Z = Depletion",
+       y = "Developmental Stage (BrainSpan)",
+       x = "Enrichment Z-Score") +
   theme(
-    axis.text.x = element_text(size = 10, face = "bold"),
-    plot.title = element_text(size = 16, face = "bold"),
-    panel.grid.minor = element_blank()
+    axis.text.y = element_text(size = 10, face = "bold", angle = 45, hjust = 1),
+    legend.position = "right"
   )
 
 ggsave(paste0(outdir, "SETBP1_temporal_trajectory.png"), width = 10, height = 7)
