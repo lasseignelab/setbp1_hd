@@ -31,6 +31,7 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 # Loading in permutation results
 stats_results <- read_csv(paste0(indir, "temporal_window_perm_stats.csv"))
 gtex_results <- read_csv(paste0(indir, "postnatal_gtex_permutation_results.csv"))
+sex_data <- read_csv(paste0(indir, "gtex_target_sex_expression.csv"))
 
 # Set up vs down colors
 up_color <- viridis(20, option = "magma")[[17]]
@@ -120,6 +121,32 @@ gtex_hm
 ggsave(paste0(outdir, "SETBP1_target_exp_gtex_heatmap.png"))
 
 cat("GTEx postnatal heatmap saved.")
+
+### SEX-SPLIT BOXPLOTS ###
+# Clean the data for plotting
+plot_sex_data <- subset(sex_data, AGE != "Unknown")
+plot_sex_data$Age <- factor(plot_sex_data$AGE, 
+                            levels = c("0-2", "2-8", "8-13", "13-18", "Pediatric", "Adult"))
+
+# Generate the grouped boxplot faceted by Tissue
+ggplot(plot_sex_data, aes(x = Age, y = Target_Mean, fill = SEX_Label)) +
+  geom_boxplot(outlier.size = 0.5, alpha = 0.8, position = position_dodge(0.8)) +
+  # Custom colors for distinction
+  scale_fill_manual(values = c("Male" = "#4575b4", "Female" = "#d73027")) +
+  # Create a separate panel for each Tissue
+  facet_wrap(~ SMTS, scales = "free_y", ncol = 3) +
+  theme_minimal(base_size = 14) +
+  labs(title = "SETBP1 Target Expression: Male vs. Female",
+       x = "Age Bracket",
+       y = "Mean Target Expression (Z-Score)",
+       fill = "Sex") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(face = "bold"),
+    legend.position = "bottom"
+  )
+
+ggsave(paste0(outdir, "SETBP1_target_sex_bytissue_boxplot.png"))
 
 #### SUPPLEMENTARY FIGURE 1 ASSEMBLY ####
 png(paste0(outdir, "supplementary_figure_1.png"),

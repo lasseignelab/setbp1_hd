@@ -193,6 +193,39 @@ expr_mat <- t(scale(t(log_matrix_filtered)))
 setbp1_targets <- intersect(setbp1_targets, rownames(expr_mat))
 cat("\n[Success] Found", length(setbp1_targets), "targets in the matrix.")
 
+### SEX-BIASED EXPRESSION ###
+# Calculate the mean expression of SETBP1 targets for every single sample
+sample_target_means <- colMeans(expr_mat[setbp1_targets, , drop = FALSE], na.rm = TRUE)
+
+# Append this target mean to your metadata and filter for known sexes
+sex_data <- donor_census %>%
+  filter(SAMPID %in% names(sample_target_means), SEX_Label %in% c("Male", "Female")) %>%
+  mutate(Target_Mean = sample_target_means[SAMPID])
+
+write_csv(sex_data, paste0(outdir, "gtex_target_sex_expression.csv"))
+cat("\nTarget expression by sex saved to: gtex_target_sex_expression.csv")
+
+# Run the Wilcoxon rank sum test grouped by Tissue and Age
+sex_results <- sex_data %>%
+  group_by(SMTS, AGE) %>%
+  # Ensure the group has at least 1 male and 1 female to compare
+  filter(sum(SEX_Label == "Male") >= 3 & sum(SEX_Label == "Female") >= 3) %>% 
+  summarise(
+    Male_N = sum(SEX_Label == "Male"),
+    Female_N = sum(SEX_Label == "Female"),
+    P_Value = wilcox.test(Target_Mean ~ SEX_Label, exact = FALSE)$p.value,
+    .groups = "drop"
+  ) %>%
+  # Apply FDR correction
+  mutate(FDR = p.adjust(P_Value, method = "fdr")) %>%
+  arrange(P_Value)
+
+print(head(sex_results))
+write_csv(sex_results, paste0(outdir, "postnatal_gtex_sex_results.csv"))
+cat("\nSex comparison results saved to: postnatal_gtex_sex_results.csv")
+
+
+### PERMUTATION ANALYSIS ACROSS TISSUES ###
 # Set tissue and spatio-temporal groups
 analysis_groups <- donor_census %>%
   filter(SAMPID %in% colnames(expr_mat)) %>%
