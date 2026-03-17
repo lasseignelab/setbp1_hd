@@ -126,7 +126,7 @@ cat("GTEx postnatal heatmap saved.")
 # Clean the data for plotting
 plot_sex_data <- subset(sex_data, AGE != "Unknown")
 plot_sex_data$Age <- factor(plot_sex_data$AGE, 
-                            levels = c("0-2", "2-8", "8-13", "13-18", "Pediatric", "Adult"))
+                            levels = c("Pediatric", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79"))
 
 # Generate the grouped boxplot faceted by Tissue
 ggplot(plot_sex_data, aes(x = Age, y = Target_Mean, fill = SEX_Label)) +
