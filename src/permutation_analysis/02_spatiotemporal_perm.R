@@ -118,7 +118,7 @@ ggsave(paste0(outdir, "brainspan_metadata_donors_by_age.png"))
 # Permutation analyses 
 ## NOTE: n_perm can be changed
 set.seed(123)  
-n_perm <- 5000  
+n_perm <- 10000  
 all_genes <- rownames(expr_mat)
 gene_results <- data.frame(row.names = setbp1_targets)
 stats_results <- data.frame()

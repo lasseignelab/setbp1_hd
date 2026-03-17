@@ -203,7 +203,7 @@ cat("\nUnique age groups: \n", unique(donor_census$AGE))
 
 # Permutation analysis
 all_genes <- rownames(expr_mat)
-n_perm <- 1000 
+n_perm <- 10000 
 stats_results <- data.frame()
 set.seed(123)
 
