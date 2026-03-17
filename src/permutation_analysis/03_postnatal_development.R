@@ -90,14 +90,14 @@ dev_meta_clean <- dev_meta %>%
   left_join(dev_pheno, by = "SUBJECT_ID") %>%
   rename(SUBJID = SUBJECT_ID, SAMPID = SAMPLE_ID) %>%
   mutate(
-    # Decoding the dGTEx Age Cohorts
-    AGE = case_when(
-      AGECOHORT == 1 ~ "0-2",
-      AGECOHORT == 2 ~ "2-8",
-      AGECOHORT == 3 ~ "8-13",
-      AGECOHORT == 4 ~ "13-18",
-      TRUE ~ "Unknown"
-    ),
+    # Combine dGTEx -- some tissues have < 3 samples currently...
+    AGE = "Pediatric",# case_when(
+#      AGECOHORT == 1 ~ "0-2",
+#      AGECOHORT == 2 ~ "2-8",
+#      AGECOHORT == 3 ~ "8-13",
+#      AGECOHORT == 4 ~ "13-18",
+#      TRUE ~ "Unknown"
+#    ),
     Tissue_Key = standardize_tissue(SMTSD),
     Dataset = "dGTEx"
   ) %>%
@@ -251,7 +251,7 @@ write_csv(stats_results, paste0(outdir, "postnatal_gtex_permutation_results.csv"
 ## HEATMAP ##
 # Order the Age column chronologically so the x-axis flows naturally
 stats_results$Age <- factor(stats_results$Age, 
-                            levels = c("0-2", "2-8", "8-13", "13-18", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "Unknown"))
+                            levels = c("Pediatric", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "Unknown"))
 
 # Filter out 'Unknown' ages
 plot_data <- subset(stats_results, Age != "Unknown")
