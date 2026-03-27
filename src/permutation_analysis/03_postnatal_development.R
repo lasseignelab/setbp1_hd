@@ -69,8 +69,8 @@ dev_meta   <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attr
 dev_pheno <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Subject_Phenotypes_Dataset_DS_open.txt"))
 
 # SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "setbp1_target_pathways.csv"))
-setbp1_targets <- unique(setbp1_targets_table$GeneSymbol)
+setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets <- unique(setbp1_targets_table$Target)
 
 # Define Phenotypically Relevant Tissues (Whitlock et al. 2024)
 relevant_tissues <- c("Brain", "Muscle", "Heart", "Kidney", "Bladder", 
@@ -192,6 +192,31 @@ expr_mat <- t(scale(t(log_matrix_filtered)))
 # Find SETBP1 targets in combined, filtered matrix
 setbp1_targets <- intersect(setbp1_targets, rownames(expr_mat))
 cat("\n[Success] Found", length(setbp1_targets), "targets in the matrix.")
+
+### SETBP1 TOP CO-EXPRESSED TARGETS ###
+# Subset for SETBP1 and target gene expression
+setbp1_expr <- as.numeric(expr_mat["SETBP1", ]) 
+target_mat <- expr_mat[setbp1_targets, ]
+
+# Calculate Spearman correlation between SETBP1 and all targets
+results_mat <- apply(target_mat, 1, function(target_expr) {
+  test <- cor.test(setbp1_expr, target_expr, method = "spearman", exact = FALSE)
+  c(Spearman_Rho = test$estimate[["rho"]], P_Value = test$p.value) 
+})
+
+# Data wrangling and FDR correction
+coexpression_df <- as.data.frame(t(results_mat)) %>%
+  rownames_to_column("Target_Gene") %>%
+  mutate(FDR = p.adjust(P_Value, method = "fdr")) %>%
+  arrange(desc(Spearman_Rho))
+
+# View top correlated targets
+cat("Most Positively Correlated:\n")
+print(head(coexpression_df, 10))
+cat("\nMost Negatively Correlated:\n")
+print(tail(coexpression_df, 10))
+
+write_csv(coexpression_df, paste0(outdir, "gtex_target_coexpression.csv"))
 
 ### SEX-BIASED EXPRESSION ###
 # Calculate the mean expression of SETBP1 targets for every single sample

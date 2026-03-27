@@ -44,8 +44,8 @@ geom_bar()
 ggsave(paste0(outdir, "brainspan_age_donor_counts.png"))
 
 # SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "setbp1_target_pathways.csv"))
-setbp1_targets <- unique(setbp1_targets_table$GeneSymbol)
+setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets <- unique(setbp1_targets_table$Target)
 
 # Keeping track of downloaded genes
 cat("Loaded", nrow(rows_meta), "genes and", nrow(cols_meta), "samples.\n")
@@ -114,6 +114,30 @@ cols_meta %>%
 
 ggsave(paste0(outdir, "brainspan_metadata_donors_by_age.png"))
 
+### SETBP1 TARGET COEXPRESSION ###
+# Subset for SETBP1 and targets expression
+setbp1_expr <- as.numeric(expr_mat["SETBP1", ]) 
+target_mat <- expr_mat[setbp1_targets, ]
+
+# Run Spearman correlation of SETBP1 across to target genes
+results_mat <- apply(target_mat, 1, function(target_expr) {
+  test <- cor.test(setbp1_expr, target_expr, method = "spearman", exact = FALSE)
+  c(Spearman_Rho = test$estimate[["rho"]], P_Value = test$p.value) 
+})
+
+# Data wrangling and FDR correction
+coexpression_df <- as.data.frame(t(results_mat)) %>%
+  rownames_to_column("Target_Gene") %>%
+  mutate(FDR = p.adjust(P_Value, method = "fdr")) %>%
+  arrange(desc(Spearman_Rho))
+
+# View top correlated targets
+cat("Most Positively Correlated:\n")
+print(head(coexpression_df, 10))
+cat("\nMost Negatively Correlated:\n")
+print(tail(coexpression_df, 10))
+
+write_csv(coexpression_df, paste0(outdir, "SETBP1_target_coexpression_brainspan.csv"))
 
 # Permutation analyses 
 ## NOTE: n_perm can be changed
