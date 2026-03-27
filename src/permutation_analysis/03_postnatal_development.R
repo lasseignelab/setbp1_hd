@@ -1,7 +1,8 @@
 # Increase the connection buffer to 16MB
 Sys.setenv("VROOM_CONNECTION_SIZE" = 32000000)
 ##### Permuation Analysis of SETBP1 Targets #####
-## GOAL: To determine the presence and/or directional bias of SETBP1 targets in postnatal age windows.
+## GOAL: To determine the presence and/or directional bias of
+## SETBP1 targets across tissues and ages.
 
 suppressPackageStartupMessages({
   library(argparse)
@@ -34,48 +35,65 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Load helper to skip GCT headers
 load_gct <- function(path, valid_sampids = NULL) {
-  header <- names(fread(path, skip = 2, nrows = 0, sep = "\t", quote = "", nThread = 2))
-  
+  header <- names(
+    fread(path, skip = 2, nrows = 0, sep = "\t", quote = "", nThread = 2)
+  )
+
   if (!is.null(valid_sampids)) {
     keep_cols <- intersect(header, c("Name", "Description", valid_sampids))
   } else {
     keep_cols <- header
   }
-  
+
   cat("Extracting", length(keep_cols), "columns from", basename(path), "...\n")
   df <- fread(path, skip = 2, select = keep_cols, sep = "\t", quote = "")
-  
+
   return(as_tibble(df))
 }
 
 # Function to standardize tissue names
 standardize_tissue <- function(x) {
-  x <- gsub(" ", "_", x)          # Spaces to underscores
-  x <- gsub("-", "_", x)          # Dashes to underscores
-  x <- gsub("[()]", "", x)        # Remove parentheses
-  x <- gsub("__+", "_", x)        # Replace double underscores with single
-  x <- trimws(x)                  # Trim whitespace
-  x <- gsub("_$", "", x)          # Remove trailing underscores
-  return(x)
+  x <- gsub(" ", "_", x) # Spaces to underscores
+  x <- gsub("-", "_", x) # Dashes to underscores
+  x <- gsub("[()]", "", x) # Remove parentheses
+  x <- gsub("__+", "_", x) # Replace double underscores with single
+  x <- trimws(x) # Trim whitespace
+  x <- gsub("_$", "", x) # Remove trailing underscores
 }
 
 # Load Metadata
 cat("\nLoading adult gtex metadata...\n")
-adult_meta <- vroom(paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SampleAttributesDS.txt"))
-adult_pheno <- vroom(paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SubjectPhenotypesDS.txt"))
+adult_meta <- vroom(
+  paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SampleAttributesDS.txt")
+)
+adult_pheno <- vroom(
+  paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SubjectPhenotypesDS.txt")
+)
 
 cat("\nLoading developmental gtex metadata...\n")
-dev_meta   <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"))
-dev_pheno <- vroom(paste0(indir, "gtex/dGTEx_Analysis_2026-01-30_v1_Subject_Phenotypes_Dataset_DS_open.txt"))
+dev_meta <- vroom(
+  paste0(
+    indir,
+    "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"
+  )
+)
+dev_pheno <- vroom(
+  paste0(
+    indir,
+    "gtex/dGTEx_Analysis_2026-01-30_v1_Subject_Phenotypes_Dataset_DS_open.txt"
+  )
+)
 
 # SETBP1 targets
 setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
 setbp1_targets <- unique(setbp1_targets_table$Target)
 
 # Define Phenotypically Relevant Tissues (Whitlock et al. 2024)
-relevant_tissues <- c("Brain", "Muscle", "Heart", "Kidney", "Bladder", 
-                      "Lung", "Small Intestine", "Stomach", "Esophagus", 
-                      "Bone Marrow", "Blood")
+relevant_tissues <- c(
+  "Brain", "Muscle", "Heart", "Kidney", "Bladder",
+  "Lung", "Small Intestine", "Stomach", "Esophagus",
+  "Bone Marrow", "Blood"
+)
 
 # Extract SUBJID from SAMPID (e.g., GTEX-1117F-0226 -> GTEX-1117F)
 adult_meta_clean <- adult_meta %>%
@@ -85,19 +103,13 @@ adult_meta_clean <- adult_meta %>%
   select(SAMPID, SUBJID, AGE, SEX, SMTS, SMTSD, Tissue_Key) %>%
   mutate(Dataset = "Adult_GTEx")
 
-# dGTEx usually already has SUBJECT_ID, we just rename for consistency
+# Rename for consistency
 dev_meta_clean <- dev_meta %>%
   left_join(dev_pheno, by = "SUBJECT_ID") %>%
   rename(SUBJID = SUBJECT_ID, SAMPID = SAMPLE_ID) %>%
   mutate(
     # Combine dGTEx -- some tissues have < 3 samples currently...
-    AGE = "Pediatric",# case_when(
-#      AGECOHORT == 1 ~ "0-2",
-#      AGECOHORT == 2 ~ "2-8",
-#      AGECOHORT == 3 ~ "8-13",
-#      AGECOHORT == 4 ~ "13-18",
-#      TRUE ~ "Unknown"
-#    ),
+    AGE = "Pediatric",
     Tissue_Key = standardize_tissue(SMTSD),
     Dataset = "dGTEx"
   ) %>%
@@ -105,14 +117,20 @@ dev_meta_clean <- dev_meta %>%
 
 # Combine metadata and filter for relevant tissues
 donor_census <- bind_rows(adult_meta_clean, dev_meta_clean) %>%
-  filter(grepl(paste(relevant_tissues, collapse="|"), SMTS, ignore.case = TRUE)) %>%
+  filter(
+    grepl(
+      paste(relevant_tissues, collapse = "|"), SMTS,
+      ignore.case = TRUE
+    )
+  ) %>%
   mutate(
-SEX_Label = case_when(
-SEX %in% c(1, "1") ~ "Male", 
-SEX %in% c(2, "2") ~ "Female", 
-TRUE ~ "Unknown")
-) %>%
-filter(!is.na(AGE))
+    SEX_Label = case_when(
+      SEX %in% c(1, "1") ~ "Male",
+      SEX %in% c(2, "2") ~ "Female",
+      TRUE ~ "Unknown"
+    )
+  ) %>%
+  filter(!is.na(AGE))
 cat("\nRelevant tissues found in metadata: ", unique(donor_census$SMTS))
 cat("\nAge bins across data include: ", unique(donor_census$AGE))
 
@@ -123,14 +141,16 @@ valid_samples <- donor_census$SAMPID
 # Plotting the age distribution
 cat("\nPlotting age distribution of gtex donors...")
 p1 <- donor_census %>%
-distinct(SAMPID, AGE, Dataset) %>%
+  distinct(SAMPID, AGE, Dataset) %>%
   ggplot(aes(x = AGE, fill = Dataset)) +
   geom_bar(color = "white") +
   scale_y_continuous(trans = "log2") +
   theme_minimal() +
-  labs(title = "Donor Distribution Across the Lifespan",
-       x = "Age Group / Range",
-       y = "Number of Donors") +
+  labs(
+    title = "Donor Distribution Across the Lifespan",
+    x = "Age Group / Range",
+    y = "Number of Donors"
+  ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_fill_brewer(palette = "Set1")
 
@@ -139,18 +159,27 @@ ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 
 
 # Load TPM Matrices
-adult_tpm <- load_gct(paste0(indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
+adult_tpm <- load_gct(
+  paste0(
+    indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"
+  ),
+  valid_sampids = valid_samples
+)
 cat("\nAdult gtex count data: \n", str(adult_tpm))
 
-dev_tpm <- load_gct(paste0(indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"), valid_sampids = valid_samples)
+dev_tpm <- load_gct(
+  paste0(
+    indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"
+  ),
+  valid_sampids = valid_samples
+)
 cat("\nDev gtex count data: \n", str(dev_tpm))
 
-# Clean Gene IDs (remove .version) and Join
-# Keep only genes present in both datasets
+# Clean Gene IDs (remove .version), join, and keep only genes in both datasets
 cat("Filter for genes in both data sets...")
 
 adult_tpm$Name <- sub("\\..*", "", adult_tpm$Name)
-dev_tpm$Name   <- sub("\\..*", "", dev_tpm$Name)
+dev_tpm$Name <- sub("\\..*", "", dev_tpm$Name)
 
 common_genes <- intersect(adult_tpm$Name, dev_tpm$Name)
 cat("\nTotal genes in common: \n", length(unique(common_genes)))
@@ -160,8 +189,8 @@ consolidated_mat <- inner_join(
   adult_tpm %>% filter(Name %in% common_genes) %>% select(-Description),
   dev_tpm %>% filter(Name %in% common_genes),
   by = "Name"
-) %>% 
-column_to_rownames("Name")
+) %>%
+  column_to_rownames("Name")
 cat("\nCombined adult/dev gene counts structure: \n")
 (str(consolidated_mat))
 
@@ -175,7 +204,7 @@ combined_mat_symbols <- consolidated_mat %>%
   rownames_to_column("Ensembl_ID") %>%
   filter(!is.na(Description)) %>%
   # Handle potential duplicate symbols by taking the first
-  distinct(Description, .keep_all = TRUE) %>% 
+  distinct(Description, .keep_all = TRUE) %>%
   column_to_rownames("Description") %>%
   select(-Ensembl_ID) %>%
   as.matrix()
@@ -195,13 +224,13 @@ cat("\n[Success] Found", length(setbp1_targets), "targets in the matrix.")
 
 ### SETBP1 TOP CO-EXPRESSED TARGETS ###
 # Subset for SETBP1 and target gene expression
-setbp1_expr <- as.numeric(expr_mat["SETBP1", ]) 
+setbp1_expr <- as.numeric(expr_mat["SETBP1", ])
 target_mat <- expr_mat[setbp1_targets, ]
 
 # Calculate Spearman correlation between SETBP1 and all targets
 results_mat <- apply(target_mat, 1, function(target_expr) {
   test <- cor.test(setbp1_expr, target_expr, method = "spearman", exact = FALSE)
-  c(Spearman_Rho = test$estimate[["rho"]], P_Value = test$p.value) 
+  c(Spearman_Rho = test$estimate[["rho"]], P_Value = test$p.value)
 })
 
 # Data wrangling and FDR correction
@@ -220,11 +249,17 @@ write_csv(coexpression_df, paste0(outdir, "gtex_target_coexpression.csv"))
 
 ### SEX-BIASED EXPRESSION ###
 # Calculate the mean expression of SETBP1 targets for every single sample
-sample_target_means <- colMeans(expr_mat[setbp1_targets, , drop = FALSE], na.rm = TRUE)
+sample_target_means <- colMeans(
+  expr_mat[setbp1_targets, , drop = FALSE],
+  na.rm = TRUE
+)
 
-# Append this target mean to your metadata and filter for known sexes
+# Filter for known sexes
 sex_data <- donor_census %>%
-  filter(SAMPID %in% names(sample_target_means), SEX_Label %in% c("Male", "Female")) %>%
+  filter(
+    SAMPID %in% names(sample_target_means),
+    SEX_Label %in% c("Male", "Female")
+  ) %>%
   mutate(Target_Mean = sample_target_means[SAMPID])
 
 write_csv(sex_data, paste0(outdir, "gtex_target_sex_expression.csv"))
@@ -234,7 +269,7 @@ cat("\nTarget expression by sex saved to: gtex_target_sex_expression.csv")
 sex_results <- sex_data %>%
   group_by(SMTS, AGE) %>%
   # Ensure the group has at least 1 male and 1 female to compare
-  filter(sum(SEX_Label == "Male") >= 3 & sum(SEX_Label == "Female") >= 3) %>% 
+  filter(sum(SEX_Label == "Male") >= 3 & sum(SEX_Label == "Female") >= 3) %>%
   summarise(
     Male_N = sum(SEX_Label == "Male"),
     Female_N = sum(SEX_Label == "Female"),
@@ -261,35 +296,47 @@ cat("\nUnique age groups: \n", unique(donor_census$AGE))
 
 # Permutation analysis
 all_genes <- rownames(expr_mat)
-n_perm <- 10000 
+n_perm <- 10000
 stats_results <- data.frame()
 set.seed(123)
 
-for(i in 1:nrow(analysis_groups)) {
+for (i in seq_len(nrow(analysis_groups))) {
   grp_tissue <- analysis_groups$SMTS[i]
   grp_age <- analysis_groups$AGE[i]
   selected_samples <- unlist(analysis_groups$Samples[i])
-  
-  cat("\nRunning permutations for:", grp_tissue, "| Age:", grp_age, "( N =", length(selected_samples), ")\n")
-  
+
+  cat(
+    "\nRunning permutations for:", grp_tissue,
+    "| Age:", grp_age, "( N =", length(selected_samples), ")\n"
+  )
+
   select_data <- expr_mat[, selected_samples, drop = FALSE]
-  
+
   # Observed statistic
-  obs_val <- mean(rowMeans(select_data[setbp1_targets, , drop = FALSE], na.rm = TRUE), na.rm = TRUE)
+  obs_val <- mean(
+    rowMeans(select_data[setbp1_targets, , drop = FALSE], na.rm = TRUE),
+    na.rm = TRUE
+  )
   cat("\nStructure of obs values: ", str(obs_val))
-  
+
   # Null distribution
   null_dist <- replicate(n_perm, {
     rand_genes <- sample(all_genes, length(setbp1_targets))
-    mean(rowMeans(select_data[rand_genes, , drop = FALSE], na.rm = TRUE), na.rm = TRUE)
+    mean(
+      rowMeans(
+        select_data[rand_genes, , drop = FALSE],
+        na.rm = TRUE
+      ),
+      na.rm = TRUE
+    )
   })
-  
+
   # Two-Sided P-values & Z-scores
   p_val_enrichment <- sum(null_dist >= obs_val) / n_perm
-  p_val_depletion  <- sum(null_dist <= obs_val) / n_perm
+  p_val_depletion <- sum(null_dist <= obs_val) / n_perm
   p_val_two_sided <- 2 * min(p_val_enrichment, p_val_depletion)
   z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
-  
+
   stats_results <- rbind(stats_results, data.frame(
     Tissue = grp_tissue,
     Age = grp_age,
@@ -304,5 +351,7 @@ for(i in 1:nrow(analysis_groups)) {
 stats_results$FDR <- p.adjust(stats_results$P_Value, method = "fdr")
 print(head(stats_results[order(stats_results$Z_Score, decreasing = TRUE), ]))
 
-write_csv(stats_results, paste0(outdir, "postnatal_gtex_permutation_results.csv"))
+write_csv(
+  stats_results, paste0(outdir, "postnatal_gtex_permutation_results.csv")
+)
 cat("Finished!\nResults saved to: postnatal_gtex_permutation_results.csv")

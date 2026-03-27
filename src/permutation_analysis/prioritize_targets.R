@@ -1,7 +1,5 @@
-##### Permuation Analysis of SETBP1 Targets #####
-## GOAL: To determine the presence and/or directional bias of SETBP1 targets toward pre-natal or post-natal window.
-## RESULTS: SETBP1 targets are robustly up-regulated during pre-natal window (i.e., early brain development)
-## NOTES: Both mean and median were tested for these permutation analyses to determine 
+##### Prioritization of SETBP1 Targets #####
+## GOAL: Prioritize SETBP1 targets by coexpression and pathway annotations
 
 suppressPackageStartupMessages({
   library(argparse)
@@ -33,10 +31,12 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 # SETBP1 targets
 setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
 setbp1_targets <- unique(setbp1_targets_table$Target)
-# setbp1_targets   <- read_excel("250609_setbp1_targets_names_only.xlsx", col_names = TRUE)
-# setbp1_targets <- setbp1_targets[[1]] |> unique() |> as.character()
 gtex_coexpr <- read_csv(paste0(outdir, "gtex_target_coexpression.csv"))
-brainspan_coexpr <- read_csv(paste0(outdir, "SETBP1_target_coexpression_brainspan.csv"))
+brainspan_coexpr <- read_csv(
+  paste0(
+    outdir, "SETBP1_target_coexpression_brainspan.csv"
+  )
+)
 
 ### TOP COEXPRESSED TARGETS ###
 top_gtex_coexpr <- gtex_coexpr %>%
@@ -53,7 +53,10 @@ top_brainspan_coexpr <- brainspan_coexpr %>%
 cat("\nTop quartile significantly coexpressed targets across tissues/ages:\n")
 print(top_brainspan_coexpr)
 
-write_csv(rbind(top_gtex_coexpr, top_brainspan_coexpr), paste0(indir, "setbp1_target_coexpression.csv"))
+write_csv(
+  rbind(top_gtex_coexpr, top_brainspan_coexpr),
+  paste0(indir, "setbp1_target_coexpression.csv")
+)
 
 ### gene functional pathway annotations ###
 pathway_map <- list(
@@ -68,7 +71,7 @@ pathway_map <- list(
   "Mitochondrion_organization" = "GO:0007005"
 )
 
-target_pathway_ids <- unlist(pathway_map) 
+target_pathway_ids <- unlist(pathway_map)
 
 pathway_df <- gconvert(
   query = target_pathway_ids,
@@ -98,5 +101,3 @@ prioritized_targets <- top_gtex_coexpr %>%
 write_csv(prioritized_targets, paste0(indir, "setbp1_targets_prioritized.csv"))
 
 print(table(prioritized_targets$Target_Gene))
-# terms_of_interest <- c("translation", "chromatin regulation", "mitochondria")
-

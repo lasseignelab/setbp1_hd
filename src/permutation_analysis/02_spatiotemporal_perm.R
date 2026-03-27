@@ -1,7 +1,6 @@
 ##### Permuation Analysis of SETBP1 Targets #####
-## GOAL: To determine the presence and/or directional bias of SETBP1 targets toward pre-natal or post-natal window.
-## RESULTS: SETBP1 targets are robustly up-regulated during pre-natal window (i.e., early brain development)
-## NOTES: Both mean and median were tested for these permutation analyses to determine 
+## GOAL: Determine the presence & directional bias of
+## SETBP1 targets across brain development
 
 suppressPackageStartupMessages({
   library(argparse)
@@ -32,15 +31,19 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Loading in downloaded daa
 # BrainSpan
-expr_raw <- read_csv(paste0(indir, "brainspan/expression_matrix.csv"), col_names = FALSE)
+expr_raw <- read_csv(
+  paste0(
+    indir, "brainspan/expression_matrix.csv"
+  ),
+  col_names = FALSE
+)
 rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
 cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
-print(paste0("Unique samples in BrainSpan: ", length(unique(cols_meta$donor_id))))
+print(paste0("Unique Brainspan samples: ", length(unique(cols_meta$donor_id))))
 n_ages <- distinct(cols_meta, donor_id, age)
 n_ages %>%
-# add_count(age, donor_id) %>%
-ggplot(aes(y = age)) +
-geom_bar()
+  ggplot(aes(y = age)) +
+  geom_bar()
 ggsave(paste0(outdir, "brainspan_age_donor_counts.png"))
 
 # SETBP1 targets
@@ -54,11 +57,13 @@ cat("Number of SETBP1 target names read:", length(setbp1_targets), "\n\n")
 # Creating Expression Matrix
 row_nums_expr <- expr_raw[[1]]
 if (!all(row_nums_expr == rows_meta$row_num)) {
-  stop("Row numbers in expression_matrix.csv and rows_metadata.csv do not align.")
+  stop("Row numbers in expression_matrix.csv & rows_metadata.csv do not align")
 }
-expr_raw_mat <- as.matrix(expr_raw[,-1])
-cat("Expression matrix dimensions (genes x samples):", 
-    paste(dim(expr_raw_mat), collapse = " x "), "\n")
+expr_raw_mat <- as.matrix(expr_raw[, -1])
+cat(
+  "Expression matrix dimensions (genes x samples):",
+  paste(dim(expr_raw_mat), collapse = " x "), "\n"
+)
 
 # Transform, rm zero variance genes, and scale
 log_matrix <- log2(expr_raw_mat + 1)
@@ -78,31 +83,31 @@ cat("Final matrix dimensions:", paste(dim(expr_mat), collapse = " x "), "\n")
 # Filter SETBP1 targets for genes in brainspan data
 setbp1_targets <- intersect(setbp1_targets, rownames(expr_mat))
 
-# # Brain regions of interest for SETBP1-HD
-# target_regions <- c("STR", "CBC", "VFC", "MFC", "STC")
-
-# Converts BrainSpan age into years relative to birth (e.g., 8 pcw = 8 post-conception weeks = negative years; 4 mos = 4 months post-natal = 4/12 years; 1 yrs = 1 year after birth)
-# Defining age windows and defining disease window (i.e., timeframe relevant for testing purposes); SETBP1 clinical developmental window = 0 to 2 years
+# Converts BrainSpan age into developmental windows
 cols_meta <- cols_meta %>%
   mutate(
     # Exctract numbers, then convert to numeric
-    weeks  = as.numeric(str_extract(age, "\\d+")) * ifelse(grepl("pcw", age), 1, NA),
-    months = as.numeric(str_extract(age, "\\d+")) * ifelse(grepl("mos", age), 1, NA),
-    years  = as.numeric(str_extract(age, "\\d+")) * ifelse(grepl("yrs", age), 1, NA) 
-    ) %>%
+    weeks = as.numeric(
+      str_extract(age, "\\d+")
+    ) * ifelse(grepl("pcw", age), 1, NA),
+    months = as.numeric(
+      str_extract(age, "\\d+")
+    ) * ifelse(grepl("mos", age), 1, NA),
+    years = as.numeric(
+      str_extract(age, "\\d+")
+    ) * ifelse(grepl("yrs", age), 1, NA)
+  ) %>%
   mutate(dev_window = case_when(
-           !is.na(weeks)  & weeks <= 12 ~ "Early_Prenatal",
-    !is.na(weeks)  & weeks >= 13 & weeks <= 24 ~ "Mid_Prenatal",
-    !is.na(weeks)  & weeks >= 25 & weeks <= 40 ~ "Late_Prenatal",
+    !is.na(weeks) & weeks <= 12 ~ "Early_Prenatal",
+    !is.na(weeks) & weeks >= 13 & weeks <= 24 ~ "Mid_Prenatal",
+    !is.na(weeks) & weeks >= 25 & weeks <= 40 ~ "Late_Prenatal",
     # Increased window to capture rapid synaptogenesis and increase sample size
     (!is.na(months)) | (!is.na(years) & years <= 1) ~ "Infancy",
-    !is.na(years)  & years >= 2   & years <= 5  ~ "Early_Childhood",
-    !is.na(years)  & years >= 6   & years <= 16  ~ "Childhood",
-    !is.na(years)  & years >= 18                ~ "Adult",
+    !is.na(years) & years >= 2 & years <= 5 ~ "Early_Childhood",
+    !is.na(years) & years >= 6 & years <= 16 ~ "Childhood",
+    !is.na(years) & years >= 18 ~ "Adult",
     TRUE ~ "Other" # Catches anything that doesn't fit
-         )) #%>%
-         # filter(structure_acronym %in% target_regions, dev_window != "Other")
-
+  ))
 cat("Sample number by age window:", table(cols_meta$dev_window))
 write_csv(cols_meta, paste0(outdir, "metadata_development_windows.csv"))
 
@@ -110,19 +115,19 @@ cols_meta %>%
   distinct(age, donor_id, dev_window) %>%
   ggplot(aes(y = reorder(age, dev_window))) +
   geom_bar() +
-  facet_wrap(~ dev_window)
+  facet_wrap(~dev_window)
 
 ggsave(paste0(outdir, "brainspan_metadata_donors_by_age.png"))
 
 ### SETBP1 TARGET COEXPRESSION ###
 # Subset for SETBP1 and targets expression
-setbp1_expr <- as.numeric(expr_mat["SETBP1", ]) 
+setbp1_expr <- as.numeric(expr_mat["SETBP1", ])
 target_mat <- expr_mat[setbp1_targets, ]
 
 # Run Spearman correlation of SETBP1 across to target genes
 results_mat <- apply(target_mat, 1, function(target_expr) {
   test <- cor.test(setbp1_expr, target_expr, method = "spearman", exact = FALSE)
-  c(Spearman_Rho = test$estimate[["rho"]], P_Value = test$p.value) 
+  c(Spearman_Rho = test$estimate[["rho"]], P_Value = test$p.value)
 })
 
 # Data wrangling and FDR correction
@@ -137,12 +142,14 @@ print(head(coexpression_df, 10))
 cat("\nMost Negatively Correlated:\n")
 print(tail(coexpression_df, 10))
 
-write_csv(coexpression_df, paste0(outdir, "SETBP1_target_coexpression_brainspan.csv"))
+write_csv(
+  coexpression_df, paste0(outdir, "SETBP1_target_coexpression_brainspan.csv")
+)
 
-# Permutation analyses 
+# Permutation analyses
 ## NOTE: n_perm can be changed
-set.seed(123)  
-n_perm <- 10000  
+set.seed(123)
+n_perm <- 10000
 all_genes <- rownames(expr_mat)
 gene_results <- data.frame(row.names = setbp1_targets)
 stats_results <- data.frame()
@@ -152,49 +159,53 @@ windows <- unique(cols_meta$dev_window)
 
 # for (reg in target_regions) {
 for (win in windows) {
-# Samples in each window + region combo
+  # Samples in each window + region combo
   cat("\nRunning permutation for: \n", win)
-  selected_samples <- cols_meta %>% 
-      filter(
-      # structure_acronym == reg, 
+  selected_samples <- cols_meta %>%
+    filter(
       dev_window == win
-      ) %>% 
-      pull(column_num) %>% as.character()
-  
-  # Ensure those samples exist in the expression matrix
-    selected_samples <- intersect(selected_samples, colnames(expr_mat))
+    ) %>%
+    pull(column_num) %>%
+    as.character()
 
-  if(length(selected_samples) < 2) next # Skip windows with insufficient data
-  
+  # Ensure those samples exist in the expression matrix
+  selected_samples <- intersect(selected_samples, colnames(expr_mat))
+
+  # Skip windows with insufficient data
+  if (length(selected_samples) < 2) next
+
   cat("\nFinding observation stat...\n")
   # Observed statistic (mean of gene set in this window)
   select_data <- expr_mat[, selected_samples, drop = FALSE]
   # Target gene means, NAs removed
-  gene_means <- rowMeans(select_data[setbp1_targets, , drop=FALSE], na.rm = TRUE)
+  gene_means <- rowMeans(
+    select_data[setbp1_targets, , drop = FALSE],
+    na.rm = TRUE
+  )
   obs_val <- mean(gene_means)
-  
+
   cat("\nFinding null distribution...\n")
   # Null distribution
   null_dist <- replicate(n_perm, {
     rand_genes <- sample(all_genes, length(setbp1_targets))
     # Random gene means, NAs removed
-    mean(rowMeans(select_data[rand_genes, , drop=FALSE], na.rm = TRUE))
+    mean(rowMeans(select_data[rand_genes, , drop = FALSE], na.rm = TRUE))
   })
-  
+
   cat("\nCalculating p-value and z-scores... \n")
   # Calculate One-Sided P-values
   p_val_enrichment <- sum(null_dist >= obs_val) / n_perm
-  p_val_depletion  <- sum(null_dist <= obs_val) / n_perm
-  
+  p_val_depletion <- sum(null_dist <= obs_val) / n_perm
+
   # Calculate Two-Sided P-value (Recommended)
   p_val_two_sided <- 2 * min(p_val_enrichment, p_val_depletion)
-  
+
   # Calculate Z-score
   z_score <- (obs_val - mean(null_dist)) / sd(null_dist)
 
   # Fix dataframe binding issue
   gene_results[[win]] <- gene_means
-  
+
   stats_results <- rbind(stats_results, data.frame(
     window = win,
     observed = obs_val,
@@ -206,7 +217,10 @@ for (win in windows) {
 }
 # }
 # Apply FDR correction for multiple hypotheses
-stats_results$p_val_adj <- p.adjust(stats_results$p_val_two_sided, method = "fdr")
+stats_results$p_val_adj <- p.adjust(
+  stats_results$p_val_two_sided,
+  method = "fdr"
+)
 print(stats_results)
 write_csv(stats_results, paste0(outdir, "temporal_window_perm_stats.csv"))
 
