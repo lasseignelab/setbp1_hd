@@ -10,7 +10,7 @@ GTEX_ADULT="https://storage.googleapis.com/adult-gtex"
 DGTEX="https://storage.googleapis.com/developmental-gtex"
 BRAINSPAN_URL="https://www.brainspan.org/api/v2/well_known_file_download/267666525"
 
-### Download Adult GTEx and dGTEx ###
+### DOWNLOAD ###
 # relative paths for GTEx files
 FILES=(
     "bulk-gex/v11/rna-seq/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct.gz"
@@ -35,15 +35,23 @@ for dfile in "${DFILES[@]}"; do
     cap_data_download --subdirectory="gtex/developmental" "$DGTEX/$dfile"
 done
 
-### Download BrainSpan Data ###
+# relative path for BrainSpan file
 echo "Downloading BrainSpan Spatiotemporal Transcriptome..."
 cap_data_download \
   --subdirectory="brainspan" \
   --source-file-name="brainspan_data.zip" \
   "$BRAINSPAN_URL"
 
-echo "Data download complete. Unzipping brainspan files..."
+echo "Data download complete."
+echo "Unzipping BrainSpan files..."
 mkdir -p "${CAP_DATA_PATH}/brainspan" 
 unzip -d "${CAP_DATA_PATH}/brainspan" "${CAP_DATA_PATH}/brainspan/brainspan_data.zip"
-echo "Unzipping GTEx files..."
-gunzip "${CAP_DATA_PATH}/gtex/"*.gct.gz
+
+echo "Unzipping GTEx GCT files..."
+gunzip "${CAP_DATA_PATH}/gtex/"*/*.gct.gz
+
+echo "=========================================="
+echo "Download and unzipping complete!"
+echo "Total runtime: $SECONDS seconds"
+echo "=========================================="
+
