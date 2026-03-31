@@ -11,6 +11,7 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(vroom)
   library(data.table)
+  library(readxl)
   library(patchwork)
 })
 ###### SET UP ######
@@ -28,6 +29,9 @@ parser$add_argument("-o", "--outdir",
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
 indir <- args$indir
+addir <- paste0(indir, "gtex/adult/GTEx_Analysis_")
+devdir <- paste0(indir, "gtex/developmental/dGTEx_Analysis_")
+
 outdir <- args$outdir
 
 # create output dir if needed
@@ -64,23 +68,23 @@ standardize_tissue <- function(x) {
 # Load Metadata
 cat("\nLoading adult gtex metadata...\n")
 adult_meta <- vroom(
-  paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SampleAttributesDS.txt")
+  paste0(addir, "v11_Annotations_SampleAttributesDS.txt")
 )
 adult_pheno <- vroom(
-  paste0(indir, "gtex/GTEx_Analysis_v11_Annotations_SubjectPhenotypesDS.txt")
+  paste0(addir, "v11_Annotations_SubjectPhenotypesDS.txt")
 )
 
 cat("\nLoading developmental gtex metadata...\n")
-dev_meta <- vroom(
+dev_meta <- read_xlsx(
   paste0(
-    indir,
-    "gtex/dGTEx_Analysis_2026-01-30_v1_Sample_Attributes_Dataset_DS_open.txt"
+    devdir,
+    "2026-01-30_v1_Sample_Attributes_Dataset_DS_open.xlsx"
   )
 )
-dev_pheno <- vroom(
+dev_pheno <- read_xlsx(
   paste0(
-    indir,
-    "gtex/dGTEx_Analysis_2026-01-30_v1_Subject_Phenotypes_Dataset_DS_open.txt"
+    devdir,
+    "2026-01-30_v1_Subject_Phenotypes_Dataset_DS_open.xlsx"
   )
 )
 
@@ -161,19 +165,17 @@ ggsave(paste0(outdir, "gtex_metadata_donors.png"))
 # Load TPM Matrices
 adult_tpm <- load_gct(
   paste0(
-    indir, "gtex/GTEx_Analysis_2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"
+    addir, "2025-08-22_v11_RNASeQCv2.4.3_gene_tpm.gct"
   ),
   valid_sampids = valid_samples
 )
-cat("\nAdult gtex count data: \n", str(adult_tpm))
 
 dev_tpm <- load_gct(
   paste0(
-    indir, "gtex/dGTEx_Analysis_2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"
+    devdir, "2025-07-21_v1_RNASeQCv2.4.3_gene_tpm.gct"
   ),
   valid_sampids = valid_samples
 )
-cat("\nDev gtex count data: \n", str(dev_tpm))
 
 # Clean Gene IDs (remove .version), join, and keep only genes in both datasets
 cat("Filter for genes in both data sets...")
@@ -280,8 +282,7 @@ sex_results <- sex_data %>%
   mutate(FDR = p.adjust(P_Value, method = "fdr")) %>%
   arrange(P_Value)
 
-print(head(sex_results))
-write_csv(sex_results, paste0(outdir, "postnatal_gtex_sex_results.csv"))
+write_csv(sex_results, paste0(outdir, "gtex_sex_wilcox_results.csv"))
 cat("\nSex comparison results saved to: postnatal_gtex_sex_results.csv")
 
 
@@ -317,7 +318,6 @@ for (i in seq_len(nrow(analysis_groups))) {
     rowMeans(select_data[setbp1_targets, , drop = FALSE], na.rm = TRUE),
     na.rm = TRUE
   )
-  cat("\nStructure of obs values: ", str(obs_val))
 
   # Null distribution
   null_dist <- replicate(n_perm, {
@@ -352,6 +352,16 @@ stats_results$FDR <- p.adjust(stats_results$P_Value, method = "fdr")
 print(head(stats_results[order(stats_results$Z_Score, decreasing = TRUE), ]))
 
 write_csv(
-  stats_results, paste0(outdir, "postnatal_gtex_permutation_results.csv")
+  stats_results, paste0(outdir, "gtex_permutation_results.csv")
 )
-cat("Finished!\nResults saved to: postnatal_gtex_permutation_results.csv")
+cat("Finished!\nResults saved to: gtex_permutation_results.csv")
+
+#### END ####
+
+# end timer
+fptm <- proc.time()
+cat("\n\nTotal runtime:  ", (fptm[3] / 60), "\n")
+
+#  session info
+cat("\n\nSession Info:\n")
+print(sessionInfo())
