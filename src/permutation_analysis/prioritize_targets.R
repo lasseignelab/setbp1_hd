@@ -55,7 +55,7 @@ print(top_brainspan_coexpr)
 
 write_csv(
   rbind(top_gtex_coexpr, top_brainspan_coexpr),
-  paste0(indir, "setbp1_target_coexpression.csv")
+  paste0(outdir, "top_target_coexpression.csv")
 )
 
 ### gene functional pathway annotations ###
@@ -88,7 +88,7 @@ setbp1_pathways <- pathway_df %>%
   filter(!is.na(Target_Gene)) %>%
   filter(Target_Gene %in% setbp1_targets)
 
-write_csv(setbp1_pathways, paste0(indir, "setbp1_target_pathways.csv"))
+write_csv(setbp1_pathways, paste0(outdir, "setbp1_target_pathways.csv"))
 
 print(str(setbp1_pathways))
 print(unique(stringr::str_sort(setbp1_pathways$Target_Gene)))
@@ -98,6 +98,6 @@ prioritized_targets <- top_gtex_coexpr %>%
   select(Target_Gene, Method) %>%
   bind_rows(setbp1_pathways)
 
-write_csv(prioritized_targets, paste0(indir, "setbp1_targets_prioritized.csv"))
+write_csv(prioritized_targets, paste0(outdir, "setbp1_targets_prioritized.csv"))
 
 print(table(prioritized_targets$Target_Gene))
