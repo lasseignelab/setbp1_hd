@@ -37,18 +37,19 @@ brainspan_coexpr <- read_csv(
     outdir, "SETBP1_target_coexpression_brainspan.csv"
   )
 )
+cat("\nTotal number of unique SETBP1 targets: ", length(setbp1_targets))
 
 ### TOP COEXPRESSED TARGETS ###
 top_gtex_coexpr <- gtex_coexpr %>%
   filter(FDR < 0.05) %>%
-  slice_max(abs(Spearman_Rho), prop = 0.25) %>%
+  slice_max(abs(Spearman_Rho), prop = 0.10) %>%
   mutate(Method = "GTEx_Coexpr")
 cat("\nTop quartile significantly coexpressed targets across tissues/ages:\n")
 print(top_gtex_coexpr)
 
 top_brainspan_coexpr <- brainspan_coexpr %>%
   filter(FDR < 0.05) %>%
-  slice_max(abs(Spearman_Rho), prop = 0.25) %>%
+  slice_max(abs(Spearman_Rho), prop = 0.10) %>%
   mutate(Method = "Brainspan_Coexpr")
 cat("\nTop quartile significantly coexpressed targets across tissues/ages:\n")
 print(top_brainspan_coexpr)
@@ -80,6 +81,7 @@ pathway_df <- gconvert(
   mthreshold = Inf,
   filter_na = TRUE
 )
+cat("\npathway_df structure:\n")
 cat(str(pathway_df))
 
 setbp1_pathways <- pathway_df %>%
@@ -90,14 +92,14 @@ setbp1_pathways <- pathway_df %>%
 
 write_csv(setbp1_pathways, paste0(outdir, "setbp1_target_pathways.csv"))
 
-print(str(setbp1_pathways))
-print(unique(stringr::str_sort(setbp1_pathways$Target_Gene)))
-
 ### COMBINED TARGET PRIORITIZATION ###
 prioritized_targets <- top_gtex_coexpr %>%
   select(Target_Gene, Method) %>%
   bind_rows(setbp1_pathways)
 
 write_csv(prioritized_targets, paste0(outdir, "setbp1_targets_prioritized.csv"))
+cat("\nSaved final prioritized targets to: setbp1_targets_prioritized.csv\n\n")
+cat("\nNumber of top prioritized targets: ", length(unique(prioritized_targets$Target_Gene)))
+cat("\nFrequency of targets by prioritization method:\n")
 
-print(table(prioritized_targets$Target_Gene))
+print(sort(table(prioritized_targets$Target_Gene)))
