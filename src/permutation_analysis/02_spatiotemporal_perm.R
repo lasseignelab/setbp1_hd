@@ -23,7 +23,8 @@ parser$add_argument("-o", "--outdir",
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
-indir <- args$indir
+# Normalize the symlinked input path
+indir <- normalizePath(args$indir, mustWork = FALSE)
 outdir <- args$outdir
 
 # create output dir if needed
@@ -32,16 +33,16 @@ if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 # Loading in BrainSpan data
 expr_raw <- read_csv(
   paste0(
-    indir, "brainspan/expression_matrix.csv"
+    indir, "/brainspan/expression_matrix.csv"
   ),
   col_names = FALSE
 )
-rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
-cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
+rows_meta <- read_csv(paste0(indir, "/brainspan/rows_metadata.csv"))
+cols_meta <- read_csv(paste0(indir, "/brainspan/columns_metadata.csv"))
 print(paste0("Unique Brainspan samples: ", length(unique(cols_meta$donor_id))))
 
 # SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets_table <- read_csv(paste0(indir, "/260303_setbp1_targets.csv"))
 setbp1_targets <- unique(setbp1_targets_table$Target)
 
 # Keeping track of downloaded genes
