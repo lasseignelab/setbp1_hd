@@ -247,3 +247,5 @@ src/lint_and_style.sh
 Rplots.pdf
 src/lint_and_style.sh
 megalinter-reports
+lintr_styler.R
+run_lintr_styler.sh
