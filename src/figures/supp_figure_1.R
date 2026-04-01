@@ -29,9 +29,9 @@ outdir <- args$outdir
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # Loading in permutation results
-stats_results <- read_csv(paste0(indir, "temporal_window_perm_stats.csv"))
+stats_results <- read_csv(paste0(indir, "brainspan_permutation_stats.csv"))
 gtex_results <- read_csv(
-  paste0(indir, "postnatal_gtex_permutation_results.csv")
+  paste0(indir, "gtex_permutation_results.csv")
 )
 sex_data <- read_csv(paste0(indir, "gtex_target_sex_expression.csv"))
 
@@ -168,14 +168,12 @@ plot_sex_data$Age <- factor(plot_sex_data$AGE,
   levels = c("Pediatric", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79")
 )
 
-# Generate the grouped boxplot faceted by Tissue
+# Generate the grouped boxplot faceted by tissue
 ggplot(plot_sex_data, aes(x = Age, y = Target_Mean, fill = SEX_Label)) +
   geom_boxplot(
     outlier.size = 0.5, alpha = 0.8, position = position_dodge(0.8)
   ) +
-  # Custom colors for distinction
   scale_fill_manual(values = c("Male" = "#4575b4", "Female" = "#d73027")) +
-  # Create a separate panel for each Tissue
   facet_wrap(~SMTS, scales = "free_y", ncol = 3) +
   theme_minimal(base_size = 14) +
   labs(
