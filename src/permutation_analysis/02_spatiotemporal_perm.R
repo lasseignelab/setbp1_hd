@@ -23,31 +23,26 @@ parser$add_argument("-o", "--outdir",
 )
 # get command line options, if help option encountered print help and exit
 args <- parser$parse_args()
-indir <- args$indir
+# Normalize the symlinked input path
+indir <- normalizePath(args$indir, mustWork = FALSE)
 outdir <- args$outdir
 
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
-# Loading in downloaded daa
-# BrainSpan
+# Loading in BrainSpan data
 expr_raw <- read_csv(
   paste0(
-    indir, "brainspan/expression_matrix.csv"
+    indir, "/brainspan/expression_matrix.csv"
   ),
   col_names = FALSE
 )
-rows_meta <- read_csv(paste0(indir, "brainspan/rows_metadata.csv"))
-cols_meta <- read_csv(paste0(indir, "brainspan/columns_metadata.csv"))
+rows_meta <- read_csv(paste0(indir, "/brainspan/rows_metadata.csv"))
+cols_meta <- read_csv(paste0(indir, "/brainspan/columns_metadata.csv"))
 print(paste0("Unique Brainspan samples: ", length(unique(cols_meta$donor_id))))
-n_ages <- distinct(cols_meta, donor_id, age)
-n_ages %>%
-  ggplot(aes(y = age)) +
-  geom_bar()
-ggsave(paste0(outdir, "brainspan_age_donor_counts.png"))
 
 # SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets_table <- read_csv(paste0(indir, "/260303_setbp1_targets.csv"))
 setbp1_targets <- unique(setbp1_targets_table$Target)
 
 # Keeping track of downloaded genes
@@ -109,7 +104,7 @@ cols_meta <- cols_meta %>%
     TRUE ~ "Other" # Catches anything that doesn't fit
   ))
 cat("Sample number by age window:", table(cols_meta$dev_window))
-write_csv(cols_meta, paste0(outdir, "metadata_development_windows.csv"))
+write_csv(cols_meta, paste0(outdir, "brainspan_metadata_dev_windows.csv"))
 
 cols_meta %>%
   distinct(age, donor_id, dev_window) %>%
@@ -222,8 +217,18 @@ stats_results$p_val_adj <- p.adjust(
   method = "fdr"
 )
 print(stats_results)
-write_csv(stats_results, paste0(outdir, "temporal_window_perm_stats.csv"))
+write_csv(stats_results, paste0(outdir, "brainspan_permutation_stats.csv"))
 
 rownames(gene_results) <- setbp1_targets
-write_csv(gene_results, paste0(outdir, "temporal_window_gene_means.csv"))
+write_csv(gene_results, paste0(outdir, "brainspan_window_gene_means.csv"))
 cat("\n\nPermutations complete, results saved. \n")
+
+#### END ####
+
+# end timer
+fptm <- proc.time()
+cat("\n\nTotal runtime:  ", (fptm[3] / 60), "\n")
+
+#  session info
+cat("\n\nSession Info:\n")
+print(sessionInfo())

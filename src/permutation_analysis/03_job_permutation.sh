@@ -12,6 +12,7 @@ cap_container -c singularity "lizzyr/lw_dea:0.3.1"
 
 singularity exec --cleanenv \
                  --containall \
+                 -B "${LASSEIGNE_LAB_PATH}" \
                  -B "${CAP_PROJECT_PATH}" \
                  "${CAP_CONTAINER_PATH}"/lw_dea_0.3.1.sif \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/permutation_analysis/03_postnatal_development.R \
