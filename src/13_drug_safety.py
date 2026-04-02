@@ -150,10 +150,10 @@ def main():
 
     output_path = os.path.join(args.output_dir, "drug_safety_data.csv")
 
-    fieldnames = ["Name", "ID", "BBW", "Pediatric", "Pregnancy", "Lact", "Ph kin", "BBB"]
+    fieldname = ["Name", "ID", "BBW", "Pediatric", "Pregnancy", "Lact", "Ph kin", "BBB"]
 
     with open(output_path, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldname)
         writer.writeheader()
         for drug in drug_list:
             data = get_drug_data(drug)
