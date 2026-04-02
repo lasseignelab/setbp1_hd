@@ -54,6 +54,7 @@ def get_drug_data(drug_name):
         "Name": drug_name,
         "ID": set_id,
         "BBW": "Not found",
+        "Pediatric": "Not found",
         "Pregnancy": "Not found",
         "Lact": "Not found",
         "Ph kin": "Not found",
@@ -74,6 +75,8 @@ def get_drug_data(drug_name):
         target_key = None
         if "WARNING" in title_text and "BOX" in title_text:
             target_key = "BBW"
+        elif "PEDIATRIC" in title_text:
+            target_key = "Pediatric"
         elif "PREGNANCY" in title_text:
             target_key = "Pregnancy"
         elif "LACTATION" in title_text or "NURSING MOTHERS" in title_text:
@@ -147,7 +150,7 @@ def main():
 
     output_path = os.path.join(args.output_dir, "drug_safety_data.csv")
 
-    fieldnames = ["Name", "ID", "BBW", "Pregnancy", "Lact", "Ph kin", "BBB"]
+    fieldnames = ["Name", "ID", "BBW", "Pediatric", "Pregnancy", "Lact", "Ph kin", "BBB"]
 
     with open(output_path, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
