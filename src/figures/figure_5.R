@@ -22,6 +22,12 @@ parser$add_argument("-i", "--input_dir",
   help = "Path to the directory with input files"
 )
 
+parser$add_argument("-d", "--data_dir",
+  type = "character",
+  metavar = "PATH",
+  help = "Path to the data directory"
+)
+
 parser$add_argument("-o", "--output_dir",
   type = "character",
   metavar = "PATH",
@@ -36,6 +42,7 @@ ptm <- proc.time()
 
 #### Set variables for dataset ####
 indir <- args$input_dir
+datadir <- args$data_dir
 filepath <- args$output_dir
 
 # create output dir if needed
@@ -59,7 +66,7 @@ drug_targets_setbp1 <- read_csv(
 )
 # DailyMed safety annotations for signature reversion drugs
 drug_safety <- read_csv(
-  paste0(indir, "drug_safety_data.csv")
+  paste0(datadir, "dailymed/drug_safety_data.csv")
 )
 
 ### SETBP1 DRUG TARGETS ###

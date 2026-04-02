@@ -13,4 +13,5 @@ singularity exec --cleanenv \
                  "${CAP_CONTAINER_PATH}"/sigsearch_1.0.0.sif \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/figures/figure_5.R \
                   -i "${CAP_RESULTS_PATH}"/signature_reversion/ \
+                  -d "${CAP_DATA_PATH}"/dailymed/ \
                   -o "${CAP_RESULTS_PATH}"/figures/
