@@ -111,12 +111,14 @@ cat(
 cat(
   "Target DEGs that are also SETBP1 targets: ",
   intersect(target_degs$gene_name, drugs_setbp1$mergeTargets),
-  "\n", sep = " "
+  "\n",
+  sep = " "
 )
 cat(
   "SETBP1 targets that are not DEGs: ",
   setdiff(drugs_setbp1$mergeTargets, target_degs$gene_name),
-  "\n", sep = " "
+  "\n",
+  sep = " "
 )
 
 # save consensus DEGs
@@ -222,7 +224,8 @@ approved_drugs <- drugs_brain %>%
 cat(
   "Approved drug drug targets: ",
   unique(approved_drugs$mergeTargets),
-  "\n", sep = " "
+  "\n",
+  sep = " "
 )
 
 target_degs_approved <- target_degs_wide %>%

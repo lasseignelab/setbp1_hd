@@ -124,7 +124,8 @@ brain_drugs_anno <- lincs_brain %>%
   left_join(lincs_pert_info2, by = c("pert" = "pert_id"))
 cat(
   "Number of unique reversion drugs in brain-relevant cells: ",
-  length(unique(brain_drugs_anno$pert)), "\n", sep = " "
+  length(unique(brain_drugs_anno$pert)), "\n",
+  sep = " "
 )
 
 write_rds(
@@ -161,12 +162,14 @@ print(n = 21, arrange(drug_targets_setbp1, pref_name))
 cat(
   "Drugs that target SETBP1 targets: ",
   unique(drug_targets_setbp1$pref_name),
-  "\n", sep = " "
+  "\n",
+  sep = " "
 )
 cat(
   "Drug target SETBP1 targets: ",
   unique(drug_targets_setbp1$mergeTargets),
-  "\n", sep = " "
+  "\n",
+  sep = " "
 )
 write_csv(
   drug_targets_setbp1, paste0(filepath, "setbp1_drug_targets.csv")
