@@ -66,7 +66,7 @@ drug_targets_setbp1 <- read_csv(
 )
 # DailyMed safety annotations for signature reversion drugs
 drug_safety <- read_csv(
-  paste0(datadir, "dailymed/drug_safety_data.csv")
+  paste0(datadir, "drug_safety_data.csv")
 )
 
 ### SETBP1 DRUG TARGETS ###
