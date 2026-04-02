@@ -67,11 +67,13 @@ rra_degs <- read_csv(
   paste0(querypath, "rankaggregate_consensus_signature.csv")
 )
 # SETBP1 regulatory targets
+# Curated targets by Sasha Taluri
 setbp1_targets_all <- read_csv(paste0(
-  datapath, "241203_setbp1_targets_names_only.csv"
-), col_names = FALSE)
+  datapath, "260303_setbp1_targets.csv"
+))
+# Prioritized targets from coexpression & pathway analysis
 setbp1_targets_top <- read_csv(paste0(
-  datapath, "241203_setbp1_targets_prioritized.csv"
+  datapath, "setbp1_targets_prioritized.csv"
 ))
 
 ###### PREPARE QUERY SIGNATURE ######
@@ -142,10 +144,10 @@ brain_drug_targets <- brain_drugs_anno %>%
   # annotate targets that are prioritized SETBP1 regulatory targets
   mutate(
     SETBP1_target = ifelse(
-      mergeTargets %in% setbp1_targets_all$X1, TRUE, FALSE
+      mergeTargets %in% setbp1_targets_all$Target, TRUE, FALSE
     ),
     SETBP1_top_target = ifelse(
-      mergeTargets %in% setbp1_targets_top$target, TRUE, FALSE
+      mergeTargets %in% setbp1_targets_top$Target_Gene, TRUE, FALSE
     )
   )
 
