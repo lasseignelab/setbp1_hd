@@ -11,3 +11,6 @@ cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/tanaka"
 
 # Wong et al 2025 source data to validate DEGs
 cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/wong"
+
+# DailyMed drug safety data
+cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/dailymed" 
