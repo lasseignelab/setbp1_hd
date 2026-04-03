@@ -89,7 +89,7 @@ dev_pheno <- read_xlsx(
 )
 
 # SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets_table <- read_csv(paste0(indir, "260403_setbp1_targets.csv"))
 setbp1_targets <- unique(setbp1_targets_table$Target)
 
 # Define Phenotypically Relevant Tissues (Whitlock et al. 2024)
