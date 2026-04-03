@@ -69,7 +69,7 @@ rra_degs <- read_csv(
 # SETBP1 regulatory targets
 # Curated targets by Sasha Taluri
 setbp1_targets_all <- read_csv(paste0(
-  datapath, "260303_setbp1_targets.csv"
+  datapath, "260403_setbp1_targets.csv"
 ))
 # Prioritized targets from coexpression & pathway analysis
 setbp1_targets_top <- read_csv(paste0(
