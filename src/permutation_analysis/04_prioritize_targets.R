@@ -29,7 +29,7 @@ outdir <- args$outdir
 # create output dir if needed
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 # SETBP1 targets
-setbp1_targets_table <- read_csv(paste0(indir, "260303_setbp1_targets.csv"))
+setbp1_targets_table <- read_csv(paste0(indir, "260403_setbp1_targets.csv"))
 setbp1_targets <- unique(setbp1_targets_table$Target)
 gtex_coexpr <- read_csv(paste0(outdir, "gtex_target_coexpression.csv"))
 brainspan_coexpr <- read_csv(
@@ -99,7 +99,10 @@ prioritized_targets <- top_gtex_coexpr %>%
 
 write_csv(prioritized_targets, paste0(outdir, "setbp1_targets_prioritized.csv"))
 cat("\nSaved final prioritized targets to: setbp1_targets_prioritized.csv\n\n")
-cat("\nNumber of top prioritized targets: ", length(unique(prioritized_targets$Target_Gene)))
+cat(
+  "\nNumber of top prioritized targets: ",
+  length(unique(prioritized_targets$Target_Gene))
+)
 cat("\nFrequency of targets by prioritization method:\n")
 
 print(sort(table(prioritized_targets$Target_Gene)))
