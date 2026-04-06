@@ -45,14 +45,14 @@ top_gtex_coexpr <- gtex_coexpr %>%
   slice_max(abs(Spearman_Rho), prop = 0.10) %>%
   mutate(Method = "GTEx_Coexpr")
 cat("\nTop quartile significantly coexpressed targets across tissues/ages:\n")
-print(top_gtex_coexpr)
+print(head(top_gtex_coexpr))
 
 top_brainspan_coexpr <- brainspan_coexpr %>%
   filter(FDR < 0.05) %>%
   slice_max(abs(Spearman_Rho), prop = 0.10) %>%
   mutate(Method = "Brainspan_Coexpr")
 cat("\nTop quartile significantly coexpressed targets across tissues/ages:\n")
-print(top_brainspan_coexpr)
+print(head(top_brainspan_coexpr))
 
 write_csv(
   rbind(top_gtex_coexpr, top_brainspan_coexpr),
@@ -61,13 +61,27 @@ write_csv(
 
 ### gene functional pathway annotations ###
 pathway_map <- list(
+  # Transcriptional and epigenetic regulation
+  "Gene_expression" = "GO:0010467",
+  "Positive_regulation_RNA_metabolic_process" = "GO:0051254",
   "Chromatin_organization" = "GO:0006325",
   "Chromatin_binding" = "GO:0003682",
-  "Prostaglandin_receptor_activity" = "GO:0004955",
-  "Synapse_assembly" = "GO:0007416",
-  "Gene_expression" = "GO:0010467",
   "Translation" = "GO:0006412",
   "Translation_regulator_activity" = "GO:0045182",
+  # Cell proliferation and survival
+  "Negative regulation of protein phosphatase activity" = "GO:0010923",
+  "Regulation of protein kinase B signaling" = "GO:0051896",
+  "Intracellular signal transduction" = "GO:0035556",
+  "Regulation of cell cycle process" = "GO:0010564",
+  "Mitotic cell cycle phase transition" = "GO:0044772",
+  "Transforming growth factor beta receptor signaling pathway" = "GO:0007179",
+  # Neurodevelopment and circuitry
+  "Regulation of neural precursor cell proliferation" = "GO:2000177",
+  "Synapse_assembly" = "GO:0007416",
+  "Prostaglandin_receptor_activity" = "GO:0004955",  
+  # Metabolism and bioenergetics
+  "Peptide_biosynthetic_process" = "GO:0043043",
+  "Macromolecule_biosynthetic_process" =  "GO:0009059",
   "Mitochondrion" = "GO:0005739",
   "Mitochondrion_organization" = "GO:0007005"
 )
