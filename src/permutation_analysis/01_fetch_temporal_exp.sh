@@ -44,7 +44,6 @@ cap_data_download \
 
 echo "Data download complete."
 echo "Unzipping BrainSpan files..."
-mkdir -p "${CAP_DATA_PATH}/brainspan" 
 unzip -d "${CAP_DATA_PATH}/brainspan" "${CAP_DATA_PATH}/brainspan/brainspan_data.zip"
 
 echo "Unzipping GTEx GCT files..."
