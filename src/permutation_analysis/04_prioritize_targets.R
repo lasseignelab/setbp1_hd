@@ -42,21 +42,22 @@ cat("\nTotal number of unique SETBP1 targets: ", length(setbp1_targets))
 ### TOP COEXPRESSED TARGETS ###
 top_gtex_coexpr <- gtex_coexpr %>%
   filter(FDR < 0.05) %>%
-  slice_max(abs(Spearman_Rho), prop = 0.10) %>%
+  slice_max(abs(Spearman_Rho), prop = 0.25) %>%
   mutate(Method = "GTEx_Coexpr")
 cat("\nTop quartile significantly coexpressed targets across tissues/ages:\n")
 print(head(top_gtex_coexpr))
 
 top_brainspan_coexpr <- brainspan_coexpr %>%
   filter(FDR < 0.05) %>%
-  slice_max(abs(Spearman_Rho), prop = 0.10) %>%
+  slice_max(abs(Spearman_Rho), prop = 0.25) %>%
   mutate(Method = "Brainspan_Coexpr")
 cat("\nTop quartile significantly coexpressed targets across tissues/ages:\n")
 print(head(top_brainspan_coexpr))
 
+top_coexpr <- rbind(top_gtex_coexpr, top_brainspan_coexpr)
+
 write_csv(
-  rbind(top_gtex_coexpr, top_brainspan_coexpr),
-  paste0(outdir, "top_target_coexpression.csv")
+  top_coexpr, paste0(outdir, "top_target_coexpression.csv")
 )
 
 ### gene functional pathway annotations ###
@@ -66,14 +67,12 @@ pathway_map <- list(
   "Positive_regulation_RNA_metabolic_process" = "GO:0051254",
   "Chromatin_organization" = "GO:0006325",
   "Chromatin_binding" = "GO:0003682",
-  "Translation" = "GO:0006412",
   "Translation_regulator_activity" = "GO:0045182",
   # Cell proliferation and survival
   "Negative regulation of protein phosphatase activity" = "GO:0010923",
   "Regulation of protein kinase B signaling" = "GO:0051896",
   "Intracellular signal transduction" = "GO:0035556",
   "Regulation of cell cycle process" = "GO:0010564",
-  "Mitotic cell cycle phase transition" = "GO:0044772",
   "Transforming growth factor beta receptor signaling pathway" = "GO:0007179",
   # Neurodevelopment and circuitry
   "Regulation of neural precursor cell proliferation" = "GO:2000177",
@@ -107,9 +106,24 @@ setbp1_pathways <- pathway_df %>%
 write_csv(setbp1_pathways, paste0(outdir, "setbp1_target_pathways.csv"))
 
 ### COMBINED TARGET PRIORITIZATION ###
-prioritized_targets <- top_gtex_coexpr %>%
-  select(Target_Gene, Method) %>%
-  bind_rows(setbp1_pathways)
+# Targets filtered by PHAROS development leve
+pharos_druggable <- setbp1_targets_table %>%
+filter(`Target Development Level` %in% c("Tchem", "Tclin"))
+
+# Convert pathway map to df
+pathway_map_df <- data.frame(
+"Method" = target_pathway_ids,
+"GO_Term" = names(pathway_map) 
+)
+str(pathway_map_df)
+
+prioritized_targets <- top_coexpr %>%
+  select(Target_Gene, Method, Spearman_Rho) %>%
+  bind_rows(setbp1_pathways) %>%
+  left_join(pathway_map_df, by = c("Method")) %>%
+  group_by(Target_Gene) %>%
+  summarize(across(everything(), ~ paste(na.omit(.), collapse = "; ")), .groups = "drop") %>%
+  filter(Target_Gene %in% pharos_druggable$Target)
 
 write_csv(prioritized_targets, paste0(outdir, "setbp1_targets_prioritized.csv"))
 cat("\nSaved final prioritized targets to: setbp1_targets_prioritized.csv\n\n")
@@ -117,6 +131,15 @@ cat(
   "\nNumber of top prioritized targets: ",
   length(unique(prioritized_targets$Target_Gene))
 )
-cat("\nFrequency of targets by prioritization method:\n")
+cat("\nStructure of saved table:\n")
+print(str(prioritized_targets))
 
-print(sort(table(prioritized_targets$Target_Gene)))
+#### END ####
+
+# end timer
+fptm <- proc.time()
+cat("\n\nTotal runtime:  ", (fptm[3] / 60), "\n")
+
+#  session info
+cat("\n\nSession Info:\n")
+print(sessionInfo())
