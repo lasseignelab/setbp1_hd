@@ -179,7 +179,7 @@ ggplot(plot_sex_data, aes(x = Age, y = Target_Mean, fill = SEX_Label)) +
   labs(
     title = "SETBP1 Target Expression: Male vs. Female",
     x = "Age Bracket",
-    y = "Mean Target Expression (Z-Score)",
+    y = "Mean Target Expression",
     fill = "Sex"
   ) +
   theme(
