@@ -122,7 +122,12 @@ prioritized_targets <- top_coexpr %>%
   bind_rows(setbp1_pathways) %>%
   left_join(pathway_map_df, by = c("Method")) %>%
   group_by(Target_Gene) %>%
-  summarize(across(everything(), ~ paste(na.omit(.), collapse = "; ")), .groups = "drop") %>%
+  summarize(
+    across(
+      everything(), ~ paste(na.omit(.), collapse = "; ")
+    ),
+    .groups = "drop"
+  ) %>%
   filter(Target_Gene %in% pharos_druggable$Target)
 
 write_csv(prioritized_targets, paste0(outdir, "prioritized_setbp1_targets.csv"))
