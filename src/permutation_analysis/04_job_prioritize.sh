@@ -1,8 +1,9 @@
 #!/bin/bash
 
 #SBATCH --ntasks=1
-#SBATCH --mem-per-cpu=64G
+#SBATCH --mem-per-cpu=16G
 #SBATCH --partition=short
+#SBATCH --time=00:30:00
 
 #### DATASETS ####
 
