@@ -77,12 +77,7 @@ pathway_map <- list(
   # Neurodevelopment and circuitry
   "Regulation of neural precursor cell proliferation" = "GO:2000177",
   "Synapse_assembly" = "GO:0007416",
-  "Prostaglandin_receptor_activity" = "GO:0004955",
-  # Metabolism and bioenergetics
-  "Peptide_biosynthetic_process" = "GO:0043043",
-  "Macromolecule_biosynthetic_process" = "GO:0009059",
-  "Mitochondrion" = "GO:0005739",
-  "Mitochondrion_organization" = "GO:0007005"
+  "Prostaglandin_receptor_activity" = "GO:0004955"
 )
 
 target_pathway_ids <- unlist(pathway_map)
