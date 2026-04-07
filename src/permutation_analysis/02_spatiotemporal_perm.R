@@ -1,4 +1,4 @@
-##### Permuation Analysis of SETBP1 Targets #####
+##### Permutation Analysis of SETBP1 Targets #####
 ## GOAL: Determine the presence & directional bias of
 ## SETBP1 targets across brain development
 
@@ -99,7 +99,7 @@ cols_meta <- cols_meta %>%
     # Increased window to capture rapid synaptogenesis and increase sample size
     (!is.na(months)) | (!is.na(years) & years <= 1) ~ "Infancy",
     !is.na(years) & years >= 2 & years <= 5 ~ "Early_Childhood",
-    !is.na(years) & years >= 6 & years <= 16 ~ "Childhood",
+    !is.na(years) & years >= 6 & years <= 17 ~ "Childhood",
     !is.na(years) & years >= 18 ~ "Adult",
     TRUE ~ "Other" # Catches anything that doesn't fit
   ))
@@ -152,7 +152,6 @@ stats_results <- data.frame()
 # Calculating average expression for every gene for different windows
 windows <- unique(cols_meta$dev_window)
 
-# for (reg in target_regions) {
 for (win in windows) {
   # Samples in each window + region combo
   cat("\nRunning permutation for: \n", win)
@@ -210,7 +209,6 @@ for (win in windows) {
     p_val_two_sided = p_val_two_sided
   ))
 }
-# }
 # Apply FDR correction for multiple hypotheses
 stats_results$p_val_adj <- p.adjust(
   stats_results$p_val_two_sided,
@@ -220,7 +218,7 @@ print(stats_results)
 write_csv(stats_results, paste0(outdir, "brainspan_permutation_stats.csv"))
 
 rownames(gene_results) <- setbp1_targets
-write_csv(gene_results, paste0(outdir, "brainspan_window_gene_means.csv"))
+write.csv(gene_results, paste0(outdir, "brainspan_window_gene_means.csv"))
 cat("\n\nPermutations complete, results saved. \n")
 
 #### END ####

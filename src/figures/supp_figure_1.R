@@ -1,4 +1,4 @@
-##### Permuation Analysis Plotting #####
+##### Permutation Analysis Plotting #####
 
 suppressPackageStartupMessages({
   library(argparse)
@@ -97,7 +97,7 @@ brainspan_lolli <- ggplot(stats_results, aes(y = label, x = z_score)) +
     labels = c("FALSE" = "Depletion", "TRUE" = "Enrichment"),
     name = "Z-Score Direction"
   ) +
-  scale_x_continuous(expand = expansion(add = 1.5)) +
+  scale_x_continuous(expand = expansion(add = 1.75)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
   theme_minimal() +
   labs(

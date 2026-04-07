@@ -1,6 +1,6 @@
 # Increase the connection buffer to 16MB
 Sys.setenv("VROOM_CONNECTION_SIZE" = 32000000)
-##### Permuation Analysis of SETBP1 Targets #####
+##### Permutation Analysis of SETBP1 Targets #####
 ## GOAL: To determine the presence and/or directional bias of
 ## SETBP1 targets across tissues and ages.
 
@@ -283,7 +283,7 @@ sex_results <- sex_data %>%
   arrange(P_Value)
 
 write_csv(sex_results, paste0(outdir, "gtex_sex_wilcox_results.csv"))
-cat("\nSex comparison results saved to: postnatal_gtex_sex_results.csv")
+cat("\nSex comparison results saved to: gtex_sex_wilcox_results.csv")
 
 
 ### PERMUTATION ANALYSIS ACROSS TISSUES ###
