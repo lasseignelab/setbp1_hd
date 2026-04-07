@@ -57,7 +57,7 @@ print(head(top_brainspan_coexpr))
 top_coexpr <- rbind(top_gtex_coexpr, top_brainspan_coexpr)
 
 write_csv(
-  top_coexpr, paste0(outdir, "top_target_coexpression.csv")
+  top_coexpr, paste0(outdir, "prioritized_target_coexpression.csv")
 )
 
 ### gene functional pathway annotations ###
@@ -77,10 +77,10 @@ pathway_map <- list(
   # Neurodevelopment and circuitry
   "Regulation of neural precursor cell proliferation" = "GO:2000177",
   "Synapse_assembly" = "GO:0007416",
-  "Prostaglandin_receptor_activity" = "GO:0004955",  
+  "Prostaglandin_receptor_activity" = "GO:0004955",
   # Metabolism and bioenergetics
   "Peptide_biosynthetic_process" = "GO:0043043",
-  "Macromolecule_biosynthetic_process" =  "GO:0009059",
+  "Macromolecule_biosynthetic_process" = "GO:0009059",
   "Mitochondrion" = "GO:0005739",
   "Mitochondrion_organization" = "GO:0007005"
 )
@@ -103,17 +103,17 @@ setbp1_pathways <- pathway_df %>%
   filter(!is.na(Target_Gene)) %>%
   filter(Target_Gene %in% setbp1_targets)
 
-write_csv(setbp1_pathways, paste0(outdir, "setbp1_target_pathways.csv"))
+write_csv(setbp1_pathways, paste0(outdir, "prioritized_target_pathways.csv"))
 
 ### COMBINED TARGET PRIORITIZATION ###
 # Targets filtered by PHAROS development leve
 pharos_druggable <- setbp1_targets_table %>%
-filter(`Target Development Level` %in% c("Tchem", "Tclin"))
+  filter(`Target Development Level` %in% c("Tchem", "Tclin"))
 
 # Convert pathway map to df
 pathway_map_df <- data.frame(
-"Method" = target_pathway_ids,
-"GO_Term" = names(pathway_map) 
+  "Method" = target_pathway_ids,
+  "GO_Term" = names(pathway_map)
 )
 str(pathway_map_df)
 
@@ -125,8 +125,8 @@ prioritized_targets <- top_coexpr %>%
   summarize(across(everything(), ~ paste(na.omit(.), collapse = "; ")), .groups = "drop") %>%
   filter(Target_Gene %in% pharos_druggable$Target)
 
-write_csv(prioritized_targets, paste0(outdir, "setbp1_targets_prioritized.csv"))
-cat("\nSaved final prioritized targets to: setbp1_targets_prioritized.csv\n\n")
+write_csv(prioritized_targets, paste0(outdir, "prioritized_setbp1_targets.csv"))
+cat("\nSaved final prioritized targets to: prioritized_setbp1_targets.csv\n\n")
 cat(
   "\nNumber of top prioritized targets: ",
   length(unique(prioritized_targets$Target_Gene))
