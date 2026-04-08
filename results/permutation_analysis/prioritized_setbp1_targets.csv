@@ -1,35 +1,35 @@
 Target_Gene,Method,Spearman_Rho,GO_Term
-BAZ2B,GO:0010467; GO:0006325,,Gene_expression; Chromatin_organization
-BMPR1B,GO:0010467; GO:0051254,,Gene_expression; Positive_regulation_RNA_metabolic_process
-BMPR2,GTEx_Coexpr; GO:0010467; GO:0051254; GO:0035556,0.7474918810946,Gene_expression; Positive_regulation_RNA_metabolic_process; Intracellular signal transduction
-BPTF,GTEx_Coexpr; Brainspan_Coexpr; GO:0010467; GO:0051254; GO:0006325,0.711537323508429; 0.810125210856751,Gene_expression; Positive_regulation_RNA_metabolic_process; Chromatin_organization
-BRCA1,GO:0010467; GO:0051254; GO:0006325; GO:0035556; GO:0010564,,Gene_expression; Positive_regulation_RNA_metabolic_process; Chromatin_organization; Intracellular signal transduction; Regulation of cell cycle process
-CDK8,GTEx_Coexpr; Brainspan_Coexpr; GO:0010467; GO:0051254,0.715980907220096; 0.726755256041085,Gene_expression; Positive_regulation_RNA_metabolic_process
-CDKN1A,GO:0010467; GO:0035556; GO:0010564,,Gene_expression; Intracellular signal transduction; Regulation of cell cycle process
-CHEK1,GO:0010467; GO:0006325; GO:0035556; GO:0010564,,Gene_expression; Chromatin_organization; Intracellular signal transduction; Regulation of cell cycle process
-EED,GO:0010467; GO:0006325; GO:0003682,,Gene_expression; Chromatin_organization; Chromatin_binding
-EPHA7,Brainspan_Coexpr; GO:0035556; GO:0007416,0.8350026342238,Intracellular signal transduction; Synapse_assembly
+BAZ2B,GO:0010467; GO:0006325,,Gene expression; Chromatin organization
+BMPR1B,GO:0010467; GO:0051254,,Gene expression; Positive regulation RNA metabolic process
+BMPR2,GTEx_Coexpr; GO:0010467; GO:0051254; GO:0035556,0.7474918810946,Gene expression; Positive regulation RNA metabolic process; Intracellular signal transduction
+BPTF,GTEx_Coexpr; Brainspan_Coexpr; GO:0010467; GO:0051254; GO:0006325,0.711537323508429; 0.810125210856751,Gene expression; Positive regulation RNA metabolic process; Chromatin organization
+BRCA1,GO:0010467; GO:0051254; GO:0006325; GO:0035556; GO:0010564,,Gene expression; Positive regulation RNA metabolic process; Chromatin organization; Intracellular signal transduction; Regulation of cell cycle process
+CDK8,GTEx_Coexpr; Brainspan_Coexpr; GO:0010467; GO:0051254,0.715980907220096; 0.726755256041085,Gene expression; Positive regulation RNA metabolic process
+CDKN1A,GO:0010467; GO:0035556; GO:0010564,,Gene expression; Intracellular signal transduction; Regulation of cell cycle process
+CHEK1,GO:0010467; GO:0006325; GO:0035556; GO:0010564,,Gene expression; Chromatin organization; Intracellular signal transduction; Regulation of cell cycle process
+EED,GO:0010467; GO:0006325; GO:0003682,,Gene expression; Chromatin organization; Chromatin binding
+EPHA7,Brainspan_Coexpr; GO:0035556; GO:0007416,0.8350026342238,Intracellular signal transduction; Synapse assembly
 EPRS,Brainspan_Coexpr,0.821415914810745,
-ERBB4,GO:0010467; GO:0051254; GO:0051896; GO:0035556; GO:0007416,,Gene_expression; Positive_regulation_RNA_metabolic_process; Regulation of protein kinase B signaling; Intracellular signal transduction; Synapse_assembly
+ERBB4,GO:0010467; GO:0051254; GO:0051896; GO:0035556; GO:0007416,,Gene expression; Positive regulation RNA metabolic process; Regulation of protein kinase B signaling; Intracellular signal transduction; Synapse assembly
 GGCX,GTEx_Coexpr,0.756490182916181,
-HDAC9,GO:0010467; GO:0006325,,Gene_expression; Chromatin_organization
-HGF,GO:0010467; GO:0051254; GO:0051896; GO:0035556,,Gene_expression; Positive_regulation_RNA_metabolic_process; Regulation of protein kinase B signaling; Intracellular signal transduction
-KAT6A,Brainspan_Coexpr; GO:0010467; GO:0051254; GO:0006325; GO:0003682; GO:0035556,0.867259060324318,Gene_expression; Positive_regulation_RNA_metabolic_process; Chromatin_organization; Chromatin_binding; Intracellular signal transduction
-KMT2A,GTEx_Coexpr; GO:0010467; GO:0051254; GO:0006325; GO:0003682,0.76702022179054,Gene_expression; Positive_regulation_RNA_metabolic_process; Chromatin_organization; Chromatin_binding
+HDAC9,GO:0010467; GO:0006325,,Gene expression; Chromatin organization
+HGF,GO:0010467; GO:0051254; GO:0051896; GO:0035556,,Gene expression; Positive regulation RNA metabolic process; Regulation of protein kinase B signaling; Intracellular signal transduction
+KAT6A,Brainspan_Coexpr; GO:0010467; GO:0051254; GO:0006325; GO:0003682; GO:0035556,0.867259060324318,Gene expression; Positive regulation RNA metabolic process; Chromatin organization; Chromatin binding; Intracellular signal transduction
+KMT2A,GTEx_Coexpr; GO:0010467; GO:0051254; GO:0006325; GO:0003682,0.76702022179054,Gene expression; Positive regulation RNA metabolic process; Chromatin organization; Chromatin binding
 MAP4K1,GO:0035556,,Intracellular signal transduction
 MGAT2,Brainspan_Coexpr,0.724337445865331,
-NDUFAB1,GO:0010467,,Gene_expression
-NFE2L2,GO:0010467; GO:0051254; GO:0035556,,Gene_expression; Positive_regulation_RNA_metabolic_process; Intracellular signal transduction
+NDUFAB1,GO:0010467,,Gene expression
+NFE2L2,GO:0010467; GO:0051254; GO:0035556,,Gene expression; Positive regulation RNA metabolic process; Intracellular signal transduction
 PARG,GTEx_Coexpr,0.689870605098776,
-PBRM1,GTEx_Coexpr; Brainspan_Coexpr; GO:0010467; GO:0006325; GO:0003682; GO:0010564,0.784728267921418; 0.899652829181532,Gene_expression; Chromatin_organization; Chromatin_binding; Regulation of cell cycle process
-PDE4D,Brainspan_Coexpr; GO:0010467; GO:0035556,0.746948212122413,Gene_expression; Intracellular signal transduction
-PHF8,GTEx_Coexpr; GO:0010467; GO:0051254; GO:0006325; GO:0003682,0.664580654846671,Gene_expression; Positive_regulation_RNA_metabolic_process; Chromatin_organization; Chromatin_binding
-PITRM1,GTEx_Coexpr; GO:0010467,0.800958901344844,Gene_expression
+PBRM1,GTEx_Coexpr; Brainspan_Coexpr; GO:0010467; GO:0006325; GO:0003682; GO:0010564,0.784728267921418; 0.899652829181532,Gene expression; Chromatin organization; Chromatin binding; Regulation of cell cycle process
+PDE4D,Brainspan_Coexpr; GO:0010467; GO:0035556,0.746948212122413,Gene expression; Intracellular signal transduction
+PHF8,GTEx_Coexpr; GO:0010467; GO:0051254; GO:0006325; GO:0003682,0.664580654846671,Gene expression; Positive regulation RNA metabolic process; Chromatin organization; Chromatin binding
+PITRM1,GTEx_Coexpr; GO:0010467,0.800958901344844,Gene expression
 PKN2,GTEx_Coexpr; GO:0035556; GO:0010564,0.682733654788693,Intracellular signal transduction; Regulation of cell cycle process
-PRKACB,GO:0010467; GO:0035556,,Gene_expression; Intracellular signal transduction
-PTGS2,GO:0010467; GO:0035556,,Gene_expression; Intracellular signal transduction
-PTPN13,GO:0051896; GO:0035556; GO:0007416,,Regulation of protein kinase B signaling; Intracellular signal transduction; Synapse_assembly
-PTPRC,GO:0010467; GO:0035556,,Gene_expression; Intracellular signal transduction
+PRKACB,GO:0010467; GO:0035556,,Gene expression; Intracellular signal transduction
+PTGS2,GO:0010467; GO:0035556,,Gene expression; Intracellular signal transduction
+PTPN13,GO:0051896; GO:0035556; GO:0007416,,Regulation of protein kinase B signaling; Intracellular signal transduction; Synapse assembly
+PTPRC,GO:0010467; GO:0035556,,Gene expression; Intracellular signal transduction
 RAD52,GTEx_Coexpr,0.713643644110946,
 STK17B,GO:0035556,,Intracellular signal transduction
 TFPI,GTEx_Coexpr,0.670779105480738,

@@ -123,7 +123,8 @@ prioritized_targets <- top_coexpr %>%
     ),
     .groups = "drop"
   ) %>%
-  filter(Target_Gene %in% pharos_druggable$Target)
+  filter(Target_Gene %in% pharos_druggable$Target) %>%
+  mutate(GO_Term = gsub("_", " ", GO_Term))
 
 write_csv(prioritized_targets, paste0(outdir, "prioritized_setbp1_targets.csv"))
 cat("\nSaved final prioritized targets to: prioritized_setbp1_targets.csv\n\n")
