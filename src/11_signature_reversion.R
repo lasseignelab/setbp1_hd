@@ -73,7 +73,7 @@ setbp1_targets_all <- read_csv(paste0(
 ))
 # Prioritized targets from coexpression & pathway analysis
 setbp1_targets_top <- read_csv(paste0(
-  datapath, "setbp1_targets_prioritized.csv"
+  resdir, "permutation_analysis/prioritized_setbp1_targets.csv"
 ))
 
 ###### PREPARE QUERY SIGNATURE ######
