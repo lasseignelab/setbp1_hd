@@ -60,7 +60,7 @@ write_csv(
   top_coexpr, paste0(outdir, "prioritized_target_coexpression.csv")
 )
 
-### gene functional pathway annotations ###
+### GENE-FUNCTIONAL PATHWAY ANNOTATIONS ###
 pathway_map <- list(
   # Transcriptional and epigenetic regulation
   "Gene_expression" = "GO:0010467",
@@ -101,7 +101,7 @@ setbp1_pathways <- pathway_df %>%
 write_csv(setbp1_pathways, paste0(outdir, "prioritized_target_pathways.csv"))
 
 ### COMBINED TARGET PRIORITIZATION ###
-# Targets filtered by PHAROS development leve
+# Targets filtered by PHAROS development level
 pharos_druggable <- setbp1_targets_table %>%
   filter(`Target Development Level` %in% c("Tchem", "Tclin"))
 
