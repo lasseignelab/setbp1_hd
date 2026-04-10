@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=2
 #SBATCH --mem-per-cpu=96GB
-#SBATCH --time=01:00:00
+#SBATCH --time=10:00:00
 #SBATCH --partition=short
 
 #### DATASETS ####
