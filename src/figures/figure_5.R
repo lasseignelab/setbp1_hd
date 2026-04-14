@@ -71,7 +71,13 @@ drug_safety <- read_csv(
 
 ### SETBP1 DRUG TARGETS ###
 message("Plotting shared drug/SETBP1 targets plots...")
-drug_targets_setbp1 %>%
+# filter for approved drugs
+approved_drugs_setbp1 <- drug_targets_setbp1 %>%
+  filter(max_phase == 4)
+
+approved_drugs_setbp1 %>%
+  # filter for approved drugs
+  filter(max_phase == 4) %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
   geom_bar()
@@ -122,8 +128,7 @@ ggsave(paste0(
 ), width = 19, height = 16, units = "cm")
 
 
-setbp1_targets_plot <- drug_targets_setbp1 %>%
-  filter(!is.na(pref_name)) %>%
+setbp1_targets_plot <- approved_drugs_setbp1 %>%
   ggplot(aes(
     y = mergeTargets,
     x = -WTCS
@@ -140,7 +145,7 @@ setbp1_targets_plot <- drug_targets_setbp1 %>%
     x = "-(Weighted Connectivity Score)",
     y = "SETBP1 & Drug Target",
     colour = "Drug",
-    shape = "Approved Drug"
+    shape = "Priority SETBP1 Target"
   ) +
   guides(size = "none", alpha = "none") +
   theme_minimal() +
@@ -213,12 +218,16 @@ ggsave(paste0(
 ), width = 19, height = 25, units = "cm")
 
 ### ANNOTATED DRUG TABLE ###
-message("Writing full drug table with SETBP1 + safety annotations...")
-
-full_drug_anno <- approved_drugs %>%
+message("Writing drug tables with SETBP1 + safety annotations...")
+converg_drug_anno <- approved_drugs %>%
   mutate(SETBP1_Target = ifelse(
     pert %in% drug_targets_setbp1$pert, TRUE, FALSE
-  )) %>%
+  ))
+write_csv(
+  converg_drug_anno, paste0(filepath, "setbp1_converge_drug_anno_table.csv")
+)
+
+full_drug_anno <- converg_drug_anno %>%
   left_join(drug_safety, by = c("pref_name" = "Name"))
 
 write_csv(full_drug_anno, paste0(filepath, "full_drug_safety_anno_table.csv"))
@@ -269,6 +278,7 @@ cowplot::plot_grid(
   top_wtcs_plot,
   setbp1_targets_plot,
   labels = "AUTO",
+  rel_heights = c(1, 1.5, 1),
   ncol = 1
 )
 
