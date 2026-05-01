@@ -241,6 +241,10 @@ bin/conda/work/
 bin/conda/work/*
 bin/conda/.nextflow/
 bin/container/*
+<<<<<<< HEAD
+bin/docker/
+src/lint_and_style.sh
+src/lint_and_style.sh
 results/permutation_analysis/aggregate_gene_exp_mat.csv
 Rplots.pdf
 src/lint_and_style.sh
