@@ -1,47 +1,83 @@
-README
-================
-2023-02-27
-
-**EDIT THIS DOCUMENT, NOT README.md**
-
-# README Template
-
-**SETBP1-HD**
-
+# SETBP1-HD: Intersection of Regulatory Analysis and Signature Reversion Uncovers Therapeutic Drugs and Targets
 ## Purpose
+This repository contains the code and analysis pipeline for identifying repurposable drugs for SETBP1 Haploinsufficiency Disorder (SETBP1-HD). By deriving a consensus transcriptomic signature from in vitro and in vivo models and integrating it with SETBP1 regulatory targets, we prioritize FDA-approved therapeutics (such as celecoxib and buspirone) capable of reversing disease-associated molecular disruptions.
 
-**\[Replace this section with the purpose of your research project.\]**
-This is an R Markdown document created for the Lasseigne Lab R Project
-Template. The project and README template are designed to create
-standardized R projects for research ongoing in the [Lasseigne Lab at
-the University of Alabama at Birmingham](https://www.lasseigne.org/)
+## Dependencies
+The pipeline utilizes a combination of Conda environments and Docker containers to ensure reproducibility. Below are the environments/images required and the scripts that run within them:
 
-## Installation/Dependencies OR Scripts
-
-**\[if project will be a package\]** - this section should be titled
-“Installation” Include a code chunk on how to install your package
-
-**\[if project will not be a package\]** - this section should be titled
-“Dependencies” or “Scripts” Include a code chunk (if relevant) on what
-your project depends on. Include a “script tree” on how to reproduce
-your results with descriptions for all scripts
+- **Conda Environment (bin/conda/nfcore-env.yml)**
+  - 04_human_preprocess.sh
+  - 04_mouse_preprocess.sh
+- **Docker: ncbi/sra-tools:3.2.1**
+  - 02_fetch_data.sh
+- **Docker: lizzyr/lw_models:0.1.1**
+  - 05_data_cleaning.R
+  - 06_dataset_eda.R
+  - 07_combined_eda.R
+- **Docker: lizzyr/lw_dea:0.3.1**
+  - 08_find_degs.R
+  - 09_analyze_degs.R
+  - 10_consensus_signature.R
+  - permutation_analysis/02_job_permutation.sh
+  - permutation_analysis/03_job_permutation.sh
+  - permutation_analysis/04_job_prioritize.sh
+- **Docker: lizzyr/sigsearch:1.0.0**
+  - 11_signature_reversion.R
+  - 12_drugtarget_degs.R
+- **Docker: projectassistant/sitemap-scraper:latest**
+  - 13_drug_safety.py
 
 ## Data
-GSE262710
-- Cardo et al.: [Identifying SETBP1 haploinsufficiency molecular pathways to improve patient diagnosis using induced pluripotent stem cells and neural disease modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11443744/)
+Cardo et al.: [Identifying SETBP1 haploinsufficiency molecular pathways to improve patient diagnosis using induced pluripotent stem cells and neural disease modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11443744/)
+- GSE262710
 
-GSE180185
-- Shaw et al.: [Impaired neurogenesis and neural progenitor fate choice in a human stem cell model of SETBP1 disorder](https://pmc.ncbi.nlm.nih.gov/articles/PMC9940404/)
+Shaw et al.: [Impaired neurogenesis and neural progenitor fate choice in a human stem cell model of SETBP1 disorder](https://pmc.ncbi.nlm.nih.gov/articles/PMC9940404/)
+- GSE180185
 
-PRJNA898600 (Lin−c-Kit+ cells)
-- Tanaka et al.: [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
+Tanaka et al.: [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
+- PRJNA898600 (Lin−c-Kit+ cells)
+- PRJNA974068 (Lin−c-Kit+ Sca-1+ cells)
 
-PRJNA974068 (Lin−c-Kit+ Sca-1+ cells)
-- Tanaka et al.: [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
+Wong et al.: [SETBP1 variants outside the degron disrupt DNA-binding, transcription and neuronal differentiation capacity to cause a heterogeneous neurodevelopmental disorder](https://www.nature.com/articles/s41467-025-64074-x)
+- GSE301238 (fibroblasts)
+- GSE301239 (induced neurons)
 
-## Authors
+## Scripts
+The src/ directory contains the complete pipeline for data fetching, preprocessing, exploratory data analysis (EDA), differential expression analysis (DEA), and drug prioritization.
+```
+src/
+├── 01_ref_genome.sh                # Downloads and builds reference genome indices.
+├── 02_fetch_data.sh                # Retrieves raw RNA-seq data from public repositories.
+├── 03_fastq_samplesheet_job.sh     # Generates sample sheets mapping the downloaded FASTQ files.
+├── 04_human_preprocess.sh          # Preprocesses raw human reads (QC, alignment, quantification).
+├── 04_mouse_preprocess.sh          # Preprocesses raw mouse reads (QC, alignment, quantification).
+├── 05_data_cleaning.R              # Cleans and formats raw count matrices for downstream analysis.
+├── 05_job_cleaning.sh
+├── 06_dataset_eda.R                # Performs Exploratory Data Analysis (EDA) on individual datasets.
+├── 06_job_eda.sh
+├── 07_combined_eda.R               # Evaluates cross-study batch effects and combined data structure.
+├── 07_job_combined_eda.sh
+├── 08_find_degs.R                  # Conducts differential expression analysis (DEA) to find significant gene changes.
+├── 08_job_dea.sh
+├── 09_analyze_degs.R               # Analyzes and visualizes the DEGs (e.g., volcano plots, functional enrichment).
+├── 09_job_analyze_degs.sh
+├── 10_consensus_signature.R        # Derives the robust consensus transcriptomic signature across SETBP1-HD models.
+├── 10_job_consensus_sig.sh
+├── 11_signature_reversion.R        # Queries the LINCS database to find drugs that reverse the consensus signature.
+├── 11_job_sigsearch.sh
+├── 12_drugtarget_degs.R            # Intersects drug candidate targets with prioritized SETBP1 regulatory targets.
+├── 12_job_drugtarget_degs.sh
+├── 13_drug_safety.py               # Scrapes and evaluates pediatric/pregnancy safety profiles for top drug candidates.
+├── 13_job_drug_safety.sh
+├── figures/                        # Scripts for generating final publication figures.
+├── functions.R                     # Custom reusable R functions used throughout the pipeline.
+└── permutation_analysis/           # Scripts for spatiotemporal permutation testing of SETBP1 targets.
+```
 
-List co-authors if known here.
+## Authors 
+
+Elizabeth J. Wilk, Sasha Taluri, Tabea M. Soelter, and Brittany N. Lasseigne
+
 
 ## Lasseigne Lab
 
@@ -53,11 +89,11 @@ List co-authors if known here.
 
 ## Funding
 
-List project funding sources.
+We are grateful to our funders for this work: the [SETBP1 Society](https://www.setbp1.org/) (2024 Microgrant) and the [UAB Pilot Center for Precision Animal Modeling (C-PAM)](https://sites.uab.edu/cpam/) (U54-OD030167)
 
 ## Acknowledgements
 
-List project acknowledgements.
+We thank the Lasseigne Lab members for their thoughtful input and discussion. We also extend our deep gratitude to the SETBP1 Society and the broader community of researchers, clinicians, patients, and caregivers. Your dedication, open sharing of data, and collaborative discussions have been instrumental in advancing this research and improving the care of those affected by SETBP1 variation.
 
 ## License
 
