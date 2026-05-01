@@ -1,9 +1,9 @@
 # SETBP1-HD: Intersection of Regulatory Analysis and Signature Reversion Uncovers Therapeutic Drugs and Targets
 ## Purpose
-This repository contains the code and analysis pipeline for identifying repurposable drugs for SETBP1 Haploinsufficiency Disorder (SETBP1-HD). By deriving a consensus transcriptomic signature from in vitro and in vivo models and integrating it with SETBP1 regulatory targets, we prioritize FDA-approved therapeutics (such as celecoxib and buspirone) capable of reversing disease-associated molecular disruptions.
+This repository contains the code and analysis pipeline for identifying repurposable drugs for * *SETBP1* * Haploinsufficiency Disorder (* *SETBP1* *-HD). By deriving a consensus transcriptomic signature from * *in-vitro* * models and integrating it with * *SETBP1* * regulatory targets, we prioritize FDA-approved therapeutics (such as celecoxib and buspirone) capable of reversing disease-associated molecular disruptions.
 
 ## Dependencies
-The pipeline utilizes a combination of Conda environments and Docker containers to ensure reproducibility. Below are the environments/images required and the scripts that run within them:
+This codebase was built using the [CAPTURE](https://github.com/lasseignelab/capture) framework (cap version 1.0) and uses a combination of Conda environments and Docker containers to ensure reproducibility. Below are the environments/images required and the scripts that run within them:
 
 - **Conda Environment (bin/conda/nfcore-env.yml)**
   - 04_human_preprocess.sh
@@ -28,19 +28,17 @@ The pipeline utilizes a combination of Conda environments and Docker containers 
   - 13_drug_safety.py
 
 ## Data
-Cardo et al.: [Identifying SETBP1 haploinsufficiency molecular pathways to improve patient diagnosis using induced pluripotent stem cells and neural disease modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11443744/)
-- GSE262710
+- **Signature reversion drug repurposing analyses:**
+  - GSE262710: **Cardo et al.** [Identifying SETBP1 haploinsufficiency molecular pathways to improve patient diagnosis using induced pluripotent stem cells and neural disease modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11443744/)
+  - GSE180185: **Shaw et al.** [Impaired neurogenesis and neural progenitor fate choice in a human stem cell model of SETBP1 disorder](https://pmc.ncbi.nlm.nih.gov/articles/PMC9940404/)
+  - PRJNA898600 (Lin−c-Kit+ cells) & PRJNA974068 (Lin−c-Kit+ Sca-1+ cells): **Tanaka et al.** [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
+  - GSE301238 (fibroblasts) & GSE301239 (induced neurons): **Wong et al.** [SETBP1 variants outside the degron disrupt DNA-binding, transcription and neuronal differentiation capacity to cause a heterogeneous neurodevelopmental disorder](https://www.nature.com/articles/s41467-025-64074-x)
 
-Shaw et al.: [Impaired neurogenesis and neural progenitor fate choice in a human stem cell model of SETBP1 disorder](https://pmc.ncbi.nlm.nih.gov/articles/PMC9940404/)
-- GSE180185
+- **Regulatory target prioritization & permutation testing:**
+   - [GTEx](https://gtexportal.org/home/downloads/adult-gtex/overview) 2025-08-22 v11 RNASeQCv2.4.3 TPM and metadata files [v11 Sample and Subject Attributes DS]
+   - [dGTEx](https://gtexportal.org/home/downloads/developmental-gtex) 2025-07-21 v1 RNASeQCv2.4.3 TPM and metadata files [v1 2026-01-30 Sample and Subject Attributes])
+   - [BrainSpan](https://www.brainspan.org/static/download.html) api v2, developmental transcriptome zip file with expression matrix, row metadata [genes], column metadata [samples])
 
-Tanaka et al.: [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
-- PRJNA898600 (Lin−c-Kit+ cells)
-- PRJNA974068 (Lin−c-Kit+ Sca-1+ cells)
-
-Wong et al.: [SETBP1 variants outside the degron disrupt DNA-binding, transcription and neuronal differentiation capacity to cause a heterogeneous neurodevelopmental disorder](https://www.nature.com/articles/s41467-025-64074-x)
-- GSE301238 (fibroblasts)
-- GSE301239 (induced neurons)
 
 ## Scripts
 The src/ directory contains the complete pipeline for data fetching, preprocessing, exploratory data analysis (EDA), differential expression analysis (DEA), and drug prioritization.
@@ -71,7 +69,14 @@ src/
 ├── 13_job_drug_safety.sh
 ├── figures/                        # Scripts for generating final publication figures.
 ├── functions.R                     # Custom reusable R functions used throughout the pipeline.
-└── permutation_analysis/           # Scripts for spatiotemporal permutation testing of SETBP1 targets.
+└── permutation_analysis/
+    ├── 01_fetch_temporal_exp.sh      # Fetches BrainSpan and GTEx temporal gene expression data.
+    ├── 02_job_permutation.sh
+    ├── 02_spatiotemporal_perm.R      # Performs permutation testing to identify critical developmental windows for SETBP1 targets.
+    ├── 03_job_permutation.sh
+    ├── 03_postnatal_development.R    # Analyzes SETBP1 target expression shifts during the prenatal-to-postnatal transition.
+    ├── 04_job_prioritize.sh
+    └── 04_prioritize_targets.R       # Prioritizes targets based on spatiotemporal co-expression, core pathways, and known druggability.
 ```
 
 ## Authors 
@@ -93,7 +98,7 @@ We are grateful to our funders for this work: the [SETBP1 Society](https://www.s
 
 ## Acknowledgements
 
-We thank the Lasseigne Lab members for their thoughtful input and discussion. We also extend our deep gratitude to the SETBP1 Society and the broader community of researchers, clinicians, patients, and caregivers. Your dedication, open sharing of data, and collaborative discussions have been instrumental in advancing this research and improving the care of those affected by SETBP1 variation.
+We thank the Lasseigne Lab members for their thoughtful input and discussion. We also extend our deep gratitude to the * *SETBP1* * Society and the broader community of researchers, clinicians, patients, and caregivers. Your dedication, open sharing of data, and collaborative discussions have been instrumental in advancing this research and improving the care of those affected by * *SETBP1* * variation.
 
 ## License
 
