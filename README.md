@@ -1,6 +1,6 @@
-# SETBP1-HD: Intersection of Regulatory Analysis and Signature Reversion Uncovers Therapeutic Drugs and Targets
+# *SETBP1*-HD: Intersection of Regulatory Analysis and Signature Reversion Uncovers Therapeutic Drugs and Targets
 ## Purpose
-This repository contains the code and analysis pipeline for identifying repurposable drugs for * *SETBP1* * Haploinsufficiency Disorder (* *SETBP1* *-HD). By deriving a consensus transcriptomic signature from * *in-vitro* * models and integrating it with * *SETBP1* * regulatory targets, we prioritize FDA-approved therapeutics (such as celecoxib and buspirone) capable of reversing disease-associated molecular disruptions.
+This repository contains the code and analysis pipeline for identifying repurposable drugs for *SETBP1* Haploinsufficiency Disorder (*SETBP1*-HD). By deriving a consensus transcriptomic signature from *in-vitro* models and integrating it with *SETBP1* regulatory targets, we prioritize FDA-approved therapeutics (such as celecoxib and buspirone) capable of reversing disease-associated molecular disruptions.
 
 ## Dependencies
 This codebase was built using the [CAPTURE](https://github.com/lasseignelab/capture) framework (cap version 1.0) and uses a combination of Conda environments and Docker containers to ensure reproducibility. Below are the environments/images required and the scripts that run within them:
@@ -18,9 +18,9 @@ This codebase was built using the [CAPTURE](https://github.com/lasseignelab/capt
   - 08_find_degs.R
   - 09_analyze_degs.R
   - 10_consensus_signature.R
-  - permutation_analysis/02_job_permutation.sh
-  - permutation_analysis/03_job_permutation.sh
-  - permutation_analysis/04_job_prioritize.sh
+  - permutation_analysis/02_spatiotemporal_perm.R
+  - permutation_analysis/03_postnatal_development.R
+  - permutation_analysis/04_prioritize_targets.R
 - **Docker: lizzyr/sigsearch:1.0.0**
   - 11_signature_reversion.R
   - 12_drugtarget_degs.R
@@ -29,8 +29,8 @@ This codebase was built using the [CAPTURE](https://github.com/lasseignelab/capt
 
 ## Data
 - **Signature reversion drug repurposing analyses:**
-  - GSE262710: **Cardo et al.** [Identifying SETBP1 haploinsufficiency molecular pathways to improve patient diagnosis using induced pluripotent stem cells and neural disease modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11443744/)
-  - GSE180185: **Shaw et al.** [Impaired neurogenesis and neural progenitor fate choice in a human stem cell model of SETBP1 disorder](https://pmc.ncbi.nlm.nih.gov/articles/PMC9940404/)
+  - GSE180185: **Cardo et al.** [Impaired neurogenesis and neural progenitor fate choice in a human stem cell model of SETBP1 disorder](https://pmc.ncbi.nlm.nih.gov/articles/PMC9940404/)
+  - GSE262710: **Shaw et al.** [Identifying SETBP1 haploinsufficiency molecular pathways to improve patient diagnosis using induced pluripotent stem cells and neural disease modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11443744/)
   - PRJNA898600 (Lin−c-Kit+ cells) & PRJNA974068 (Lin−c-Kit+ Sca-1+ cells): **Tanaka et al.** [SETBP1 is dispensable for normal and malignant hematopoiesis](https://www.nature.com/articles/s41375-023-01970-5)
   - GSE301238 (fibroblasts) & GSE301239 (induced neurons): **Wong et al.** [SETBP1 variants outside the degron disrupt DNA-binding, transcription and neuronal differentiation capacity to cause a heterogeneous neurodevelopmental disorder](https://www.nature.com/articles/s41467-025-64074-x)
 
@@ -98,7 +98,7 @@ We are grateful to our funders for this work: the [SETBP1 Society](https://www.s
 
 ## Acknowledgements
 
-We thank the Lasseigne Lab members for their thoughtful input and discussion. We also extend our deep gratitude to the * *SETBP1* * Society and the broader community of researchers, clinicians, patients, and caregivers. Your dedication, open sharing of data, and collaborative discussions have been instrumental in advancing this research and improving the care of those affected by * *SETBP1* * variation.
+We thank the Lasseigne Lab members for their thoughtful input and discussion. We also extend our deep gratitude to the *SETBP1* Society and the broader community of researchers, clinicians, patients, and caregivers. Your dedication, open sharing of data, and collaborative discussions have been instrumental in advancing this research and improving the care of those affected by *SETBP1* variation.
 
 ## License
 
