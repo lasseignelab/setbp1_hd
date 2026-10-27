@@ -52,6 +52,15 @@ read_deg <- function(dataset_name, type = "significant_degs.csv") {
   read_csv(file) %>% mutate(dataset = dataset_name)
 }
 
+# helper function for safely plotting (leading to warnings instead of halting script)
+safely_plot <- function(expr, label) {
+  tryCatch(expr, error = function(e) {
+    message("PLOT FAILED (", label, "): ", conditionMessage(e))
+    try(dev.off(), silent = TRUE)
+    NULL
+  })
+}
+
 # function to calculate performance metrics of signature by validation genes
 calculate_sig_performance <- function(sig_genes, true_genes, universe_genes) {
   # Standardize inputs
@@ -121,7 +130,7 @@ unique(shaw_degs$contrast)
 
 # exclude redundant/biased contrasts
 contrasts_skip <- c(
-  "KOvsWT_NPC", "KOvsWT_all", "NPC_HD", "PATH_vs_PATH"
+  "KOvsWT_21", "KOvsWT_NPC", "KOvsWT_all", "NPC_HD", "PATH_vs_PATH"
 )
 
 # combine human data sets and filter
@@ -334,6 +343,67 @@ write_csv(
     outdir, "compositescore_consensus_signature.csv"
   )
 )
+
+# RRA-META
+lfc_th    <- 0.1
+rra_th    <- 0.05    # threshold on the RRA Score (a p-value), not on -log10
+meta_p_th <- 0.05
+i2_th     <- 75      # I^2 (%) above this = substantial between-contrast heterogeneity
+
+rra_meta <- rra %>%
+  inner_join(meta_stats, by = c("Name" = "gene")) %>%
+  left_join(sign_stats,  by = c("Name" = "gene")) %>%
+  mutate(
+    RRA_pval = -log10(Score),
+    ci_width = meta_ci_ub - meta_ci_lb,
+    ci_excludes_zero = sign(meta_ci_lb) == sign(meta_ci_ub),
+
+    passes_rra  = Score < rra_th,
+    passes_lfc  = abs(meta_logFC) > lfc_th,
+    passes_meta = meta_pval < meta_p_th,
+    passes_sign = sign_consistent,
+    passes_het  = is.na(meta_i2) | meta_k < 3 | meta_i2 < i2_th,
+    passes_data = n_datasets >= 2,
+
+    # Your original call, kept so the two are directly comparable
+    Direction = case_when(
+      meta_logFC >  lfc_th & Score < rra_th ~ "Upregulated",
+      meta_logFC < -lfc_th & Score < rra_th ~ "Downregulated",
+      TRUE ~ "Non-Significant/Inconsistent"
+    ),
+
+    Tier = case_when(
+      passes_rra & passes_lfc & passes_meta &
+        passes_sign & passes_het & passes_data      ~ "Tier1_high_confidence",
+      passes_rra & passes_lfc & passes_meta         ~ "Tier2_supported",
+      Direction != "Non-Significant/Inconsistent"   ~ "Tier3_exploratory",
+      TRUE                                          ~ "Excluded"
+    )
+  )
+
+table(rra_meta$Tier)
+table(rra_meta$Direction, rra_meta$Tier)
+
+# Which criterion is doing the work:
+rra_meta %>%
+  filter(Direction != "Non-Significant/Inconsistent") %>%
+  summarise(
+    n               = dplyr::n(),
+    fail_meta_p     = sum(!passes_meta,  na.rm = TRUE),
+    fail_sign       = sum(!passes_sign,  na.rm = TRUE),
+    fail_het        = sum(!passes_het,   na.rm = TRUE),
+    fail_one_dataset = sum(!passes_data, na.rm = TRUE)
+  ) %>%
+  print()
+
+rra_meta_filt <- rra_meta %>% filter(Direction != "Non-Significant/Inconsistent")
+tier1 <- rra_meta %>% filter(Tier == "Tier1_high_confidence")
+
+write_csv(rra_meta,      paste0(outdir, "RRA_meta_DEGs.csv"))
+write_csv(rra_meta_filt, paste0(outdir, "RRA_meta_consensus_signature.csv"))
+write_csv(tier1,         paste0(outdir, "RRA_meta_tier1_signature.csv"))
+
+
 ###### VALIDATION ######
 ## compare overlap between options for finding signature ##
 compare_sigs <- top_freq %>%
@@ -358,6 +428,7 @@ dataset_sig_degs <- consensus_wide %>%
   select(!contains("se_logFC")) %>%
   distinct()
 
+safely_plot({
 png(
   paste0(
     outdir, "upset_plot_compare_sigs.png"
@@ -366,6 +437,7 @@ png(
 )
 upset(compare_sigs, sets = colnames(compare_sigs), order.by = "freq")
 dev.off()
+}, "upset_signatures")
 
 # compare to Tanaka et al DEG
 tanaka_genes <- gorth(
@@ -456,6 +528,7 @@ plot_mat <- as.matrix(valid_degs_wide[, 3:ncol(valid_degs_wide)])
 rownames(plot_mat) <- valid_degs_wide$gene
 
 # plot
+safely_plot({
 pdf(paste0(outdir, "heatmap_all_degs_validation.pdf"), width = 10, height = 20)
 Heatmap(
   plot_mat,
@@ -469,6 +542,7 @@ Heatmap(
   border = TRUE
 )
 dev.off()
+}, "all_degs_validation")
 
 # --- create row (gene) annotations --- #
 ### gene functional pathway annotations ###
@@ -499,16 +573,14 @@ str(pathways)
 
 # filter for DEGs that are also in at least one validation set
 valid_degs_min <- valid_degs_wide %>%
-  select(
-    !c(
-      PATH3vsWT_shaw_logFC,
-      IPSC_HD_shaw_logFC,
-      HDvsWT_tanaka1,
-      HDvsWT_tanaka2
-    )
-  ) %>%
-  filter(rowSums(select(., 3:4)) != 0) %>%
+  select(!any_of(c(
+    "PATH3vsWT_shaw_logFC", "IPSC_HD_shaw_logFC",
+    "HDvsWT_tanaka1", "HDvsWT_tanaka2"
+  ))) %>%
+  filter(rowSums(across(any_of(c("fibro_wong", "neu_wong")))) != 0) %>%
   filter(gene_name %in% pathways$GeneSymbol)
+ 
+message("valid_degs_min rows: ", nrow(valid_degs_min))
 
 # define row annotation based on established pathways
 pathways_pivoted <- pathways %>%
@@ -586,9 +658,11 @@ heatmap_obj <- Heatmap(
 )
 
 # save
+safely_plot({
 pdf(paste0(outdir, "validation_degs_min.pdf"), width = 10, height = 22)
 draw(heatmap_obj, column_title_gp = gpar(fontsize = 14, fontface = "bold"))
 dev.off()
+}, "validation_degs_min")
 
 heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
   # filter and select sig degs
@@ -640,6 +714,7 @@ hm_list <- lapply(seq_along(sig_list), function(sig) {
 })
 
 # save all plots to one PDF
+safely_plot({
 pdf(
   paste0(outdir, "heatmap_validation_annotation_by_sig.pdf"),
   width = 10, height = 18
@@ -648,69 +723,11 @@ for (plot in hm_list) {
   print(plot)
 }
 dev.off()
+}, "validation_anno_by_sig")
 
 ### RRA and Meta Analysis Volcano Plot ###
 lfc_th <- 0.1 # logFC threshold
 pval_th <- -log10(0.05) # p-value threshold
-
-
-lfc_th    <- 0.1
-rra_th    <- 0.05    # threshold on the RRA Score (a p-value), not on -log10
-meta_p_th <- 0.05
-i2_th     <- 75      # I^2 (%) above this = substantial between-contrast heterogeneity
-
-rra_meta <- rra %>%
-  inner_join(meta_stats, by = c("Name" = "gene")) %>%
-  left_join(sign_stats,  by = c("Name" = "gene")) %>%
-  mutate(
-    RRA_pval = -log10(Score),
-    ci_width = meta_ci_ub - meta_ci_lb,
-    ci_excludes_zero = sign(meta_ci_lb) == sign(meta_ci_ub),
-
-    passes_rra  = Score < rra_th,
-    passes_lfc  = abs(meta_logFC) > lfc_th,
-    passes_meta = meta_pval < meta_p_th,
-    passes_sign = sign_consistent,
-    passes_het  = is.na(meta_i2) | meta_k < 3 | meta_i2 < i2_th,
-    passes_data = n_datasets >= 2,
-
-    # Your original call, kept so the two are directly comparable
-    Direction = case_when(
-      meta_logFC >  lfc_th & Score < rra_th ~ "Upregulated",
-      meta_logFC < -lfc_th & Score < rra_th ~ "Downregulated",
-      TRUE ~ "Non-Significant/Inconsistent"
-    ),
-
-    Tier = case_when(
-      passes_rra & passes_lfc & passes_meta &
-        passes_sign & passes_het & passes_data      ~ "Tier1_high_confidence",
-      passes_rra & passes_lfc & passes_meta         ~ "Tier2_supported",
-      Direction != "Non-Significant/Inconsistent"   ~ "Tier3_exploratory",
-      TRUE                                          ~ "Excluded"
-    )
-  )
-
-table(rra_meta$Tier)
-table(rra_meta$Direction, rra_meta$Tier)
-
-# Which criterion is doing the work:
-rra_meta %>%
-  filter(Direction != "Non-Significant/Inconsistent") %>%
-  summarise(
-    n               = dplyr::n(),
-    fail_meta_p     = sum(!passes_meta,  na.rm = TRUE),
-    fail_sign       = sum(!passes_sign,  na.rm = TRUE),
-    fail_het        = sum(!passes_het,   na.rm = TRUE),
-    fail_one_dataset = sum(!passes_data, na.rm = TRUE)
-  ) %>%
-  print()
-
-rra_meta_filt <- rra_meta %>% filter(Direction != "Non-Significant/Inconsistent")
-tier1 <- rra_meta %>% filter(Tier == "Tier1_high_confidence")
-
-write_csv(rra_meta,      paste0(outdir, "RRA_meta_DEGs.csv"))
-write_csv(rra_meta_filt, paste0(outdir, "RRA_meta_consensus_signature.csv"))
-write_csv(tier1,         paste0(outdir, "RRA_meta_tier1_signature.csv"))
 
 # compare RRA alone to RRA-meta
 excluded <- setdiff(rra_results$gene_name, rra_meta_filt$gene_name)
@@ -724,12 +741,14 @@ rra_meta_exc <- heatmap_by_method(
   title = "RRA Genes Excluded by Meta logFC Threshold"
 )
 # save all plots to one PDF
+safely_plot({
 pdf(
   paste0(outdir, "heatmap_rra_meta_excluded.pdf"),
   width = 10, height = 18
 )
 print(rra_meta_exc)
 dev.off()
+}, "rra_meta_excluded_genes")
 
 
 ###### ORA OF CONSENSUS SIGNATURES ######
@@ -801,13 +820,16 @@ p_disc <- ggplot(rank_disc, aes(x = rra_rank, y = -log10(meta_pval))) +
   ) +
   theme_bw()
 
+safely_plot({
 ggsave(paste0(outdir, "rra_vs_meta_discordance.png"), p_disc,
        width = 18, height = 13, units = "cm", dpi = 300)
+}, "rra_meta_discordance")
 
 # Forest plots for the genes the claims rest on. This is the figure that
 # shows a reader immediately why a gene did or did not survive.
 forest_genes <- c("LIN28A", "SPON1", "ROBO1", "PSMG3", "ISL2", "DRGX")
 
+safely_plot({
 pdf(paste0(outdir, "forest_headline_genes.pdf"), width = 7, height = 5)
 for (g in forest_genes) {
   d <- consensus_degs %>% filter(gene_name == g)
@@ -819,6 +841,7 @@ for (g in forest_genes) {
          xlab = "log2 fold change", main = g)
 }
 dev.off()
+}, "forest_headline_genes")
 
 
 # ==============================================================================
