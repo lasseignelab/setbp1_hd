@@ -3,7 +3,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=32G
 #SBATCH --partition=express
-#SBATCH --array=0-3
+#SBATCH --array=0 # -3
 
 #### DATASETS ####
 dataset_names=("cardo" "shaw" "tanaka1" "tanaka2")
@@ -18,4 +18,4 @@ singularity exec --cleanenv \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/08_find_degs.R \
                   -r "${CAP_DATA_PATH}"/processed/"${dataset}"_prepped_rse.rds \
                   -s "${dataset}" \
-                  -o "${CAP_PROJECT_PATH}"/results/dea/"${dataset}"
+                  -o "${CAP_PROJECT_PATH}"/results/diagnostics_dea/"${dataset}"

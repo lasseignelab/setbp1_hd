@@ -63,6 +63,11 @@ meta <- rse@metadata %>%
     across(where(is.character), as.factor)
   )
 
+print("ROWNAMES IDENTICAL TO COLNAMES? ")
+identical(rownames(meta), colnames(rse))          # should be TRUE
+print("CARDO 3/GROUP, 6 GROUPS? ")
+table(meta$sample)                                # should be 3 per group, 6 groups
+
 if (sra %in% c("tanaka1", "tanaka2")) {
   # rename sample column
   meta$sample <- meta$condition
