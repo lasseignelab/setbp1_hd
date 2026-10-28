@@ -66,25 +66,40 @@ drug_targets_setbp1 <- read_csv(
 )
 # DailyMed safety annotations for signature reversion drugs
 drug_safety <- read_csv(
-  paste0(datadir, "drug_safety_data.csv")
+  paste0(datadir, "drug_safety_summary.csv")
 )
 
-### SETBP1 DRUG TARGETS ###
-message("Plotting shared drug/SETBP1 targets plots...")
-# filter for approved drugs
-approved_drugs_setbp1 <- drug_targets_setbp1 %>%
-  filter(max_phase == 4)
+### DAILYMED BBW-FLAGGED DRUGS ###
+bbw_drugs <- approved_drugs %>%
+  left_join(drug_safety, by = c("pref_name" = "OT_Name")) %>%
+  filter(N_Distinct_BBW_Texts > 0)
+bbw_drugs <- unique(bbw_drugs$pref_name)
+paste0("DailyMed-Flagged BBW Drugs: ", bbw_drugs)
 
-approved_drugs_setbp1 %>%
-  # filter for approved drugs
-  filter(max_phase == 4) %>%
+approved_drugs <- approved_drugs %>%
+  # filter for non-bbw_drugs drugs
+  filter(!pref_name %in% bbw_drugs )
+
+### SETBP1 DRUG TARGETS ###
+message("Checking if NA max_phase is causing 'removed 5 rows' warning...")
+drug_targets_setbp1 %>%
+  filter(is.na(max_phase) | is.na(WTCS) | is.na(mergeTargets)) %>%
+  select(pert, pref_name, max_phase, WTCS, mergeTargets) %>%
+  print()
+
+message("Plotting shared drug/SETBP1 targets plots...")
+
+approved_drugs_setbp1 <- drug_targets_setbp1 %>%
+  filter(as.integer(max_phase) == 4) %>%
+  filter(!pref_name %in% bbw_drugs)
+ 
+p_targets_hist <- approved_drugs_setbp1 %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
   geom_bar()
-
-ggsave(paste0(
-  filepath, "drug_targets_histogram.png"
-), width = 19, height = 24, units = "cm")
+ 
+ggsave(paste0(filepath, "drug_targets_histogram.png"),
+       plot = p_targets_hist, width = 19, height = 24, units = "cm")
 
 drug_targets_setbp1 %>%
   ggplot(aes(
@@ -228,9 +243,11 @@ write_csv(
 )
 
 full_drug_anno <- converg_drug_anno %>%
-  left_join(drug_safety, by = c("pref_name" = "Name"))
+  left_join(drug_safety, by = c("pref_name" = "OT_Name"))
 
 write_csv(full_drug_anno, paste0(filepath, "full_drug_safety_anno_table.csv"))
+
+
 
 ### MOA ###
 message("Plotting approved drug MOA plots...")
