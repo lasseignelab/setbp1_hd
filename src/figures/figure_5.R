@@ -301,6 +301,24 @@ cowplot::plot_grid(
 
 dev.off()
 
+# Poster figure 4
+message("Plotting psoter figure 4...")
+png(paste0(filepath, "poster_figure_4.png"),
+  width = 300,
+  height = 400,
+  units = "mm",
+  res = 300
+)
+
+cowplot::plot_grid(
+  top_wtcs_plot,
+  setbp1_targets_plot,
+  labels = "AUTO",
+  ncol = 1
+)
+
+dev.off()
+
 # end timer
 fptm <- proc.time()
 (fptm[3] / 60)
