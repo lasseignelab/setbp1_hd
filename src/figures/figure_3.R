@@ -346,14 +346,21 @@ pval_th <- -log10(0.05) # p-value threshold
 
 # core_genes_label <- rra_meta %>%
 #   slice_max(RRA_pval, n = 10)
+label_exclude <- c(
+  "UTY",            # Y-linked — pending the check in edit 1
+  "ANKRD30BL",      # lncRNA, -4.06
+  "CHMP1B2P",       # pseudogene, -4.01
+  "GRM3"            # no meta estimate
+)
+ 
 core_genes_label <- rra_meta %>%
-filter(gene_name %in% c(
-"PSMG3", "TRIM71", "LIN28A",          # progenitor / heterochronic
-"ISL2", "DRGX", "PRPH", "EPHA5",      # peripheral identity
-"STMN2", "NEUROD1", "ELAVL4",         # neuronal maturation
-"PLK1", "NCAPD2",                     # proliferation
-"SALL1", "ZIC2", "RFX4"               # progenitor TFs
-))
+  filter(
+    Direction != "Non-Significant/Inconsistent",
+    abs(meta_logFC) >= 0.5,
+    !gene_name %in% label_exclude,
+    !str_detect(gene_name, "^(LINC|ENSG|MIR|SNOR)|-(AS|DT|IT|OT)[0-9]*$")
+  ) %>%
+  slice_max(RRA_pval, n = 12)
 
 volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
   geom_point(aes(color = Direction), alpha = 0.75, size = 2.5) +
@@ -375,11 +382,7 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
   labs(
     x = "Meta-analysis aggregate logFC",
     y = "-log10(Robust Rank Aggregate P-value)",
-    color = "Consensus Status",
-      subtitle = paste0(
-      sum(rra_meta$Direction == "Upregulated"), " up, ",
-      sum(rra_meta$Direction == "Downregulated"), " down",
-      " (|logFC| > 0.1, RRA P < 0.05)")
+    color = "Consensus Status"
   ) +
   theme(
     legend.position = "inside",
