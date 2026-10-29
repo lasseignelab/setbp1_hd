@@ -314,7 +314,7 @@ dev.off()
 message("Plotting psoter figure 4...")
 png(paste0(filepath, "poster_figure_4.png"),
   width = 250,
-  height = 650,
+  height = 750,
   units = "mm",
   res = 300
 )
@@ -323,7 +323,7 @@ cowplot::plot_grid(
   top_wtcs_plot,
   setbp1_targets_plot,
   labels = "AUTO",
-  rel_heights = c(1.5, 1),
+  rel_heights = c(2.5, 1),
   ncol = 1
 )
 
