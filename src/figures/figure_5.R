@@ -86,6 +86,8 @@ approved_drugs <- approved_drugs %>%
   # filter for non-bbw_drugs drugs
   filter(!pref_name %in% bbw_drugs )
 
+write_csv(approved_drugs, paste0(filepath, "approved_drugs_safetyfiltered.csv"))
+
 ### SETBP1 DRUG TARGETS ###
 message("Checking if NA max_phase is causing 'removed 5 rows' warning...")
 drug_targets_setbp1 %>%
@@ -314,7 +316,7 @@ dev.off()
 message("Plotting psoter figure 4...")
 png(paste0(filepath, "poster_figure_4.png"),
   width = 250,
-  height = 750,
+  height = 600,
   units = "mm",
   res = 300
 )
