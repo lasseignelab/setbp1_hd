@@ -69,13 +69,19 @@ drug_safety <- read_csv(
   paste0(datadir, "drug_safety_summary.csv")
 )
 
-### DAILYMED BBW-FLAGGED DRUGS ###
+### DAILYMED BBW/WITHDRAWN-FLAGGED DRUGS ###
 bbw_drugs <- approved_drugs %>%
   left_join(drug_safety, by = c("pref_name" = "OT_Name")) %>%
-  filter(N_Distinct_BBW_Texts > 0)
-bbw_drugs <- unique(bbw_drugs$pref_name)
-paste0("DailyMed-Flagged BBW Drugs: ", bbw_drugs)
+  filter(N_Distinct_BBW_Texts > 0 | !is.na(Withdrawn_Description))
 
+paste0("Withdrawn reasons include: ")
+unique(bbw_drugs$Withdrawn_Description)
+
+bbw_drugs <- unique(bbw_drugs$pref_name)
+paste0("DailyMed-Flagged BBW/Withdrawn Drugs: ")
+bbw_drugs
+
+# Filter previously-approved drugs by safety (BBW/Withdrawn status)
 approved_drugs <- approved_drugs %>%
   # filter for non-bbw_drugs drugs
   filter(!pref_name %in% bbw_drugs )
@@ -92,6 +98,8 @@ message("Plotting shared drug/SETBP1 targets plots...")
 approved_drugs_setbp1 <- drug_targets_setbp1 %>%
   filter(as.integer(max_phase) == 4) %>%
   filter(!pref_name %in% bbw_drugs)
+
+write_csv(approved_drugs_setbp1, paste0(filepath, "setbp1_converge_targets_safetyfiltered.csv"))
  
 p_targets_hist <- approved_drugs_setbp1 %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
@@ -237,7 +245,9 @@ message("Writing drug tables with SETBP1 + safety annotations...")
 converg_drug_anno <- approved_drugs %>%
   mutate(SETBP1_Target = ifelse(
     pert %in% drug_targets_setbp1$pert, TRUE, FALSE
-  ))
+  )) %>%
+filter(SETBP1_Target == TRUE)
+
 write_csv(
   converg_drug_anno, paste0(filepath, "setbp1_converge_drug_anno_table.csv")
 )
@@ -245,8 +255,7 @@ write_csv(
 full_drug_anno <- converg_drug_anno %>%
   left_join(drug_safety, by = c("pref_name" = "OT_Name"))
 
-write_csv(full_drug_anno, paste0(filepath, "full_drug_safety_anno_table.csv"))
-
+write_csv(full_drug_anno, paste0(filepath, "drug_full_anno_safetyfiltered_table.csv"))
 
 
 ### MOA ###
@@ -304,8 +313,8 @@ dev.off()
 # Poster figure 4
 message("Plotting psoter figure 4...")
 png(paste0(filepath, "poster_figure_4.png"),
-  width = 300,
-  height = 400,
+  width = 250,
+  height = 650,
   units = "mm",
   res = 300
 )
@@ -314,6 +323,7 @@ cowplot::plot_grid(
   top_wtcs_plot,
   setbp1_targets_plot,
   labels = "AUTO",
+  rel_heights = c(1.5, 1),
   ncol = 1
 )
 
