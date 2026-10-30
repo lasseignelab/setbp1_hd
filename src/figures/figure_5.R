@@ -86,6 +86,9 @@ approved_drugs <- approved_drugs %>%
   # filter for non-bbw_drugs drugs
   filter(!pref_name %in% bbw_drugs )
 
+paste0("Total number of unique drugs passing safety filtering: ")
+length(unique(approved_drugs$pref_name))
+
 write_csv(approved_drugs, paste0(filepath, "approved_drugs_safetyfiltered.csv"))
 
 ### SETBP1 DRUG TARGETS ###

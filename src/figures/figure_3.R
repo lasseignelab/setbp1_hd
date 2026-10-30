@@ -352,15 +352,24 @@ label_exclude <- c(
   "CHMP1B2P",       # pseudogene, -4.01
   "GRM3"            # no meta estimate
 )
- 
+
 core_genes_label <- rra_meta %>%
-  filter(
-    Direction != "Non-Significant/Inconsistent",
-    abs(meta_logFC) >= 0.5,
-    !gene_name %in% label_exclude,
-    !str_detect(gene_name, "^(LINC|ENSG|MIR|SNOR)|-(AS|DT|IT|OT)[0-9]*$")
-  ) %>%
-  slice_max(RRA_pval, n = 12)
+  filter(gene_name %in% c(
+    "PSMG3", "TRIM71", "LIN28A",          # progenitor / heterochronic
+    "ISL2", "DRGX", "PRPH", "EPHA5",      # peripheral identity
+    "STMN2", "NEUROD1", "ELAVL4",         # neuronal maturation
+    "SALL1",               # progenitor TFs
+"TRIM4", "NR6A1", "LAMA5", "TLE4", "DSP", "MXRA8"
+  ))
+ 
+# core_genes_label <- rra_meta %>%
+#  filter(
+#    Direction != "Non-Significant/Inconsistent",
+#    abs(meta_logFC) >= 0.5,
+#    !gene_name %in% label_exclude,
+#    !str_detect(gene_name, "^(LINC|ENSG|MIR|SNOR)|-(AS|DT|IT|OT)[0-9]*$")
+#  ) %>%
+#  slice_max(RRA_pval, n = 12)
 
 volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
   geom_point(aes(color = Direction), alpha = 0.75, size = 2.5) +
@@ -396,15 +405,16 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
     data = core_genes_label,
     aes(label = gene_name),
     seed = 42,
-    size = 5.5,
+    size = 5.75,
     fontface = "bold",
-    min.segment.length = 0.1,
+    min.segment.length = 0.15,
     box.padding = 0.6,
-    point.padding = 0.4,
+    point.padding = 0.5,
     force = 3,
     max.time = 2,
-    segment.color = "grey50",
-    segment.size = 0.3,
+    nudge_x = -0.3,
+    segment.color = "grey60",
+    segment.size = 0.45,
     max.overlaps = Inf
   )
 volcano_plot
