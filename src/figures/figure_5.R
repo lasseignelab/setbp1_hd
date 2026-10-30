@@ -72,14 +72,13 @@ drug_safety <- read_csv(
 ### DAILYMED BBW/WITHDRAWN-FLAGGED DRUGS ###
 bbw_drugs <- approved_drugs %>%
   left_join(drug_safety, by = c("pref_name" = "OT_Name")) %>%
-  filter(N_Distinct_BBW_Texts > 0 | !is.na(Withdrawn_Description))
+  filter(N_Distinct_BBW_Texts > 0 | !is.na(Withdrawn_Description)) %>%
+  select(pref_name, Withdrawn_Description)
 
-paste0("Withdrawn reasons include: ")
-unique(bbw_drugs$Withdrawn_Description)
+paste0("DailyMed-Flagged BBW/Withdrawn Drugs: ")
+print(bbw_drugs, n = Inf)
 
 bbw_drugs <- unique(bbw_drugs$pref_name)
-paste0("DailyMed-Flagged BBW/Withdrawn Drugs: ")
-bbw_drugs
 
 # Filter previously-approved drugs by safety (BBW/Withdrawn status)
 approved_drugs <- approved_drugs %>%
@@ -105,7 +104,10 @@ approved_drugs_setbp1 <- drug_targets_setbp1 %>%
   filter(!pref_name %in% bbw_drugs)
 
 write_csv(approved_drugs_setbp1, paste0(filepath, "setbp1_converge_targets_safetyfiltered.csv"))
- 
+simple_setbp1_drug_filtered <- approved_drugs_setbp1 %>%
+select(Drug = pref_name, Cell = cell, WTCS, Targets = mergeTargets, SETBP1_top_target)  
+write_csv(simple_setbp1_drug_filtered, paste0(filepath, "setbp1_converge_targets_safetyfiltered_simplified.csv"))
+
 p_targets_hist <- approved_drugs_setbp1 %>%
   distinct(mergeTargets, n, SETBP1_target) %>%
   ggplot(aes(y = n, fill = SETBP1_target)) +
@@ -213,7 +215,7 @@ ggsave(paste0(
 message("Plotting top WTCS-approved, SETBP1-annotated drug plots...")
 
 top_wtcs_plot <- approved_drugs %>%
-  slice_min(drug_top_WTCS, n = 50) %>%
+#  slice_min(drug_top_WTCS, n = 50) %>%
   mutate(SETBP1_Target = ifelse(
     pert %in% drug_targets_setbp1$pert, TRUE, FALSE
   )) %>%
