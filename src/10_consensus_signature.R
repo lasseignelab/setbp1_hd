@@ -143,8 +143,10 @@ unique(cardo_degs$contrast)
 unique(shaw_degs$contrast)
 
 # exclude redundant/biased contrasts
+# KOvsWT_21 (Cardo day 21): logFC is anti-correlated with Cardo day 15 and
+#   disagrees in direction with Shaw for most shared DEGs (see sig_diagnostic.R)
 contrasts_skip <- c(
-  "KOvsWT_NPC", "KOvsWT_all", "NPC_HD", "PATH_vs_PATH"
+  "KOvsWT_21", "KOvsWT_NPC", "KOvsWT_all", "NPC_HD", "PATH_vs_PATH"
 )
 
 # combine human data sets and filter
