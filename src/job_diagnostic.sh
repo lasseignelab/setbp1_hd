@@ -11,5 +11,6 @@ singularity exec --cleanenv \
                  -B "${CAP_PROJECT_PATH}" \
                  "${CAP_CONTAINER_PATH}"/lw_dea_0.3.1.sif \
                   Rscript --vanilla "${CAP_PROJECT_PATH}"/src/sig_diagnostic.R \
-                  -i "${CAP_DATA_PATH}"/ \
-                  -o "${CAP_RESULTS_PATH}"/
+                  -d "${CAP_RESULTS_PATH}"/dea/ \
+                  -c "${CAP_RESULTS_PATH}"/consensus_signature/ \
+                  -o "${CAP_RESULTS_PATH}"/diagnostics/
