@@ -264,7 +264,7 @@ sign_stats <- consensus_degs %>%
 # print sign concordance for key genes
 sign_stats %>%
   left_join(distinct(consensus_degs[, c("gene", "gene_name")]), by = "gene") %>%
-  filter(gene_name %in% c("LIN28A", "SPON1", "ROBO1", "PSMG3", "ISL2")) %>%
+  filter(gene_name %in% c("LIN28A", "SPON1", "ROBO1", "PSMG3", "ISL2", "CACNB2")) %>%
   print()
 
 
@@ -847,7 +847,7 @@ ggsave(paste0(outdir, "rra_vs_meta_discordance.png"), p_disc,
 }, "rra_meta_discordance")
 
 ### forest plots of per-contrast logFC for key genes ###
-forest_genes <- c("LIN28A", "SPON1", "ROBO1", "PSMG3", "ISL2", "DRGX")
+forest_genes <- c("LIN28A", "SPON1", "ROBO1", "PSMG3", "ISL2", "DRGX", "CACNB2")
 
 safely_plot({
 pdf(paste0(outdir, "forest_headline_genes.pdf"), width = 7, height = 5)
