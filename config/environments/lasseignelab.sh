@@ -13,8 +13,8 @@ cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/tanaka"
 cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/wong"
 
 # DailyMed drug safety data
-cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/dailymed" 
+# cap_data_link "$LASSEIGNE_LAB_PATH/PROJECT_dir/setbp1_hd/dailymed" 
 
 # Brainspan and GTEx counts data
-cap_data_link "$LASSEIGNE_LAB_PATH/DATASET_dir/brainspan"
-cap_data_link "$LASSEIGNE_LAB_PATH/DATASET_dir/gtex"
+# cap_data_link "$LASSEIGNE_LAB_PATH/DATASET_dir/brainspan"
+# cap_data_link "$LASSEIGNE_LAB_PATH/DATASET_dir/gtex"
