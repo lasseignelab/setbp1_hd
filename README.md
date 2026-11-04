@@ -39,6 +39,9 @@ This codebase was built using the [CAPTURE](https://github.com/lasseignelab/capt
    - [dGTEx](https://gtexportal.org/home/downloads/developmental-gtex) 2025-07-21 v1 RNASeQCv2.4.3 TPM and metadata files [v1 2026-01-30 Sample and Subject Attributes])
    - [BrainSpan](https://www.brainspan.org/static/download.html) api v2, developmental transcriptome zip file with expression matrix, row metadata [genes], column metadata [samples])
 
+- **Drug safety screening:**
+   - `data/drug_safety_summary.csv`: per-drug safety summary from Kyber (DailyMed boxed warnings, OpenFDA labels, Open Targets withdrawals and warnings), queried with the LINCS drug names of approved signature-reversing drugs. Used by `figures/figure_5.R` to annotate (not filter) drugs.
+
 
 ## Scripts
 The src/ directory contains the complete pipeline for data fetching, preprocessing, exploratory data analysis (EDA), differential expression analysis (DEA), and drug prioritization.
@@ -65,7 +68,7 @@ src/
 ├── 11_job_sigsearch.sh
 ├── 12_drugtarget_degs.R            # Intersects drug candidate targets with prioritized SETBP1 regulatory targets.
 ├── 12_job_drugtarget_degs.sh
-├── 13_drug_safety.py               # Scrapes and evaluates pediatric/pregnancy safety profiles for top drug candidates.
+├── 13_drug_safety.py               # Scrapes DailyMed pediatric/pregnancy safety profiles (superseded by Kyber annotation in figure_5.R).
 ├── 13_job_drug_safety.sh
 ├── figures/                        # Scripts for generating final publication figures.
 ├── functions.R                     # Custom reusable R functions used throughout the pipeline.
