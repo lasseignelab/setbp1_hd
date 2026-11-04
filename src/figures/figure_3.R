@@ -63,6 +63,19 @@ read_deg <- function(dataset_name) {
 all_degs <- bind_rows(
   read_deg("cardo"), read_deg("shaw"), read_deg("tanaka1"), read_deg("tanaka2")
 )
+
+# QC: sex-linked DEGs per contrast. Several Y-linked genes (or XIST) shifting
+# together in one contrast would indicate a sex mismatch between lines rather
+# than a SETBP1 effect.
+sex_genes <- c("XIST", "RPS4Y1", "DDX3Y", "KDM5D", "USP9Y",
+               "EIF1AY", "UTY", "NLGN4Y", "ZFY", "TXLNGY", "TMSB4Y")
+
+all_degs %>%
+  filter(gene_name %in% sex_genes, significance != "NonSig") %>%
+  select(gene_name, dataset, contrast, logFC, adj.P.Val) %>%
+  arrange(dataset, contrast, gene_name) %>%
+  print(n = 60)
+
 #### READ IN ORA, PERFORMANCE, AND RRA-META RESULTS ####
 # consensus DEGs
 consensus_long <- read_csv(paste0(indir, "consensus_degs_unfiltered_long.csv"))
@@ -71,7 +84,12 @@ results_df <- read_csv(paste0(indir, "ORA_signatures_results.csv"))
 # performance metrics for signatures
 performance_res <- read_csv(paste0(indir, "signature_performance_metrics.csv"))
 # RRA signature with meta-analysis logFCs
-rra_meta <- read_csv(paste0(indir, "RRA_meta_DEGs.csv"))
+rra_meta <- read_csv(paste0(indir, "RRA_meta_DEGs.csv")) %>%
+  filter(!is.na(meta_logFC), !is.na(neg_log10_RRA)) %>%
+  distinct(Name, .keep_all = TRUE) # one row per gene
+
+message("Signature genes plotted: ", nrow(rra_meta))
+rra_meta %>% count(signature_call) %>% print()
 
 # DEG counts per dataset
 all_degs %>%
@@ -245,9 +263,35 @@ ora_plot <- plot_df %>%
   ) +
   facet_grid(source ~ ., scales = "free_y", space = "free_y")
 
-ora_plot
 ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_dotplot.png"),
-  dpi = 300, height = 25, width = 22, units = "cm"
+  plot = ora_plot, dpi = 300, height = 25, width = 22, units = "cm"
+)
+
+# Top N terms per query by p-value for streamlining
+ora_plot_alt <- plot_df %>%
+  filter(!source %in% c("WP", "GO:MF", "GO:CC")) %>%
+  group_by(query, source) %>%
+  slice_max(neg_log10_p, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(x = query, y = reorder(term_name, neg_log10_p))) +
+  geom_point(aes(size = intersection_size, color = neg_log10_p)) +
+  scale_color_viridis_c(
+    name = "-log10(p-value)", option = "magma", end = 0.85
+  ) +
+  labs(
+    x = "Signature",
+    y = "Enriched Term",
+    size = "Gene Overlap Size"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Helvetica", face = "bold"),
+    axis.text = element_text(size = 12)
+  ) +
+  facet_grid(source ~ ., scales = "free_y", space = "free_y")
+
+ggsave(paste0(outdir, "ORA_comparison_GOBP_KEGG_top15_dotplot.png"),
+  plot = ora_plot_alt, dpi = 300, height = 25, width = 22, units = "cm"
 )
 
 ### PERFORMANCE OF SIGNATURES BY VALIDATION GENES ###
@@ -293,8 +337,15 @@ ggsave(paste0(outdir, "signature_performance_validation.png"),
 lfc_th <- 0.1 # logFC threshold
 pval_th <- -log10(0.05) # p-value threshold
 
+# label signature genes grouped by biological mechanism
 core_genes_label <- rra_meta %>%
-  slice_max(neg_log10_RRA, n = 10)
+  filter(gene_name %in% c(
+    "PSMG3", "TRIM71", "LIN28A", # progenitor / heterochronic
+    "ISL2", "DRGX", "PRPH", "EPHA5", # peripheral identity
+    "STMN2", "NEUROD1", "ELAVL4", # neuronal maturation
+    "SALL1", # progenitor TF
+    "TRIM4", "NR6A1", "LAMA5", "TLE4", "DSP", "MXRA8" # other
+  ))
 
 volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = neg_log10_RRA)) +
   geom_point(aes(color = signature_call), alpha = 0.75, size = 2.5) +
@@ -314,8 +365,8 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = neg_log10_RRA)) +
     color = "black"
   ) +
   labs(
-    x = "MA Aggregate logFC (Magnitude)",
-    y = "-log10(RobustRankAggregate P-value)",
+    x = "Meta-analysis aggregate logFC",
+    y = "-log10(Robust Rank Aggregate P-value)",
     color = "Consensus Status"
   ) +
   theme(
@@ -330,12 +381,16 @@ volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = neg_log10_RRA)) +
     data = core_genes_label,
     aes(label = gene_name),
     seed = 42,
-    size = 5.5,
+    size = 5.75,
     fontface = "bold",
-    min.segment.length = 0,
-    box.padding = 1.15,
-    point.padding = 0.70,
-    segment.color = "grey50",
+    min.segment.length = 0.15,
+    box.padding = 0.6,
+    point.padding = 0.5,
+    force = 3,
+    max.time = 2,
+    nudge_x = -0.3,
+    segment.color = "grey60",
+    segment.size = 0.45,
     max.overlaps = Inf
   )
 volcano_plot
@@ -360,6 +415,22 @@ cowplot::plot_grid(
   ncol = 1
 )
 
+dev.off()
+
+# Poster figure
+png(paste0(outdir, "poster_figure_3.png"),
+  width = 350, height = 425, units = "mm", res = 300
+)
+cowplot::plot_grid(ora_plot, volcano_plot, labels = c("A", "B"),
+                   ncol = 1, rel_heights = c(1.3, 1))
+dev.off()
+
+# ALT Poster figure
+png(paste0(outdir, "poster_figure_3-ALT.png"),
+  width = 350, height = 425, units = "mm", res = 300
+)
+cowplot::plot_grid(ora_plot_alt, volcano_plot, labels = c("A", "B"),
+                   ncol = 1, rel_heights = c(1.3, 1))
 dev.off()
 
 # end timer
