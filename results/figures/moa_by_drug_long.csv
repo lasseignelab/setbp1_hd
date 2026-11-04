@@ -1,0 +1,160 @@
+pref_name,key,MOA
+PONATINIB,flt3 inhibitor,FLT3 inhibitor
+PONATINIB,pdgfr inhibitor,PDGFR inhibitor
+PONATINIB,abl kinase inhibitor,Abl kinase inhibitor
+CLOZAPINE,dopamine receptor antagonist,Dopamine receptor antagonist
+CLOZAPINE,serotonin receptor antagonist,Serotonin receptor antagonist
+BETAMETHASONE,glucocorticoid receptor agonist,Glucocorticoid receptor agonist
+BETAMETHASONE,anti inflammatory,Anti-inflammatory
+CARBENOXOLONE,11 beta hsd1 inhibitor,11-beta-HSD1 inhibitor
+CARBENOXOLONE,11 beta hydroxysteroid dehydrogenase inhibitor,11-beta-hydroxysteroid dehydrogenase inhibitor
+MITOXANTRONE,topoisomerase inhibitor,Topoisomerase inhibitor
+TIVOZANIB,vegfr inhibitor,VEGFR inhibitor
+TIVOZANIB,vascular endothelial growth factor receptor inhibitor,Vascular endothelial growth factor receptor inhibitor
+BOSUTINIB,src inhibitor,Src inhibitor
+BOSUTINIB,abl inhibitor,ABL inhibitor
+ALTRETAMINE,dna inhibitor,DNA inhibitor
+GLYBURIDE,sulfonylurea,Sulfonylurea
+GLYBURIDE,atp channel blocker,ATP channel blocker
+GLYBURIDE,insulin secretagogue,Insulin secretagogue
+EXIFONE,nootropic agent,Nootropic agent
+INDAPAMIDE,thiazide diuretic,Thiazide diuretic
+INDAPAMIDE,thiazide sensitive sodium chloride cotransporter inhibitor,Thiazide-sensitive sodium-chloride cotransporter inhibitor
+AMIODARONE,potassium channel blocker,Potassium channel blocker
+PROCAINAMIDE,sodium channel blocker,Sodium channel blocker
+TERCONAZOLE,sterol demethylase inhibitor,Sterol demethylase inhibitor
+TERCONAZOLE,cytochrome p450 51 inhibitor,Cytochrome P450 51 inhibitor
+CHOLIC ACID,bile acid,Bile acid
+TROGLITAZONE,insulin sensitizer,Insulin sensitizer
+TROGLITAZONE,ppar receptor agonist,PPAR receptor agonist
+TROGLITAZONE,ppar gamma agonist,Peroxisome proliferator-activated receptor gamma agonist
+LIDOFLAZINE,calcium channel blocker,Calcium channel blocker
+BEPRIDIL,calcium channel blocker,Calcium channel blocker
+CABERGOLINE,dopamine receptor agonist,Dopamine receptor agonist
+FELODIPINE,calcium channel blocker,Calcium channel blocker
+FELODIPINE,mineralocorticoid receptor antagonist,Mineralocorticoid receptor antagonist
+RILUZOLE,glutamate inhibitor,Glutamate inhibitor
+RILUZOLE,sodium channel alpha subunit blocker,Sodium channel alpha subunit blocker
+BENDROFLUMETHIAZIDE,sodium potassium chloride transporter inhibitor,Sodium/potassium/chloride transporter inhibitor
+BENDROFLUMETHIAZIDE,thiazide sensitive sodium chloride cotransporter inhibitor,Thiazide-sensitive sodium-chloride cotransporter inhibitor
+ARIPIPRAZOLE,serotonin receptor agonist,Serotonin receptor agonist
+ARIPIPRAZOLE,serotonin receptor antagonist,Serotonin receptor antagonist
+ARIPIPRAZOLE,dopamine d2 receptor partial agonist,Dopamine D2 receptor partial agonist
+MOLINDONE,dopamine receptor antagonist,Dopamine receptor antagonist
+ESTRADIOL,estrogen receptor agonist,Estrogen receptor agonist
+ESTRADIOL,contraceptive agent,Contraceptive agent
+ISRADIPINE,calcium channel blocker,Calcium channel blocker
+ACENOCOUMAROL,vitamin k antagonist,Vitamin K antagonist
+ACENOCOUMAROL,vitamin k epoxide reductase complex subunit 1 isoform 1 inhibitor,Vitamin k epoxide reductase complex subunit 1 isoform 1 inhibitor
+MEFLOQUINE,adenosine receptor antagonist,Adenosine receptor antagonist
+MEFLOQUINE,hemoglobin antagonist,Hemoglobin antagonist
+ISOTRETINOIN,retinoid receptor agonist,Retinoid receptor agonist
+MECLOFENAMATE SODIUM,cyclooxygenase inhibitor,Cyclooxygenase inhibitor
+MECLOFENAMATE SODIUM,arachidonate 5 lipoxygenase inhibitor,Arachidonate 5-lipoxygenase inhibitor
+RIBOFLAVIN,vitamin b,Vitamin B
+MESORIDAZINE,dopamine receptor antagonist,Dopamine receptor antagonist
+CARBINOXAMINE,histamine receptor antagonist,Histamine receptor antagonist
+CARBINOXAMINE,l type calcium channel blocker,L-type calcium channel blocker
+TETRABENAZINE,vesicular monoamine transporter inhibitor,Vesicular monoamine transporter inhibitor
+TETRABENAZINE,synaptic vesicular amine transporter inhibitor,Synaptic vesicular amine transporter inhibitor
+LOPINAVIR,hiv protease inhibitor,HIV protease inhibitor
+LOPINAVIR,human immunodeficiency virus type 1 protease inhibitor,Human immunodeficiency virus type 1 protease inhibitor
+OLAPARIB,parp inhibitor,PARP inhibitor
+LORAZEPAM,benzodiazepine receptor agonist,Benzodiazepine receptor agonist
+LORAZEPAM,gaba a receptor,GABA-A receptor
+LORAZEPAM,anion channel positive allosteric modulator,anion channel positive allosteric modulator
+NICLOSAMIDE,stat inhibitor,STAT inhibitor
+NICLOSAMIDE,dna inhibitor,DNA inhibitor
+FLUTAMIDE,androgen receptor antagonist,Androgen receptor antagonist
+BROMHEXINE,mucolytic agent,Mucolytic agent
+ANAGRELIDE,phosphodiesterase inhibitor,Phosphodiesterase inhibitor
+THIETHYLPERAZINE,dopamine receptor antagonist,Dopamine receptor antagonist
+TOFACITINIB,jak inhibitor,JAK inhibitor
+FLUOCINOLONE ACETONIDE,corticosteroid agonist,Corticosteroid agonist
+FLUOCINOLONE ACETONIDE,glucocorticoid receptor agonist,Glucocorticoid receptor agonist
+CETIRIZINE,histamine receptor antagonist,Histamine receptor antagonist
+PREDNISOLONE ACETATE,glucocorticoid receptor agonist,Glucocorticoid receptor agonist
+RALOXIFENE,estrogen receptor antagonist,Estrogen receptor antagonist
+RALOXIFENE,selective estrogen receptor modulator serm,Selective estrogen receptor modulator (SERM)
+TRIFLUPROMAZINE,dopamine receptor antagonist,Dopamine receptor antagonist
+RANOLAZINE,sodium channel blocker,Sodium channel blocker
+CLOFIBRATE,ppar receptor agonist,PPAR receptor agonist
+CLOFIBRATE,ppar alpha agonist,Peroxisome proliferator-activated receptor alpha agonist
+OXYBENZONE,lipase inhibitor,Lipase inhibitor
+TRETINOIN,retinoid receptor agonist,Retinoid receptor agonist
+GEMFIBROZIL,lipoprotein lipase activator,Lipoprotein lipase activator
+GEMFIBROZIL,ppar alpha agonist,Peroxisome proliferator-activated receptor alpha agonist
+BIPERIDEN,acetylcholine receptor antagonist,Acetylcholine receptor antagonist
+BELINOSTAT,hdac inhibitor,HDAC inhibitor
+CAFFEINE,phosphodiesterase inhibitor,Phosphodiesterase inhibitor
+CAFFEINE,adenosine receptor antagonist,Adenosine receptor antagonist
+CAFFEINE,diuretic,Diuretic
+MAPROTILINE,tricyclic antidepressant,Tricyclic antidepressant
+MAPROTILINE,norepinephrine reputake inhibitor,Norepinephrine reputake inhibitor
+MAPROTILINE,norepinephrine reuptake inhibitor,Norepinephrine reuptake inhibitor
+TELMISARTAN,angiotensin receptor antagonist,Angiotensin receptor antagonist
+DIETHYLCARBAMAZINE,lipoxygenase inhibitor,Lipoxygenase inhibitor
+BROMOCRIPTINE,dopamine receptor agonist,Dopamine receptor agonist
+DOTHIEPIN,tricyclic antidepressant,Tricyclic antidepressant
+DOTHIEPIN,serotonin reuptake inhibitor,Serotonin reuptake inhibitor
+DOTHIEPIN,norepinephrine reuptake inhibitor,Norepinephrine reuptake inhibitor
+LEFLUNOMIDE,pdgfr inhibitor,PDGFR inhibitor
+LEFLUNOMIDE,dihydroorotate dehydrogenase inhibitor,Dihydroorotate dehydrogenase inhibitor
+FENOTEROL,adrenergic receptor agonist,Adrenergic receptor agonist
+FLUOXETINE,selective serotonin reuptake inhibitor,Selective serotonin reuptake inhibitor
+BEZAFIBRATE,ppar agonist,Peroxisome proliferator-activated receptor agonist
+LOXAPINE,dopamine receptor antagonist,Dopamine receptor antagonist
+LOXAPINE,serotonin receptor antagonist,Serotonin receptor antagonist
+CLADRIBINE,adenosine deaminase inhibitor,Adenosine deaminase inhibitor
+CLADRIBINE,ribonucleoside reductase inhibitor,Ribonucleoside reductase inhibitor
+CLADRIBINE,dna inhibitor,DNA inhibitor
+OLMESARTAN MEDOXOMIL,angiotensin receptor antagonist,Angiotensin receptor antagonist
+REBOXETINE,adrenergic receptor antagonist,Adrenergic receptor antagonist
+REBOXETINE,norepinephrine transporter inhibitor,Norepinephrine transporter inhibitor
+PREDNISOLONE,glucocorticoid receptor agonist,Glucocorticoid receptor agonist
+CRIZOTINIB,alk inhibitor,ALK inhibitor
+CHLOROQUINE,antimalarial,Antimalarial
+MIANSERIN,serotonin receptor antagonist,Serotonin receptor antagonist
+CILASTATIN,dehydropeptidase inhibitor,Dehydropeptidase inhibitor
+CILASTATIN,renal dipeptidase inhibitor,Renal dipeptidase inhibitor
+DIFLUNISAL,cyclooxygenase inhibitor,Cyclooxygenase inhibitor
+CARBAMAZEPINE,carboxamide antiepileptic,Carboxamide antiepileptic
+CARBAMAZEPINE,sodium channel alpha subunit blocker,Sodium channel alpha subunit blocker
+TEMOZOLOMIDE,dna alkylating agent,DNA alkylating agent
+TEMOZOLOMIDE,dna inhibitor,DNA inhibitor
+LEVONORGESTREL,estrogen receptor agonist,Estrogen receptor agonist
+LEVONORGESTREL,progesterone receptor agonist,Progesterone receptor agonist
+LEVONORGESTREL,progesterone receptor antagonist,Progesterone receptor antagonist
+LEVONORGESTREL,glucocorticoid receptor antagonist,Glucocorticoid receptor antagonist
+SELUMETINIB,mek inhibitor,MEK inhibitor
+SELUMETINIB,dual specificity mitogen activated protein kinase kinase 1 inhibitor,Dual specificity mitogen-activated protein kinase kinase 1 inhibitor
+MIGLITOL,glucosidase inhibitor,Glucosidase inhibitor
+CELECOXIB,cyclooxygenase inhibitor,Cyclooxygenase inhibitor
+NIFEDIPINE,calcium channel blocker,Calcium channel blocker
+COLCHICINE,microtubule inhibitor,Microtubule inhibitor
+COLCHICINE,tubulin inhibitor,Tubulin inhibitor
+BUSPIRONE,serotonin receptor agonist,Serotonin receptor agonist
+DARIFENACIN,acetylcholine receptor antagonist,Acetylcholine receptor antagonist
+CROTAMITON,antipruritic,Antipruritic
+TRIOXSALEN,dna inhibitor,DNA inhibitor
+NIACINAMIDE,protein synthesis stimulant,Protein synthesis stimulant
+RISPERIDONE,dopamine receptor antagonist,Dopamine receptor antagonist
+RISPERIDONE,serotonin receptor antagonist,Serotonin receptor antagonist
+LAMOTRIGINE,sodium channel blocker,Sodium channel blocker
+LAMOTRIGINE,serotonin receptor antagonist,Serotonin receptor antagonist
+CYCLOPENTOLATE,acetylcholine receptor antagonist,Acetylcholine receptor antagonist
+ESTRONE,estrogen receptor agonist,Estrogen receptor agonist
+ESTRONE,estrogenic hormone,Estrogenic hormone
+ERYTHROMYCIN ETHYLSUCCINATE,nfkb pathway inhibitor,NFKB pathway inhibitor
+ERYTHROMYCIN ETHYLSUCCINATE,motilin receptor agonist,Motilin receptor agonist
+ERYTHROMYCIN ETHYLSUCCINATE,cytochrome p450 inhibitor,Cytochrome P450 inhibitor
+ERYTHROMYCIN ETHYLSUCCINATE,protein synthesis inhibitor,Protein synthesis inhibitor
+ERYTHROMYCIN ETHYLSUCCINATE,bacterial 70s ribosome inhibitor,Bacterial 70S ribosome inhibitor
+MOXONIDINE,imidazoline receptor agonist,Imidazoline receptor agonist
+MOXONIDINE,nischarin agonist,Nischarin agonist
+TRIFLUOPERAZINE,dopamine receptor antagonist,Dopamine receptor antagonist
+EZETIMIBE,cholesterol inhibitor,Cholesterol inhibitor
+EZETIMIBE,niemann pick c1 like 1 protein antagonist,Niemann-Pick C1-like 1 protein antagonist
+EZETIMIBE,niemann pick c1 like protein 1 inhibitor,Niemann-Pick C1-like protein 1 inhibitor
+MIRTAZAPINE,serotonin receptor antagonist,Serotonin receptor antagonist
+MIRTAZAPINE,adrenergic receptor antagonist,Adrenergic receptor antagonist
