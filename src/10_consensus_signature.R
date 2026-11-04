@@ -46,10 +46,33 @@ outdir <- args$outdir
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
 # helper function to read in DEGs
-read_deg <- function(dataset_name) {
-  file <- file.path(degs, dataset_name, "significant_degs.csv")
+read_deg <- function(dataset_name, type = "significant_degs.csv") {
+  file <- file.path(degs, dataset_name, type)
   if (!file.exists(file)) stop("Missing file: ", file)
   read_csv(file) %>% mutate(dataset = dataset_name)
+}
+
+# helper function for safely plotting (warns instead of halting the script).
+# NOTE: plot objects are not auto-printed inside `expr`, so every plot call
+# within it must be wrapped in print() or draw() or the saved file is blank.
+safely_plot <- function(expr, label) {
+  tryCatch(expr, error = function(e) {
+    message("PLOT FAILED (", label, "): ", conditionMessage(e))
+    try(dev.off(), silent = TRUE)
+    NULL
+  })
+}
+
+# helper function to cluster a logFC matrix that uses NA for "not a DEG in this
+# contrast". Distances are computed with NA treated as 0 (as before), while the
+# heatmap itself shows NA in grey so absence is distinguishable from logFC = 0.
+cluster_na_matrix <- function(m) {
+  m0 <- m
+  m0[is.na(m0)] <- 0
+  list(
+    rows = if (nrow(m0) > 1) hclust(dist(m0)) else FALSE,
+    cols = if (ncol(m0) > 1) hclust(dist(t(m0))) else FALSE
+  )
 }
 
 # function to calculate performance metrics of signature by validation genes
@@ -95,6 +118,11 @@ ptm <- proc.time()
 cardo_degs <- read_deg("cardo")
 shaw_degs <- read_deg("shaw")
 
+# full universe of genes (all passing low-counts filtering)
+cardo_unfilt <- read_deg("cardo", "unfiltered_degs.csv")
+shaw_unfilt <- read_deg("shaw", "unfiltered_degs.csv")
+combined_unfilt <- bind_rows(cardo_unfilt, shaw_unfilt)
+
 # validation data
 tanaka_degs <- bind_rows(read_deg("tanaka1"), read_deg("tanaka2"))
 wong_fibro <- read_excel(paste0(
@@ -122,13 +150,32 @@ contrasts_skip <- c(
 # combine human data sets and filter
 combined_degs <- bind_rows(cardo_degs, shaw_degs)
 
+# keep genes that are DEGs in more than one contrast, and record how many
+# contrasts and datasets support each gene
 consensus_degs <- combined_degs %>%
   filter(!contrast %in% contrasts_skip) %>%
-  add_count(gene) %>%
-  filter(n != 1) %>%
-  select(!n)
-consensus_degs
-table(consensus_degs$contrast)
+  group_by(gene) %>%
+  mutate(
+    n_contrasts = n_distinct(contrast),
+    n_datasets  = n_distinct(dataset)
+  ) %>%
+  ungroup() %>%
+  filter(n_contrasts > 1)
+
+# number of consensus genes supported by 1 vs 2 datasets
+consensus_degs %>%
+  distinct(gene, n_datasets) %>%
+  count(n_datasets) %>%
+  print()
+
+# stricter sensitivity set: genes that are DEGs in both datasets
+consensus_degs_strict <- consensus_degs %>%
+  filter(n_datasets >= 2)
+
+message(
+  "Genes in >=2 contrasts: ", n_distinct(consensus_degs$gene),
+  " | in >=2 datasets: ", n_distinct(consensus_degs_strict$gene)
+)
 
 # long format for plotting
 consensus_long <- consensus_degs %>%
@@ -163,55 +210,75 @@ freq_degs <- consensus_long %>%
 ### opt 2) meta-analysis per gene ###
 print(paste0("Finding effect size meta analysis DEGs..."))
 meta_results <- consensus_degs %>%
-  add_count(gene) %>%
-  filter(n > 1) %>%
   group_by(gene) %>%
   nest() %>%
   mutate(meta = map(data, ~ tryCatch(
-    rma(
-      yi = .x$logFC, sei = .x$se_logFC,
-      method = "REML"
-    ),
+    rma(yi = .x$logFC, sei = .x$se_logFC, method = "REML"),
     error = function(e) {
-      print(paste("Error for gene:", unique(.x$gene_name), e$message))
+      message("Error for gene: ", unique(.x$gene_name), " ", e$message)
       NULL
     }
   ))) %>%
   mutate(
-    meta_logFC = map_dbl(
-      meta, ~ if (!is.null(.x)) as.numeric(.x$b) else NA_real_
-    ),
-    meta_pval = map_dbl(
-      meta, ~ if (!is.null(.x)) as.numeric(.x$pval) else NA_real_
-    ),
-    meta_ci_lb = map_dbl(
-      meta, ~ if (!is.null(.x)) as.numeric(.x$ci.lb) else NA_real_
-    ),
-    meta_ci_ub = map_dbl(
-      meta, ~ if (!is.null(.x)) as.numeric(.x$ci.ub) else NA_real_
-    )
+    meta_logFC = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$b)     else NA_real_),
+    meta_pval  = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$pval)  else NA_real_),
+    meta_ci_lb = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$ci.lb) else NA_real_),
+    meta_ci_ub = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$ci.ub) else NA_real_),
+    # standard error, number of contrasts, and heterogeneity statistics
+    meta_se   = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$se)    else NA_real_),
+    meta_k     = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$k)     else NA_real_),
+    meta_i2    = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$I2)    else NA_real_),
+    meta_tau2  = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$tau2)  else NA_real_),
+    meta_qep   = map_dbl(meta, ~ if (!is.null(.x)) as.numeric(.x$QEp)   else NA_real_)
   ) %>%
-  select(-data)
+  select(-data, -meta) %>%
+  ungroup()
 
-meta_stats <- as.data.frame(meta_results[, -2]) %>%
-  left_join(consensus_degs[, 1:2], by = "gene") %>%
+meta_stats <- meta_results %>%
+  left_join(distinct(consensus_degs[, c("gene", "gene_name")]), by = "gene") %>%
   distinct()
-summary(meta_stats)
 
-# save meta analysis
+# BH-adjust meta-analysis p-values across all genes tested
+meta_stats <- meta_stats %>%
+  mutate(meta_padj = p.adjust(meta_pval, method = "BH"))
+
+summary(meta_stats)
 write_csv(meta_stats, paste0(outdir, "metaanalysis_degs.csv"))
 
-### opt 3) robust rang aggregate -- create ranked lists per contrast ###
+#### sign concordance of logFC across contrasts ####
+sign_stats <- consensus_degs %>%
+  group_by(gene) %>%
+  summarise(
+    n_contrasts     = dplyr::first(n_contrasts),
+    n_datasets      = dplyr::first(n_datasets),
+    n_up            = sum(logFC > 0),
+    n_down          = sum(logFC < 0),
+    prop_concordant = max(sum(logFC > 0), sum(logFC < 0)) / dplyr::n(),
+    sign_consistent = (sum(logFC > 0) == 0) | (sum(logFC < 0) == 0),
+    max_abs_logFC   = max(abs(logFC)),
+    .groups = "drop"
+  )
+
+# print sign concordance for key genes
+sign_stats %>%
+  left_join(distinct(consensus_degs[, c("gene", "gene_name")]), by = "gene") %>%
+  filter(gene_name %in% c("LIN28A", "SPON1", "ROBO1", "PSMG3", "ISL2")) %>%
+  print()
+
+
+### opt 3) robust rank aggregate -- create ranked lists per contrast ###
 print(paste0("Finding robust rank aggregate (RRA) DEGs..."))
+# number of ranked elements = all genes tested (passing low-count filtering)
+universe_n <- length(unique(combined_unfilt$gene))
+
 ranked_lists <- lapply(unique(consensus_degs$contrast), function(c) {
   consensus_degs %>%
     filter(contrast == c) %>%
-    arrange(abs(adj.P.Val)) %>%
+    arrange(adj.P.Val) %>%
     pull(gene)
 })
-# run and save RRA
-rra <- aggregateRanks(ranked_lists, exact = TRUE)
 
+rra <- aggregateRanks(ranked_lists, N = universe_n, exact = TRUE)
 write_csv(rra, paste0(outdir, "rankaggregate_degs.csv"))
 
 ## Composite Scores from RRA, Meta Analysis, and Freq-Weight ##
@@ -289,6 +356,69 @@ write_csv(
     outdir, "compositescore_consensus_signature.csv"
   )
 )
+
+###### RRA-META SIGNATURE + CONFIDENCE TIERS ######
+# Direction: RRA significance + meta-analysis logFC magnitude (signature call)
+# Tier: adds meta-analysis p, sign consistency, heterogeneity, and dataset
+#   support to grade confidence within the signature
+lfc_th    <- 0.1     # meta-analysis |logFC| threshold
+rra_th    <- 0.05    # threshold on the RRA Score (a p-value)
+meta_p_th <- 0.05    # threshold on the (unadjusted) meta-analysis p-value
+i2_th     <- 75      # I^2 (%) above this = substantial between-contrast heterogeneity
+
+rra_meta <- rra %>%
+  inner_join(meta_stats, by = c("Name" = "gene")) %>%
+  left_join(sign_stats,  by = c("Name" = "gene")) %>%
+  mutate(
+    RRA_pval = -log10(Score),
+    ci_width = meta_ci_ub - meta_ci_lb,
+    ci_excludes_zero = sign(meta_ci_lb) == sign(meta_ci_ub),
+
+    passes_rra  = Score < rra_th,
+    passes_lfc  = abs(meta_logFC) > lfc_th,
+    passes_meta = meta_pval < meta_p_th,
+    passes_sign = sign_consistent,
+    passes_het  = is.na(meta_i2) | meta_k < 3 | meta_i2 < i2_th,
+    passes_data = n_datasets >= 2,
+
+    Direction = case_when(
+      meta_logFC >  lfc_th & Score < rra_th ~ "Upregulated",
+      meta_logFC < -lfc_th & Score < rra_th ~ "Downregulated",
+      TRUE ~ "Non-Significant/Inconsistent"
+    ),
+
+    Tier = case_when(
+      passes_rra & passes_lfc & passes_meta &
+        passes_sign & passes_het & passes_data      ~ "Tier1_high_confidence",
+      passes_rra & passes_lfc & passes_meta         ~ "Tier2_supported",
+      Direction != "Non-Significant/Inconsistent"   ~ "Tier3_exploratory",
+      TRUE                                          ~ "Excluded"
+    )
+  )
+
+table(rra_meta$Tier)
+table(rra_meta$Direction, rra_meta$Tier)
+
+# number of signature genes failing each additional tier criterion
+rra_meta %>%
+  filter(Direction != "Non-Significant/Inconsistent") %>%
+  summarise(
+    n               = dplyr::n(),
+    fail_meta_p     = sum(!passes_meta,  na.rm = TRUE),
+    fail_sign       = sum(!passes_sign,  na.rm = TRUE),
+    fail_het        = sum(!passes_het,   na.rm = TRUE),
+    fail_one_dataset = sum(!passes_data, na.rm = TRUE)
+  ) %>%
+  print()
+
+rra_meta_filt <- rra_meta %>% filter(Direction != "Non-Significant/Inconsistent")
+tier1 <- rra_meta %>% filter(Tier == "Tier1_high_confidence")
+
+write_csv(rra_meta,      paste0(outdir, "RRA_meta_DEGs.csv"))
+write_csv(rra_meta_filt, paste0(outdir, "RRA_meta_consensus_signature.csv"))
+write_csv(tier1,         paste0(outdir, "RRA_meta_tier1_signature.csv"))
+
+
 ###### VALIDATION ######
 ## compare overlap between options for finding signature ##
 compare_sigs <- top_freq %>%
@@ -313,14 +443,16 @@ dataset_sig_degs <- consensus_wide %>%
   select(!contains("se_logFC")) %>%
   distinct()
 
+safely_plot({
 png(
   paste0(
     outdir, "upset_plot_compare_sigs.png"
   ),
   width = 30, height = 20, units = "cm", res = 300
 )
-upset(compare_sigs, sets = colnames(compare_sigs), order.by = "freq")
+print(upset(compare_sigs, sets = colnames(compare_sigs), order.by = "freq"))
 dev.off()
+}, "upset_signatures")
 
 # compare to Tanaka et al DEG
 tanaka_genes <- gorth(
@@ -344,27 +476,24 @@ valid_degs <- tanaka_degs %>%
   filter(!is.na(gene))
 write_csv(valid_degs, paste0(outdir, "validation_datasets_DEGs.csv"))
 
+# NA = not a DEG in that contrast/dataset (kept distinct from logFC = 0)
 valid_degs_wide <- valid_degs %>%
   unite("contrast_dataset", contrast, dataset) %>%
   distinct(gene, contrast_dataset, .keep_all = TRUE) %>%
   select(gene, gene_name, contrast_dataset, logFC) %>%
-  pivot_wider(
-    names_from = contrast_dataset, values_from = logFC, values_fill = 0
-  ) %>%
+  pivot_wider(names_from = contrast_dataset, values_from = logFC) %>%
   # Use full_join to keep everything from both sides
   full_join(dataset_sig_degs, by = "gene", suffix = c(".valid", ".sig")) %>%
   mutate(
     # Merge the two name columns: if valid name is missing, use sig name
-    gene_name = coalesce(gene_name.valid, gene_name.sig),
-    # Clean up numeric NAs (for genes missing in one of the sets)
-    across(where(is.numeric), ~ replace_na(.x, 0))
+    gene_name = coalesce(gene_name.valid, gene_name.sig)
   ) %>%
   # Remove the temporary suffix columns
   select(-gene_name.valid, -gene_name.sig) %>%
   relocate(gene_name, .after = gene) %>%
   group_by(gene) %>%
   slice_max(
-    order_by = rowSums(across(where(is.numeric))),
+    order_by = rowSums(across(where(is.numeric)), na.rm = TRUE),
     n = 1,
     with_ties = FALSE
   ) %>%
@@ -401,7 +530,8 @@ column_ha <- HeatmapAnnotation(
 )
 
 # color scale for logFC
-max_lfc <- max(abs(meta_stats$meta_logFC))
+# na.rm: genes whose meta-analysis did not converge (e.g. GRM3) have NA logFC
+max_lfc <- max(abs(meta_stats$meta_logFC), na.rm = TRUE)
 col_fun <- circlize::colorRamp2(
   c(-max_lfc, 0, max_lfc), c("blue", "white", "red")
 )
@@ -409,21 +539,26 @@ col_fun <- circlize::colorRamp2(
 # prepare Matrix
 plot_mat <- as.matrix(valid_degs_wide[, 3:ncol(valid_degs_wide)])
 rownames(plot_mat) <- valid_degs_wide$gene
+plot_clust <- cluster_na_matrix(plot_mat)
 
 # plot
+safely_plot({
 pdf(paste0(outdir, "heatmap_all_degs_validation.pdf"), width = 10, height = 20)
-Heatmap(
+draw(Heatmap(
   plot_mat,
   name = "Log2FC",
-  top_annotation = column_ha, # Add the new column annotation here
+  top_annotation = column_ha,
   row_labels = valid_degs_wide$gene_name,
   col = col_fun,
-  cluster_columns = TRUE,
+  na_col = "grey90",
+  cluster_rows = plot_clust$rows,
+  cluster_columns = plot_clust$cols,
   show_row_dend = FALSE,
   row_names_gp = gpar(fontsize = 6),
   border = TRUE
-)
+))
 dev.off()
+}, "all_degs_validation")
 
 # --- create row (gene) annotations --- #
 ### gene functional pathway annotations ###
@@ -454,16 +589,14 @@ str(pathways)
 
 # filter for DEGs that are also in at least one validation set
 valid_degs_min <- valid_degs_wide %>%
-  select(
-    !c(
-      PATH3vsWT_shaw_logFC,
-      IPSC_HD_shaw_logFC,
-      HDvsWT_tanaka1,
-      HDvsWT_tanaka2
-    )
-  ) %>%
-  filter(rowSums(select(., 3:4)) != 0) %>%
+  select(!any_of(c(
+    "PATH3vsWT_shaw_logFC", "IPSC_HD_shaw_logFC",
+    "HDvsWT_tanaka1", "HDvsWT_tanaka2"
+  ))) %>%
+  filter(if_any(any_of(c("fibro_wong", "neu_wong")), ~ !is.na(.x))) %>%
   filter(gene_name %in% pathways$GeneSymbol)
+
+message("valid_degs_min rows: ", nrow(valid_degs_min))
 
 # define row annotation based on established pathways
 pathways_pivoted <- pathways %>%
@@ -527,23 +660,28 @@ gene_ha <- rowAnnotation(
 )
 
 ### plot heatmap ###
+min_mat <- as.matrix(valid_degs_min[, 3:length(valid_degs_min)])
+min_clust <- cluster_na_matrix(min_mat)
 heatmap_obj <- Heatmap(
-  as.matrix(valid_degs_min[, 3:length(valid_degs_min)]),
+  min_mat,
   name = "Log2(Fold Change)",
   col = col_fun,
+  na_col = "grey90",
   row_labels = valid_degs_min$gene_name,
   row_names_gp = gpar(fontsize = 6),
-  cluster_rows = TRUE,
-  cluster_columns = TRUE,
+  cluster_rows = min_clust$rows,
+  cluster_columns = min_clust$cols,
   right_annotation = gene_ha,
   border = TRUE,
   column_title = "Significant SETBP1-HD DEGs Across Studies"
 )
 
 # save
+safely_plot({
 pdf(paste0(outdir, "validation_degs_min.pdf"), width = 10, height = 22)
 draw(heatmap_obj, column_title_gp = gpar(fontsize = 14, fontface = "bold"))
 dev.off()
+}, "validation_degs_min")
 
 heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
   # filter and select sig degs
@@ -562,14 +700,17 @@ heatmap_by_method <- function(full_deg_df, genes, gene_data, title) {
   )
 
   # create plot
+  mat <- as.matrix(plot_data[, 2:length(plot_data)])
+  clust <- cluster_na_matrix(mat)
   hm <- Heatmap(
-    as.matrix(plot_data[, 2:length(plot_data)]),
+    mat,
     name = "Log2(Fold Change)",
     col = col_fun,
+    na_col = "grey90",
     row_labels = plot_data$gene_name,
     row_names_gp = gpar(fontsize = 6),
-    cluster_rows = TRUE,
-    cluster_columns = TRUE,
+    cluster_rows = clust$rows,
+    cluster_columns = clust$cols,
     right_annotation = gene_ha,
     top_annotation = column_ha,
     border = TRUE,
@@ -595,6 +736,7 @@ hm_list <- lapply(seq_along(sig_list), function(sig) {
 })
 
 # save all plots to one PDF
+safely_plot({
 pdf(
   paste0(outdir, "heatmap_validation_annotation_by_sig.pdf"),
   width = 10, height = 18
@@ -603,34 +745,7 @@ for (plot in hm_list) {
   print(plot)
 }
 dev.off()
-
-### RRA and Meta Analysis Volcano Plot ###
-lfc_th <- 0.1 # logFC threshold
-pval_th <- -log10(0.05) # p-value threshold
-
-rra_meta <- rra %>%
-  inner_join(meta_stats, by = c("Name" = "gene")) %>%
-  mutate(
-    RRA_pval = -log10(Score),
-    Direction = case_when(
-      meta_logFC > lfc_th & RRA_pval > pval_th ~ "Upregulated",
-      meta_logFC < -lfc_th & RRA_pval > pval_th ~ "Downregulated",
-      TRUE ~ "Non-Significant/Inconsistent"
-    )
-  )
-table(rra_meta$Direction)
-
-# filter RRA-meta consensus signature
-rra_meta_filt <- rra_meta %>%
-  filter(Direction != "Non-Significant/Inconsistent")
-
-# save as meta-analysis labeled RRA signature
-write_csv(
-  rra_meta, paste0(outdir, "RRA_meta_DEGs.csv")
-)
-write_csv(
-  rra_meta_filt, paste0(outdir, "RRA_meta_consensus_signature.csv")
-)
+}, "validation_anno_by_sig")
 
 # compare RRA alone to RRA-meta
 excluded <- setdiff(rra_results$gene_name, rra_meta_filt$gene_name)
@@ -644,12 +759,14 @@ rra_meta_exc <- heatmap_by_method(
   title = "RRA Genes Excluded by Meta logFC Threshold"
 )
 # save all plots to one PDF
+safely_plot({
 pdf(
   paste0(outdir, "heatmap_rra_meta_excluded.pdf"),
   width = 10, height = 18
 )
 print(rra_meta_exc)
 dev.off()
+}, "rra_meta_excluded_genes")
 
 
 ###### ORA OF CONSENSUS SIGNATURES ######
@@ -694,6 +811,178 @@ print(performance_results)
 write_csv(
   performance_results, paste0(outdir, "signature_performance_metrics.csv")
 )
+
+###### SIGNATURE DIAGNOSTICS ######
+### agreement between RRA rank and meta-analysis evidence ###
+rank_disc <- rra_meta %>%
+  filter(!is.na(meta_pval)) %>%
+  mutate(
+    rra_rank  = rank(Score,     ties.method = "average"),
+    meta_rank = rank(meta_pval, ties.method = "average")
+  )
+
+rho <- cor.test(rank_disc$rra_rank, rank_disc$meta_rank, method = "spearman")
+print(rho)
+
+# check whether meta-analysis CI width tracks RRA rank
+print(cor.test(rank_disc$rra_rank, rank_disc$ci_width, method = "spearman"))
+
+p_disc <- ggplot(rank_disc, aes(x = rra_rank, y = -log10(meta_pval))) +
+  geom_point(aes(colour = Tier), alpha = 0.6, size = 1.4) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  scale_x_continuous(trans = "log10") +
+  labs(
+    x = "RRA rank (log scale, 1 = best)",
+    y = expression(-log[10]~"(meta-analysis p)"),
+    title = "RRA rank vs meta-analysis evidence",
+    subtitle = paste0("Spearman rho = ", signif(rho$estimate, 3))
+  ) +
+  theme_bw()
+
+safely_plot({
+ggsave(paste0(outdir, "rra_vs_meta_discordance.png"), p_disc,
+       width = 18, height = 13, units = "cm", dpi = 300)
+}, "rra_meta_discordance")
+
+### forest plots of per-contrast logFC for key genes ###
+forest_genes <- c("LIN28A", "SPON1", "ROBO1", "PSMG3", "ISL2", "DRGX")
+
+safely_plot({
+pdf(paste0(outdir, "forest_headline_genes.pdf"), width = 7, height = 5)
+for (g in forest_genes) {
+  d <- consensus_degs %>% filter(gene_name == g)
+  if (nrow(d) < 2) next
+  fit <- tryCatch(rma(yi = d$logFC, sei = d$se_logFC, method = "REML"),
+                  error = function(e) NULL)
+  if (is.null(fit)) next
+  forest(fit, slab = paste(d$dataset, d$contrast, sep = ": "),
+         xlab = "log2 fold change", main = g)
+}
+dev.off()
+}, "forest_headline_genes")
+
+
+### leave-one-dataset-out sensitivity ###
+# rerun RRA with each dataset removed to test whether a signature gene depends
+# on a single dataset
+
+loo_rra <- function(drop_dataset) {
+  sub <- consensus_degs %>% filter(dataset != drop_dataset)
+  if (nrow(sub) == 0) return(NULL)
+  lists <- lapply(unique(sub$contrast), function(c) {
+    sub %>% filter(contrast == c) %>% arrange(adj.P.Val) %>% pull(gene)
+  })
+  lists <- lists[lengths(lists) > 0]
+  if (length(lists) < 2) return(NULL)
+  aggregateRanks(lists, N = universe_n, exact = TRUE) %>%
+    rename(!!paste0("Score_drop_", drop_dataset) := Score)
+}
+
+loo_results <- reduce(
+  lapply(unique(consensus_degs$dataset), loo_rra),
+  full_join, by = "Name"
+)
+
+loo_compare <- rra_meta_filt %>%
+  select(Name, gene_name, Score, meta_logFC, meta_pval, Tier, n_datasets) %>%
+  left_join(loo_results, by = "Name") %>%
+  mutate(across(starts_with("Score_drop_"), ~ .x < rra_th,
+                .names = "survives_{.col}"))
+
+write_csv(loo_compare, paste0(outdir, "leave_one_dataset_out_comparison.csv"))
+
+loo_compare %>%
+  summarise(across(starts_with("survives_"), ~ sum(.x, na.rm = TRUE))) %>%
+  print()
+
+# genes that survive dropping either dataset
+loo_robust <- loo_compare %>%
+  filter(if_all(starts_with("survives_"), ~ .x %in% TRUE))
+message(
+  "Signature genes robust to dropping either dataset: ",
+  nrow(loo_robust), " of ", nrow(loo_compare)
+)
+loo_robust %>% count(Tier) %>% print()
+
+
+### performance of signature tiers vs validation genes ###
+
+tiered_sig_list <- list(
+  Current_RRA_meta = rra_meta_filt$gene_name,
+  Tier1            = tier1$gene_name,
+  Tier1_plus_2     = rra_meta %>%
+    filter(Tier %in% c("Tier1_high_confidence", "Tier2_supported")) %>%
+    pull(gene_name),
+  RRA_only         = rra_results$gene_name,
+  Meta_only        = meta_a$gene_name
+)
+
+tier_performance <- map_df(names(tiered_sig_list), function(nm) {
+  calculate_sig_performance(
+    tiered_sig_list[[nm]], true_positives, background_g
+  ) %>%
+    mutate(Signature = nm, N_genes = length(unique(tiered_sig_list[[nm]])))
+}) %>%
+  select(Signature, N_genes, everything()) %>%
+  arrange(desc(F1_Score))
+
+print(tier_performance)
+write_csv(tier_performance, paste0(outdir, "tier_performance_metrics.csv"))
+
+# recall and F1 scale with signature size, so also compare precision (with a
+# binomial CI) and enrichment over the background rate, overall and at matched N
+precision_ci <- function(sig_genes, true_genes) {
+  sig_genes <- unique(sig_genes)
+  tp <- length(intersect(sig_genes, true_genes))
+  bt <- binom.test(tp, length(sig_genes))
+  tibble(
+    n_genes = length(sig_genes), tp = tp,
+    precision = unname(bt$estimate),
+    ci_lb = bt$conf.int[1], ci_ub = bt$conf.int[2]
+  )
+}
+
+base_rate <- length(intersect(true_positives, background_g)) /
+  length(background_g)
+message("Base rate of validation genes in background: ", round(base_rate, 4))
+
+top_n_by <- function(df, order_col, n = 100) {
+  df %>%
+    arrange(.data[[order_col]]) %>%
+    slice_head(n = n) %>%
+    pull(gene_name)
+}
+
+precision_sig_list <- c(
+  tiered_sig_list,
+  list(
+    RRA_top100   = top_n_by(rra_meta, "Score", 100),
+    MetaP_top100 = top_n_by(filter(rra_meta, !is.na(meta_pval)), "meta_pval", 100)
+  )
+)
+
+precision_results <- map_df(names(precision_sig_list), function(nm) {
+  precision_ci(precision_sig_list[[nm]], true_positives) %>%
+    mutate(Signature = nm)
+}) %>%
+  mutate(enrichment_over_base = precision / base_rate) %>%
+  select(Signature, everything()) %>%
+  arrange(desc(precision))
+
+print(precision_results)
+write_csv(precision_results, paste0(outdir, "signature_precision_metrics.csv"))
+
+
+### DEG presence (1) / absence (0) per contrast for consensus genes ###
+presence_mat <- consensus_degs %>%
+  mutate(present = 1L) %>%
+  select(gene, contrast, dataset, present) %>%
+  unite("contrast_dataset", contrast, dataset) %>%
+  distinct() %>%
+  pivot_wider(names_from = contrast_dataset, values_from = present,
+              values_fill = 0L)
+
+write_csv(presence_mat, paste0(outdir, "deg_presence_matrix.csv"))
 
 #### END ####
 
