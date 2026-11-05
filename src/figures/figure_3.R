@@ -294,14 +294,14 @@ lfc_th <- 0.1 # logFC threshold
 pval_th <- -log10(0.05) # p-value threshold
 
 core_genes_label <- rra_meta %>%
-  slice_max(RRA_pval, n = 10)
+  slice_max(neg_log10_RRA, n = 10)
 
-volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = RRA_pval)) +
-  geom_point(aes(color = Direction), alpha = 0.75, size = 2.5) +
+volcano_plot <- ggplot(rra_meta, aes(x = meta_logFC, y = neg_log10_RRA)) +
+  geom_point(aes(color = signature_call), alpha = 0.75, size = 2.5) +
   scale_color_manual(values = c(
     "Upregulated" = viridis(20, option = "magma")[[17]],
     "Downregulated" = viridis(20, option = "magma")[[3]],
-    "Non-Significant/Inconsistent" = "gray80"
+    "Not in signature" = "gray80"
   )) +
   # horizontal threshold line for RRA significance
   geom_hline(
